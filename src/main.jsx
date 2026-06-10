@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Menu, X, Download, PrinterIcon, Clock, TrendingUp, Users, FileText } from 'lucide-react';
-
 // Datos de proyectos
 const projectsData = [
   { radicado: '2026-001', estado: 'OBSERVACIONES', tecnico: 'Diana Uribe', revisorEstruc: 'Alejandra Calderon', ldf: '2026-01-08', observaciones: '2026-01-10', extension: false, tipoLicencia: 'Parcelación' },

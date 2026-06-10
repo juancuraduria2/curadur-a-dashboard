@@ -5,15 +5,301 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Curaduría Urbana N.° 2 - Pereira</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+          --primary: #3b82f6;
+          --success: #10b981;
+          --danger: #ef4444;
+          --warning: #f59e0b;
+          --dark: #1f2937;
+          --light: #f9fafb;
+          --border: #e5e7eb;
         }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: #f5f5f5;
-            color: #333;
+          background: var(--light);
+          color: var(--dark);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+          margin: 0;
+          padding: 0;
+        }
+
+        .dashboard-container {
+          min-height: 100vh;
+          background: var(--light);
+        }
+
+        .navbar {
+          background: white;
+          border-bottom: 1px solid var(--border);
+          padding: 16px 24px;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .navbar-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--dark);
+        }
+
+        .menu-button {
+          display: none;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 6px;
+          color: var(--dark);
+        }
+
+        .tabs {
+          background: white;
+          border-bottom: 1px solid var(--border);
+          padding: 0 24px;
+          display: flex;
+          gap: 0;
+        }
+
+        .tab {
+          background: none;
+          border: none;
+          padding: 16px 24px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          color: #6b7280;
+          border-bottom: 3px solid transparent;
+          transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+          color: var(--primary);
+        }
+
+        .tab.active {
+          color: var(--primary);
+          border-bottom-color: var(--primary);
+        }
+
+        .content {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 32px 24px;
+        }
+
+        .kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+
+        .kpi-card {
+          background: white;
+          padding: 24px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          text-align: center;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-number {
+          font-size: 36px;
+          font-weight: 700;
+          color: var(--primary);
+          margin-bottom: 8px;
+        }
+
+        .kpi-label {
+          font-size: 14px;
+          color: #6b7280;
+          font-weight: 600;
+        }
+
+        .charts-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 24px;
+          margin-bottom: 40px;
+        }
+
+        .chart-container {
+          background: white;
+          padding: 24px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-container h3 {
+          margin-bottom: 16px;
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--dark);
+        }
+
+        .table-container {
+          background: white;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          overflow-x: auto;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .projects-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .projects-table thead {
+          background: var(--light);
+          border-bottom: 2px solid var(--border);
+        }
+
+        .projects-table th {
+          padding: 12px 16px;
+          text-align: left;
+          font-weight: 700;
+          color: var(--dark);
+          font-size: 14px;
+        }
+
+        .projects-table tbody tr {
+          border-bottom: 1px solid var(--border);
+          transition: background-color 0.2s;
+        }
+
+        .projects-table tbody tr:hover {
+          background-color: var(--light);
+        }
+
+        .projects-table td {
+          padding: 12px 16px;
+          font-size: 14px;
+          color: var(--dark);
+        }
+
+        .radicado-cell {
+          font-weight: 600;
+          color: var(--primary);
+        }
+
+        .status-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .status-APROBADO {
+          background-color: #d1fae5;
+          color: #065f46;
+        }
+
+        .status-NO-LDF {
+          background-color: #fecaca;
+          color: #991b1b;
+        }
+
+        .status-OBSERVACIONES {
+          background-color: #fef3c7;
+          color: #92400e;
+        }
+
+        .status-REV-ARQ,
+        .status-REV-ESTRUC,
+        .status-REV-ESTRUC-2 {
+          background-color: #dbeafe;
+          color: #0c2d6b;
+        }
+
+        .tech-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .tech-card {
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          text-align: center;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          transition: transform 0.2s;
+        }
+
+        .tech-card:hover {
+          transform: translateY(-2px);
+        }
+
+        .tech-name {
+          font-weight: 700;
+          color: var(--dark);
+          margin-bottom: 8px;
+        }
+
+        .tech-projects {
+          font-size: 14px;
+          color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+          .menu-button {
+            display: block;
+          }
+          
+          .navbar-title {
+            font-size: 18px;
+          }
+
+          .content {
+            padding: 16px 12px;
+          }
+
+          .kpi-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+          }
+
+          .kpi-number {
+            font-size: 24px;
+          }
+
+          .kpi-label {
+            font-size: 12px;
+          }
+
+          .charts-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .projects-table {
+            font-size: 12px;
+          }
+
+          .projects-table th,
+          .projects-table td {
+            padding: 8px 12px;
+          }
         }
     </style>
 </head>

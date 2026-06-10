@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Menu, X, Download, PrinterIcon, Clock, TrendingUp, Users, FileText } from 'lucide-react';
-import './styles.css';
 
 // Datos de proyectos
 const projectsData = [

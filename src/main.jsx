@@ -98,9 +98,7 @@ const businessDaysFromToday = (targetDate) => {
   today.setHours(0, 0, 0, 0);
   const target = new Date(targetDate);
   target.setHours(0, 0, 0, 0);
-
   if (target.getTime() === today.getTime()) return 0;
-
   let count = 0;
   const cur = new Date(today);
   if (target > today) {
@@ -129,7 +127,6 @@ const involucrado = (nombre) =>
   projectsData.filter(p => p.tecnico === nombre || p.revisorEstruc === nombre).length;
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
-
 const MONTH_MAP = { 'Ene': '01', 'Feb': '02', 'Mar': '03', 'Abr': '04', 'May': '05' };
 
 /* =========================================================
@@ -144,13 +141,11 @@ const STYLES = `
 body{margin:0;background:var(--light);color:var(--dark);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;}
 .app{min-height:100vh;display:flex;flex-direction:column;}
-
 .navbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;
   position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .navbar-content{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
 .navbar-title{font-size:20px;font-weight:700;}
 .navbar-sub{font-size:12px;color:var(--muted);font-weight:500;}
-
 .tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;
   display:flex;gap:2px;overflow-x:auto;max-width:1400px;margin:0 auto;width:100%;}
 .tab{background:none;border:none;padding:14px 16px;cursor:pointer;font-size:13px;font-weight:600;
@@ -158,22 +153,18 @@ body{margin:0;background:var(--light);color:var(--dark);
   align-items:center;gap:6px;transition:.2s;}
 .tab:hover{color:var(--primary);}
 .tab.active{color:var(--primary);border-bottom-color:var(--primary);}
-
 .content{max-width:1400px;margin:0 auto;padding:28px 20px;width:100%;}
 h2.section-title{font-size:20px;margin:0 0 18px;}
 p.section-desc{color:var(--muted);font-size:14px;margin:-12px 0 20px;}
-
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px;}
 .kpi-card{background:#fff;padding:22px;border-radius:12px;border:1px solid var(--border);
   text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);}
 .kpi-number{font-size:34px;font-weight:700;color:var(--primary);}
 .kpi-label{font-size:13px;color:var(--muted);font-weight:600;margin-top:4px;}
-
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px;margin-bottom:24px;}
 .card{background:#fff;padding:22px;border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.05);}
 .card h3{margin:0 0 16px;font-size:15px;}
-
 .table-container{background:#fff;border-radius:12px;border:1px solid var(--border);overflow-x:auto;box-shadow:0 1px 3px rgba(0,0,0,.05);}
 table{width:100%;border-collapse:collapse;}
 thead{background:var(--light);border-bottom:2px solid var(--border);}
@@ -182,17 +173,14 @@ tbody tr{border-bottom:1px solid var(--border);transition:.15s;}
 tbody tr:hover{background:var(--light);}
 td{padding:11px 14px;font-size:13px;}
 .radicado-cell{font-weight:600;color:var(--primary);}
-
 .badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
 .b-APROBADO{background:#d1fae5;color:#065f46;}
 .b-NO-LDF{background:#fecaca;color:#991b1b;}
 .b-OBSERVACIONES{background:#fef3c7;color:#92400e;}
 .b-REV-ARQ,.b-REV-ESTRUC,.b-REV-ESTRUC-2{background:#dbeafe;color:#0c2d6b;}
-
 .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
   border-radius:10px;padding:9px 14px;margin-bottom:16px;max-width:420px;}
 .search-bar input{border:none;outline:none;font-size:14px;width:100%;}
-
 .btn{background:var(--primary);color:#fff;border:none;padding:10px 18px;border-radius:9px;
   font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
 .btn:hover{background:#2563eb;}
@@ -200,7 +188,6 @@ td{padding:11px 14px;font-size:13px;}
 .btn-logout:hover{background:#dc2626;}
 .btn-tv{background:#f59e0b;}
 .btn-tv:hover{background:#d97706;}
-
 .tech-selector{min-height:100vh;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   display:flex;align-items:center;justify-content:center;padding:20px;}
 .tech-selector-content{max-width:500px;width:100%;text-align:center;}
@@ -217,7 +204,6 @@ td{padding:11px 14px;font-size:13px;}
 .tech-button-name{font-size:15px;font-weight:700;color:#fff;}
 .tech-button-role{font-size:12px;color:#94a3b8;margin-top:2px;}
 .tech-button-arrow{color:#60a5fa;font-size:18px;}
-
 .project-card{background:#fff;border-left:6px solid var(--primary);border-radius:10px;
   padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
 .project-card.urgent{border-left-color:var(--danger);}
@@ -227,11 +213,9 @@ td{padding:11px 14px;font-size:13px;}
 .project-title{font-size:15px;font-weight:600;margin:8px 0 4px;}
 .project-meta{font-size:12px;color:var(--muted);margin:4px 0;}
 .project-urgency{background:var(--danger);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
-
 .hist-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .hist-date{color:var(--muted);min-width:90px;}
 .hist-dot{width:9px;height:9px;border-radius:50%;background:var(--primary);margin-top:5px;flex-shrink:0;}
-
 .term-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
 .term-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;
   box-shadow:0 1px 3px rgba(0,0,0,.05);border-left:6px solid var(--border);}
@@ -245,13 +229,11 @@ td{padding:11px 14px;font-size:13px;}
 .term-row{font-size:13px;color:var(--muted);margin:3px 0;display:flex;justify-content:space-between;}
 .term-days{font-size:22px;font-weight:700;margin-top:8px;}
 .term-days.green{color:var(--success);} .term-days.orange{color:var(--warning);} .term-days.red{color:var(--danger);}
-
 .bita-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;
   margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);display:flex;gap:12px;align-items:flex-start;}
 .bita-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
 .bita-title{font-weight:700;font-size:14px;}
 .bita-text{font-size:13px;color:var(--muted);margin-top:2px;}
-
 .tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
 .tech-card{background:#fff;padding:20px;border-radius:12px;border:1px solid var(--border);
   box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;}
@@ -260,7 +242,8 @@ td{padding:11px 14px;font-size:13px;}
 .tech-role{font-size:12px;color:var(--muted);margin-bottom:10px;}
 .tech-stat{display:flex;justify-content:space-between;font-size:13px;margin:4px 0;}
 .tech-bignum{font-size:30px;font-weight:700;color:var(--primary);}
-
+.prod-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle;margin-right:8px;}
+.prod-bar span{display:block;height:100%;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;
   justify-content:center;padding:30px;overflow-y:auto;z-index:1000;}
 .modal{background:#fff;border-radius:12px;max-width:800px;width:100%;padding:34px;}
@@ -269,26 +252,26 @@ td{padding:11px 14px;font-size:13px;}
 .doc h2{font-size:15px;margin:22px 0 8px;border-bottom:2px solid var(--border);padding-bottom:5px;}
 .doc p{font-size:14px;line-height:1.6;}
 .doc ul{font-size:14px;line-height:1.7;}
-
 .tv{position:fixed;inset:0;background:#0f172a;color:#fff;z-index:2000;padding:30px 40px;overflow-y:auto;}
 .tv-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
 .tv-title{font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:2px;}
 .tv-subtitle{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;}
 .tv-clock{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;color:#f59e0b;}
-.tv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;}
-.tv-kpi{background:#1e293b;border-radius:10px;padding:16px;text-align:center;border:1px solid #334155;}
-.tv-kpi .n{font-size:28px;font-weight:800;color:#60a5fa;}
-.tv-kpi .l{font-size:11px;color:#94a3b8;margin-top:4px;text-transform:uppercase;}
+.tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.tv-kpi{background:#1e293b;border-radius:10px;padding:20px;text-align:center;border:1px solid #334155;}
+.tv-kpi .n{font-size:34px;font-weight:800;color:#60a5fa;}
+.tv-kpi .l{font-size:12px;color:#94a3b8;margin-top:4px;text-transform:uppercase;}
 .tv-panel{background:#1e293b;border-radius:10px;padding:18px;margin-bottom:16px;border:1px solid #334155;}
 .tv-panel h3{margin:0 0 12px;font-size:13px;color:#e2e8f0;text-transform:uppercase;font-weight:700;}
-.tv-rank{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #334155;font-size:13px;color:#cbd5e1;}
+.tv-rank{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #334155;font-size:13px;color:#cbd5e1;}
 .tv-rank:last-child{border-bottom:none;}
 .tv-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden;margin-top:4px;margin-bottom:8px;}
 .tv-bar span{display:block;height:100%;background:#60a5fa;}
+.tv-move{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #334155;font-size:14px;color:#cbd5e1;}
+.tv-move:last-child{border-bottom:none;}
 .tv-close{position:fixed;top:20px;right:24px;background:#ef4444;border:none;color:#fff;
   padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;}
 .tv-close:hover{background:#dc2626;}
-
 @media print{
   body *{visibility:hidden;}
   .modal,.modal *{visibility:visible;}
@@ -296,13 +279,13 @@ td{padding:11px 14px;font-size:13px;}
 }
 @media (max-width:768px){
   .navbar-title{font-size:16px;}
-  .tv-grid{grid-template-columns:repeat(3,1fr);}
-  .tv-kpi .n{font-size:20px;}
+  .tv-grid{grid-template-columns:repeat(2,1fr);}
+  .tv-kpi .n{font-size:24px;}
 }
 `;
 
 /* =========================================================
-   MODULO: DASHBOARD
+   DASHBOARD
    ========================================================= */
 function Dashboard() {
   const total = projectsData.length;
@@ -310,16 +293,13 @@ function Dashboard() {
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
   const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
   const pctAprob = ((aprobados / total) * 100).toFixed(1);
-
   const monthlyData = ['Ene', 'Feb', 'Mar', 'Abr', 'May'].map(month => ({
     month,
     cantidad: projectsData.filter(p => p.ldf.includes(`2026-${MONTH_MAP[month]}`)).length
   }));
-
   const statusCounts = {};
   projectsData.forEach(p => { statusCounts[p.estado] = (statusCounts[p.estado] || 0) + 1; });
   const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-
   return (
     <div>
       <div className="kpi-grid">
@@ -329,16 +309,13 @@ function Dashboard() {
         <div className="kpi-card"><div className="kpi-number">{noLdf}</div><div className="kpi-label">Sin LDF</div></div>
         <div className="kpi-card"><div className="kpi-number">{pctAprob}%</div><div className="kpi-label">% Aprobación</div></div>
       </div>
-
       <div className="charts-grid">
         <div className="card">
           <h3>Proyectos por Mes</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
+              <XAxis dataKey="month" /><YAxis allowDecimals={false} /><Tooltip />
               <Bar dataKey="cantidad" fill="#3b82f6" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -361,14 +338,13 @@ function Dashboard() {
 }
 
 /* =========================================================
-   MODULO: TERMINOS
+   TERMINOS
    ========================================================= */
 function semaforoColor(dias, vencido) {
   if (vencido || dias < 3) return 'red';
   if (dias <= 7) return 'orange';
   return 'green';
 }
-
 function Terminos() {
   const items = projectsData
     .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
@@ -379,15 +355,13 @@ function Terminos() {
       return { ...p, deadline, dias, vencido, color: semaforoColor(dias, vencido) };
     })
     .sort((a, b) => a.dias - b.dias);
-
   const enRojo = items.filter(i => i.color === 'red').length;
   const enNaranja = items.filter(i => i.color === 'orange').length;
   const enVerde = items.filter(i => i.color === 'green').length;
-
   return (
     <div>
       <h2 className="section-title">Términos y Plazos Legales</h2>
-      <p className="section-desc">Plazo legal de la Curaduría: 45 días hábiles desde la fecha LDF. Semáforo: verde &gt;7 días, naranja 3–7 días, rojo &lt;3 días o vencido.</p>
+      <p className="section-desc">Plazo legal de la Curaduría: 45 días hábiles desde la fecha LDF. Semáforo: verde &gt;7 días, naranja 3-7 días, rojo &lt;3 días o vencido.</p>
       <div className="kpi-grid">
         <div className="kpi-card"><div className="kpi-number" style={{ color: 'var(--success)' }}>{enVerde}</div><div className="kpi-label">En plazo (verde)</div></div>
         <div className="kpi-card"><div className="kpi-number" style={{ color: 'var(--warning)' }}>{enNaranja}</div><div className="kpi-label">Por vencer (naranja)</div></div>
@@ -414,16 +388,14 @@ function Terminos() {
 }
 
 /* =========================================================
-   MODULO: PROYECTOS
+   PROYECTOS
    ========================================================= */
 function Proyectos() {
   const [query, setQuery] = useState('');
   const [estadoF, setEstadoF] = useState('TODOS');
   const [tecnicoF, setTecnicoF] = useState('TODOS');
-
   const estados = ['TODOS', ...Array.from(new Set(projectsData.map(p => p.estado)))];
   const tecnicos = ['TODOS', ...Array.from(new Set(projectsData.map(p => p.tecnico)))];
-
   const filtered = projectsData.filter(p => {
     const q = query.toLowerCase();
     const matchQuery = !q || p.radicado.toLowerCase().includes(q) ||
@@ -432,7 +404,6 @@ function Proyectos() {
     const matchTec = tecnicoF === 'TODOS' || p.tecnico === tecnicoF;
     return matchQuery && matchEstado && matchTec;
   });
-
   return (
     <div>
       <h2 className="section-title">Listado de Proyectos ({filtered.length})</h2>
@@ -476,7 +447,7 @@ function Proyectos() {
 }
 
 /* =========================================================
-   MODULO: TECNICOS
+   TECNICOS
    ========================================================= */
 function Tecnicos() {
   const data = teamMembers.map(m => {
@@ -485,9 +456,7 @@ function Tecnicos() {
     const totalInvol = involucrado(m.name);
     return { ...m, comoTecnico, comoRevisor, totalInvol };
   }).sort((a, b) => b.totalInvol - a.totalInvol);
-
   const maxCarga = Math.max(...data.map(d => d.totalInvol));
-
   return (
     <div>
       <h2 className="section-title">Productividad del Equipo</h2>
@@ -509,7 +478,7 @@ function Tecnicos() {
 }
 
 /* =========================================================
-   MODULO: BITACORA
+   BITACORA
    ========================================================= */
 function Bitacora() {
   const total = projectsData.length;
@@ -517,22 +486,18 @@ function Bitacora() {
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
   const observaciones = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
   const conProrroga = projectsData.filter(p => p.extension).length;
-
   const cargas = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) })).sort((a, b) => b.n - a.n);
   const masCargado = cargas[0];
   const menosCargado = cargas[cargas.length - 1];
-
   const tipoCounts = {};
   projectsData.forEach(p => { tipoCounts[p.tipoLicencia] = (tipoCounts[p.tipoLicencia] || 0) + 1; });
   const tipoTop = Object.entries(tipoCounts).sort((a, b) => b[1] - a[1])[0];
-
   const insights = [
     { ico: '#3b82f6', icon: <FileText size={18} />, title: 'Volumen general', text: `Se gestionan ${total} radicados. ${aprobados} aprobados (${((aprobados / total) * 100).toFixed(0)}%), ${observaciones} en observaciones y ${noLdf} sin LDF.` },
     { ico: '#ef4444', icon: <TrendingUp size={18} />, title: 'Distribución de carga', text: `${masCargado.name} es quien más proyectos tiene (${masCargado.n}). ${menosCargado.name} es quien menos tiene (${menosCargado.n}).` },
     { ico: '#f59e0b', icon: <Clock size={18} />, title: 'Prórrogas activas', text: `${conProrroga} proyectos tienen prórroga de 15 días.` },
     { ico: '#10b981', icon: <ListChecks size={18} />, title: 'Tipo predominante', text: `"${tipoTop[0]}" es el tipo más frecuente con ${tipoTop[1]} radicados.` },
   ];
-
   return (
     <div>
       <h2 className="section-title">Bitácora — Análisis Automático</h2>
@@ -551,32 +516,68 @@ function Bitacora() {
 }
 
 /* =========================================================
-   MODULO: CURADOR
+   CURADOR (ACTUALIZADO)
    ========================================================= */
 function Curador() {
   const [showDoc, setShowDoc] = useState(false);
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
-  const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
-  const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
-  const observaciones = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
+  const enTramite = total - aprobados;
+  const pctAprob = ((aprobados / total) * 100).toFixed(0);
   const hoy = fmtDate(new Date());
+
+  const productividad = teamMembers.map(m => {
+    const asignados = projectsData.filter(p => p.tecnico === m.name);
+    const tot = asignados.length;
+    const apr = asignados.filter(p => p.estado === 'APROBADO').length;
+    const enRev = asignados.filter(p => p.estado.startsWith('REV')).length;
+    const pct = tot > 0 ? Math.round((apr / tot) * 100) : 0;
+    return { ...m, tot, apr, enRev, pct };
+  }).sort((a, b) => b.tot - a.tot);
+
+  const pctColor = (pct) => pct >= 50 ? '#10b981' : pct >= 20 ? '#f59e0b' : '#ef4444';
 
   return (
     <div>
       <h2 className="section-title">Vista del Curador</h2>
-      <p className="section-desc">Resumen ejecutivo para {CURADOR}, Curador Urbano N.° 2 de Pereira.</p>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3>Estado consolidado al {hoy}</h3>
-        <div className="kpi-grid" style={{ marginBottom: 0 }}>
-          <div className="kpi-card"><div className="kpi-number">{total}</div><div className="kpi-label">Total</div></div>
-          <div className="kpi-card"><div className="kpi-number">{aprobados}</div><div className="kpi-label">Aprobados</div></div>
-          <div className="kpi-card"><div className="kpi-number">{enRevision}</div><div className="kpi-label">En revisión</div></div>
-          <div className="kpi-card"><div className="kpi-number">{observaciones}</div><div className="kpi-label">Observaciones</div></div>
-          <div className="kpi-card"><div className="kpi-number">{noLdf}</div><div className="kpi-label">Sin LDF</div></div>
+      <p className="section-desc">Panel ejecutivo para {CURADOR}, Curador Urbano N.° 2 de Pereira.</p>
+
+      <div className="kpi-grid">
+        <div className="kpi-card"><div className="kpi-number">{total}</div><div className="kpi-label">Total Radicados</div></div>
+        <div className="kpi-card"><div className="kpi-number" style={{ color: 'var(--success)' }}>{aprobados}</div><div className="kpi-label">Aprobados</div></div>
+        <div className="kpi-card"><div className="kpi-number" style={{ color: 'var(--warning)' }}>{enTramite}</div><div className="kpi-label">En Trámite</div></div>
+        <div className="kpi-card"><div className="kpi-number" style={{ color: '#8b5cf6' }}>{pctAprob}%</div><div className="kpi-label">Tasa de Aprobación</div></div>
+      </div>
+
+      <button className="btn" style={{ marginBottom: 20 }} onClick={() => setShowDoc(true)}><Printer size={17} />Generar Informe PDF</button>
+
+      <div className="card">
+        <h3>📊 Resumen de Productividad</h3>
+        <div className="table-container" style={{ border: 'none', boxShadow: 'none' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Técnico</th><th>Rol</th><th>Total</th><th>Aprobados</th><th>En Rev.</th><th>% Aprob.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productividad.map(p => (
+                <tr key={p.name}>
+                  <td style={{ fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ color: 'var(--muted)' }}>{p.role}</td>
+                  <td style={{ fontWeight: 700 }}>{p.tot}</td>
+                  <td style={{ color: 'var(--success)', fontWeight: 700 }}>{p.apr}</td>
+                  <td style={{ color: 'var(--primary)', fontWeight: 700 }}>{p.enRev}</td>
+                  <td>
+                    <div className="prod-bar"><span style={{ width: `${p.pct}%`, background: pctColor(p.pct) }}></span></div>
+                    <strong style={{ color: pctColor(p.pct) }}>{p.pct}%</strong>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-      <button className="btn" onClick={() => setShowDoc(true)}><Printer size={17} />Ver / Imprimir informe ejecutivo</button>
 
       {showDoc && (
         <div className="modal-overlay" onClick={() => setShowDoc(false)}>
@@ -592,13 +593,12 @@ function Curador() {
               <h1>Informe Ejecutivo de Gestión</h1>
               <p style={{ color: '#6b7280' }}>Curaduría Urbana N.° 2 de Pereira · {CURADOR} · {hoy}</p>
               <h2>1. Resumen general</h2>
-              <p>Durante el periodo enero–mayo de 2026 se han radicado {total} proyectos estratégicos.
-                De estos, {aprobados} han sido aprobados, {enRevision} se encuentran en revisión técnica,
-                {observaciones} en observaciones y {noLdf} sin LDF.</p>
-              <h2>2. Equipo técnico</h2>
+              <p>Se han radicado {total} proyectos estratégicos. De estos, {aprobados} han sido aprobados
+                ({pctAprob}% de tasa de aprobación) y {enTramite} se encuentran en trámite.</p>
+              <h2>2. Productividad por técnico</h2>
               <ul>
-                {teamMembers.map(m => (
-                  <li key={m.name}>{m.name} ({m.role}): {involucrado(m.name)} proyectos.</li>
+                {productividad.map(p => (
+                  <li key={p.name}>{p.name} ({p.role}): {p.tot} asignados, {p.apr} aprobados, {p.pct}% de aprobación.</li>
                 ))}
               </ul>
             </div>
@@ -610,13 +610,12 @@ function Curador() {
 }
 
 /* =========================================================
-   MODULO: HISTORIAL
+   HISTORIAL
    ========================================================= */
 const historialData = [
-  { fecha: '11/06/2026', txt: 'Actualización completa con ingreso de técnico y modo TV mejorado.' },
+  { fecha: '11/06/2026', txt: 'Mejoras en Vista del Curador y Modo TV (estado general y movimientos).' },
   { fecha: '10/06/2026', txt: 'Despliegue en producción (Vercel).' },
 ];
-
 function Historial() {
   return (
     <div>
@@ -635,7 +634,7 @@ function Historial() {
 }
 
 /* =========================================================
-   MODULO: VISTA TECNICO
+   VISTA TECNICO
    ========================================================= */
 function VistaTecnico({ tecnicoName, onLogout }) {
   const tecnico = teamMembers.find(t => t.name === tecnicoName);
@@ -643,14 +642,12 @@ function VistaTecnico({ tecnicoName, onLogout }) {
   const aprobados = misProjetos.filter(p => p.estado === 'APROBADO').length;
   const enRevision = misProjetos.filter(p => p.estado.startsWith('REV')).length;
   const total = misProjetos.length;
-
   const misProyectosConDeadline = misProjetos.map(p => {
     const deadline = addBusinessDays(p.ldf, 45);
     const dias = businessDaysFromToday(deadline);
     const vencido = dias < 0;
     return { ...p, deadline, dias, vencido };
   }).sort((a, b) => a.dias - b.dias);
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -660,14 +657,12 @@ function VistaTecnico({ tecnicoName, onLogout }) {
         </div>
         <button className="btn btn-logout" onClick={onLogout}><LogOut size={17} />Cambiar usuario</button>
       </div>
-
       <div className="kpi-grid">
         <div className="kpi-card"><div className="kpi-number">{total}</div><div className="kpi-label">Mis Proyectos</div></div>
         <div className="kpi-card"><div className="kpi-number">{aprobados}</div><div className="kpi-label">Aprobados</div></div>
         <div className="kpi-card"><div className="kpi-number">{enRevision}</div><div className="kpi-label">En Revisión</div></div>
         <div className="kpi-card"><div className="kpi-number">{total > 0 ? ((aprobados / total) * 100).toFixed(0) : 0}%</div><div className="kpi-label">% Aprobación</div></div>
       </div>
-
       <h3 style={{ fontSize: 16, marginTop: 28, marginBottom: 14 }}>Detalle de Proyectos</h3>
       <div>
         {misProyectosConDeadline.map((p, i) => (
@@ -730,7 +725,7 @@ function TecnicoSelector({ onSelect, onContinue }) {
 }
 
 /* =========================================================
-   MODULO: TV MODE
+   TV MODE (ACTUALIZADO)
    ========================================================= */
 function TVMode({ onClose }) {
   const [now, setNow] = useState(new Date());
@@ -742,9 +737,8 @@ function TVMode({ onClose }) {
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
   const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
+  const enActa = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
-  const observaciones = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
-  const urgentes = projectsData.filter(p => p.estado.startsWith('REV') || p.estado === 'OBSERVACIONES').length;
 
   const terms = projectsData
     .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
@@ -761,13 +755,8 @@ function TVMode({ onClose }) {
   const termsGreen = terms.filter(t => t === 'green').length;
 
   const ranking = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) }))
-    .sort((a, b) => b.n - a.n).slice(0, 4);
+    .sort((a, b) => b.n - a.n).slice(0, 5);
   const maxN = Math.max(...ranking.map(r => r.n));
-
-  const aprobPorTecnico = teamMembers.map(m => {
-    const aprobComo = projectsData.filter(p => p.tecnico === m.name && p.estado === 'APROBADO').length;
-    return { name: m.name, aprobados: aprobComo };
-  }).sort((a, b) => b.aprobados - a.aprobados).slice(0, 4);
 
   const clock = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const fecha = now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -775,7 +764,6 @@ function TVMode({ onClose }) {
   return (
     <div className="tv">
       <button className="tv-close" onClick={onClose}>✕ Salir</button>
-      
       <div className="tv-head">
         <div>
           <div className="tv-title">Curaduría 2 Pereira</div>
@@ -786,34 +774,21 @@ function TVMode({ onClose }) {
       </div>
 
       <div className="tv-grid">
-        <div className="tv-kpi"><div className="n">{total}</div><div className="l">Total</div></div>
         <div className="tv-kpi"><div className="n" style={{ color: '#10b981' }}>{aprobados}</div><div className="l">Aprobados</div></div>
         <div className="tv-kpi"><div className="n" style={{ color: '#3b82f6' }}>{enRevision}</div><div className="l">En Revisión</div></div>
-        <div className="tv-kpi"><div className="n" style={{ color: '#f59e0b' }}>{observaciones}</div><div className="l">Observaciones</div></div>
-        <div className="tv-kpi"><div className="n" style={{ color: '#ef4444' }}>{noLdf}</div><div className="l">Sin LDF</div></div>
-        <div className="tv-kpi"><div className="n" style={{ color: '#f59e0b' }}>{urgentes}</div><div className="l">Urgentes</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#f59e0b' }}>{enActa}</div><div className="l">En Acta</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#ef4444' }}>{noLdf}</div><div className="l">NO LDF</div></div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-        
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div className="tv-panel">
           <h3>Semáforo de Términos</h3>
-          <div className="tv-rank">
-            <span style={{ color: '#10b981' }}>En plazo</span>
-            <strong style={{ fontSize: 20, color: '#10b981' }}>{termsGreen}</strong>
-          </div>
-          <div className="tv-rank">
-            <span style={{ color: '#f59e0b' }}>Por vencer</span>
-            <strong style={{ fontSize: 20, color: '#f59e0b' }}>{termsOrange}</strong>
-          </div>
-          <div className="tv-rank">
-            <span style={{ color: '#ef4444' }}>Críticos</span>
-            <strong style={{ fontSize: 20, color: '#ef4444' }}>{termsRed}</strong>
-          </div>
+          <div className="tv-rank"><span style={{ color: '#10b981' }}>En plazo</span><strong style={{ fontSize: 20, color: '#10b981' }}>{termsGreen}</strong></div>
+          <div className="tv-rank"><span style={{ color: '#f59e0b' }}>Por vencer</span><strong style={{ fontSize: 20, color: '#f59e0b' }}>{termsOrange}</strong></div>
+          <div className="tv-rank"><span style={{ color: '#ef4444' }}>Críticos</span><strong style={{ fontSize: 20, color: '#ef4444' }}>{termsRed}</strong></div>
         </div>
-
         <div className="tv-panel">
-          <h3>Productividad</h3>
+          <h3>Productividad del Equipo</h3>
           {ranking.map(r => (
             <div key={r.name}>
               <div className="tv-rank"><span>{r.name}</span><strong>{r.n}</strong></div>
@@ -821,24 +796,14 @@ function TVMode({ onClose }) {
             </div>
           ))}
         </div>
-
-        <div className="tv-panel">
-          <h3>Top Aprobaciones</h3>
-          {aprobPorTecnico.map((ap, i) => (
-            <div key={ap.name} className="tv-rank">
-              <span>{i + 1}. {ap.name}</span>
-              <strong>{ap.aprobados}</strong>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="tv-panel">
-        <h3>Últimos Cambios de Estado</h3>
-        {historialData.slice(0, 3).map((h, i) => (
-          <div key={i} className="tv-rank">
+        <h3>📰 Últimos Movimientos</h3>
+        {historialData.map((h, i) => (
+          <div key={i} className="tv-move">
             <span>{h.txt}</span>
-            <span style={{ color: '#64748b' }}>{h.fecha}</span>
+            <span style={{ color: '#64748b', whiteSpace: 'nowrap', marginLeft: 16 }}>{h.fecha}</span>
           </div>
         ))}
       </div>
@@ -888,10 +853,7 @@ function App() {
     return (
       <div className="app">
         <style>{STYLES}</style>
-        <TecnicoSelector 
-          onSelect={setTecnicoLogueado}
-          onContinue={() => setMostrarSelector(false)}
-        />
+        <TecnicoSelector onSelect={setTecnicoLogueado} onContinue={() => setMostrarSelector(false)} />
       </div>
     );
   }
@@ -916,13 +878,10 @@ function App() {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn btn-tv" onClick={() => setTvMode(true)}><Tv size={17} />Modo TV</button>
-            <button className="btn" onClick={() => setMostrarSelector(true)} style={{ background: '#ef4444' }}>
-              Ingreso de Técnico
-            </button>
+            <button className="btn" onClick={() => setMostrarSelector(true)} style={{ background: '#ef4444' }}>Ingreso de Técnico</button>
           </div>
         </div>
       </nav>
-
       <div className="tabs">
         {TABS.map(t => (
           <button key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
@@ -930,7 +889,6 @@ function App() {
           </button>
         ))}
       </div>
-
       <div className="content">
         {tab === 'dashboard' && <Dashboard />}
         {tab === 'terminos' && <Terminos />}

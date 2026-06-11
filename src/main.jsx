@@ -198,22 +198,25 @@ td{padding:11px 14px;font-size:13px;}
 .btn:hover{background:#2563eb;}
 .btn-logout{background:#ef4444;}
 .btn-logout:hover{background:#dc2626;}
+.btn-tv{background:#f59e0b;}
+.btn-tv:hover{background:#d97706;}
 
 .tech-selector{min-height:100vh;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   display:flex;align-items:center;justify-content:center;padding:20px;}
-.tech-selector-content{max-width:600px;width:100%;text-align:center;}
+.tech-selector-content{max-width:500px;width:100%;text-align:center;}
 .tech-selector-title{font-size:32px;font-weight:800;color:#fff;margin:0 0 8px;}
 .tech-selector-sub{font-size:14px;color:#cbd5e1;margin:0 0 40px;}
-.tech-button{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px 20px;
-  margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:16px;transition:.2s;
-  text-align:left;height:70px;}
+.tech-buttons-wrapper{display:grid;grid-template-columns:1fr;gap:10px;}
+.tech-button{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;
+  cursor:pointer;display:grid;grid-template-columns:50px 1fr 20px;align-items:center;gap:16px;transition:.2s;
+  text-align:left;min-height:70px;}
 .tech-button:hover{background:#334155;border-color:#475569;}
 .tech-avatar{width:50px;height:50px;border-radius:50%;background:#ef4444;
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0;font-size:16px;}
-.tech-button-text{flex:1;min-width:0;}
-.tech-button-name{font-size:16px;font-weight:700;color:#fff;text-align:left;}
-.tech-button-role{font-size:13px;color:#94a3b8;text-align:left;margin-top:3px;}
-.tech-button-arrow{color:#60a5fa;font-size:20px;flex-shrink:0;}
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;}
+.tech-button-text{display:flex;flex-direction:column;justify-content:center;}
+.tech-button-name{font-size:15px;font-weight:700;color:#fff;}
+.tech-button-role{font-size:12px;color:#94a3b8;margin-top:2px;}
+.tech-button-arrow{color:#60a5fa;font-size:18px;}
 
 .project-card{background:#fff;border-left:6px solid var(--primary);border-radius:10px;
   padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
@@ -267,9 +270,34 @@ td{padding:11px 14px;font-size:13px;}
 .doc p{font-size:14px;line-height:1.6;}
 .doc ul{font-size:14px;line-height:1.7;}
 
+.tv{position:fixed;inset:0;background:#0f172a;color:#fff;z-index:2000;padding:30px 40px;overflow-y:auto;}
+.tv-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.tv-title{font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:2px;}
+.tv-subtitle{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;}
+.tv-clock{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;color:#f59e0b;}
+.tv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;}
+.tv-kpi{background:#1e293b;border-radius:10px;padding:16px;text-align:center;border:1px solid #334155;}
+.tv-kpi .n{font-size:28px;font-weight:800;color:#60a5fa;}
+.tv-kpi .l{font-size:11px;color:#94a3b8;margin-top:4px;text-transform:uppercase;}
+.tv-panel{background:#1e293b;border-radius:10px;padding:18px;margin-bottom:16px;border:1px solid #334155;}
+.tv-panel h3{margin:0 0 12px;font-size:13px;color:#e2e8f0;text-transform:uppercase;font-weight:700;}
+.tv-rank{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #334155;font-size:13px;color:#cbd5e1;}
+.tv-rank:last-child{border-bottom:none;}
+.tv-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden;margin-top:4px;margin-bottom:8px;}
+.tv-bar span{display:block;height:100%;background:#60a5fa;}
+.tv-close{position:fixed;top:20px;right:24px;background:#ef4444;border:none;color:#fff;
+  padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;}
+.tv-close:hover{background:#dc2626;}
+
+@media print{
+  body *{visibility:hidden;}
+  .modal,.modal *{visibility:visible;}
+  .modal{position:absolute;left:0;top:0;box-shadow:none;}
+}
 @media (max-width:768px){
   .navbar-title{font-size:16px;}
-  .tech-button{height:auto;padding:12px 16px;}
+  .tv-grid{grid-template-columns:repeat(3,1fr);}
+  .tv-kpi .n{font-size:20px;}
 }
 `;
 
@@ -585,7 +613,7 @@ function Curador() {
    MODULO: HISTORIAL
    ========================================================= */
 const historialData = [
-  { fecha: '11/06/2026', txt: 'Ingreso de técnico separado agregado.' },
+  { fecha: '11/06/2026', txt: 'Actualización completa con ingreso de técnico y modo TV mejorado.' },
   { fecha: '10/06/2026', txt: 'Despliegue en producción (Vercel).' },
 ];
 
@@ -676,24 +704,143 @@ function TecnicoSelector({ onSelect, onContinue }) {
         <h1 className="tech-selector-title">Curaduría 2 Pereira</h1>
         <p className="tech-selector-sub">Proyectos Estratégicos 2026</p>
         <p style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 32 }}>Selecciona tu nombre para ver tu panorama de proyectos</p>
-        {teamMembers.map(member => {
-          const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-          return (
-            <button key={member.name} className="tech-button" onClick={() => onSelect(member.name)}>
-              <div className="tech-avatar">{initials}</div>
-              <div className="tech-button-text">
-                <div className="tech-button-name">{member.name}</div>
-                <div className="tech-button-role">{member.role}</div>
-              </div>
-              <div className="tech-button-arrow">›</div>
-            </button>
-          );
-        })}
+        <div className="tech-buttons-wrapper">
+          {teamMembers.map(member => {
+            const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            return (
+              <button key={member.name} className="tech-button" onClick={() => onSelect(member.name)}>
+                <div className="tech-avatar">{initials}</div>
+                <div className="tech-button-text">
+                  <div className="tech-button-name">{member.name}</div>
+                  <div className="tech-button-role">{member.role}</div>
+                </div>
+                <div className="tech-button-arrow">›</div>
+              </button>
+            );
+          })}
+        </div>
         <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid #334155' }}>
           <button className="btn" onClick={onContinue} style={{ width: '100%', justifyContent: 'center', background: '#475569' }}>
             Continuar al Dashboard General
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   MODULO: TV MODE
+   ========================================================= */
+function TVMode({ onClose }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const total = projectsData.length;
+  const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
+  const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
+  const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
+  const observaciones = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
+  const urgentes = projectsData.filter(p => p.estado.startsWith('REV') || p.estado === 'OBSERVACIONES').length;
+
+  const terms = projectsData
+    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
+    .map(p => {
+      const deadline = addBusinessDays(p.ldf, 45);
+      const dias = businessDaysFromToday(deadline);
+      const vencido = dias < 0;
+      if (vencido || dias < 3) return 'red';
+      if (dias <= 7) return 'orange';
+      return 'green';
+    });
+  const termsRed = terms.filter(t => t === 'red').length;
+  const termsOrange = terms.filter(t => t === 'orange').length;
+  const termsGreen = terms.filter(t => t === 'green').length;
+
+  const ranking = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) }))
+    .sort((a, b) => b.n - a.n).slice(0, 4);
+  const maxN = Math.max(...ranking.map(r => r.n));
+
+  const aprobPorTecnico = teamMembers.map(m => {
+    const aprobComo = projectsData.filter(p => p.tecnico === m.name && p.estado === 'APROBADO').length;
+    return { name: m.name, aprobados: aprobComo };
+  }).sort((a, b) => b.aprobados - a.aprobados).slice(0, 4);
+
+  const clock = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const fecha = now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div className="tv">
+      <button className="tv-close" onClick={onClose}>✕ Salir</button>
+      
+      <div className="tv-head">
+        <div>
+          <div className="tv-title">Curaduría 2 Pereira</div>
+          <div className="tv-subtitle">Centro de Control · Proyectos Estratégicos</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, textTransform: 'capitalize' }}>{fecha}</div>
+        </div>
+        <div className="tv-clock">{clock}</div>
+      </div>
+
+      <div className="tv-grid">
+        <div className="tv-kpi"><div className="n">{total}</div><div className="l">Total</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#10b981' }}>{aprobados}</div><div className="l">Aprobados</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#3b82f6' }}>{enRevision}</div><div className="l">En Revisión</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#f59e0b' }}>{observaciones}</div><div className="l">Observaciones</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#ef4444' }}>{noLdf}</div><div className="l">Sin LDF</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#f59e0b' }}>{urgentes}</div><div className="l">Urgentes</div></div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        
+        <div className="tv-panel">
+          <h3>Semáforo de Términos</h3>
+          <div className="tv-rank">
+            <span style={{ color: '#10b981' }}>En plazo</span>
+            <strong style={{ fontSize: 20, color: '#10b981' }}>{termsGreen}</strong>
+          </div>
+          <div className="tv-rank">
+            <span style={{ color: '#f59e0b' }}>Por vencer</span>
+            <strong style={{ fontSize: 20, color: '#f59e0b' }}>{termsOrange}</strong>
+          </div>
+          <div className="tv-rank">
+            <span style={{ color: '#ef4444' }}>Críticos</span>
+            <strong style={{ fontSize: 20, color: '#ef4444' }}>{termsRed}</strong>
+          </div>
+        </div>
+
+        <div className="tv-panel">
+          <h3>Productividad</h3>
+          {ranking.map(r => (
+            <div key={r.name}>
+              <div className="tv-rank"><span>{r.name}</span><strong>{r.n}</strong></div>
+              <div className="tv-bar"><span style={{ width: `${(r.n / maxN) * 100}%` }}></span></div>
+            </div>
+          ))}
+        </div>
+
+        <div className="tv-panel">
+          <h3>Top Aprobaciones</h3>
+          {aprobPorTecnico.map((ap, i) => (
+            <div key={ap.name} className="tv-rank">
+              <span>{i + 1}. {ap.name}</span>
+              <strong>{ap.aprobados}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="tv-panel">
+        <h3>Últimos Cambios de Estado</h3>
+        {historialData.slice(0, 3).map((h, i) => (
+          <div key={i} className="tv-rank">
+            <span>{h.txt}</span>
+            <span style={{ color: '#64748b' }}>{h.fecha}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -716,6 +863,7 @@ function App() {
   const [tab, setTab] = useState('dashboard');
   const [tecnicoLogueado, setTecnicoLogueado] = useState(null);
   const [mostrarSelector, setMostrarSelector] = useState(true);
+  const [tvMode, setTvMode] = useState(false);
 
   if (tecnicoLogueado) {
     return (
@@ -748,6 +896,15 @@ function App() {
     );
   }
 
+  if (tvMode) {
+    return (
+      <div className="app">
+        <style>{STYLES}</style>
+        <TVMode onClose={() => setTvMode(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <style>{STYLES}</style>
@@ -757,9 +914,12 @@ function App() {
             <div className="navbar-title">📊 Curaduría Urbana N.° 2</div>
             <div className="navbar-sub">Pereira · Control de Proyectos Estratégicos</div>
           </div>
-          <button className="btn" onClick={() => setMostrarSelector(true)} style={{ background: '#ef4444' }}>
-            Ingreso de Técnico
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-tv" onClick={() => setTvMode(true)}><Tv size={17} />Modo TV</button>
+            <button className="btn" onClick={() => setMostrarSelector(true)} style={{ background: '#ef4444' }}>
+              Ingreso de Técnico
+            </button>
+          </div>
         </div>
       </nav>
 

@@ -199,25 +199,21 @@ td{padding:11px 14px;font-size:13px;}
 .btn-logout{background:#ef4444;}
 .btn-logout:hover{background:#dc2626;}
 
-.tech-card{background:#fff;padding:20px;border-radius:12px;border:1px solid var(--border);
-  box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;cursor:pointer;}
-.tech-card:hover{transform:translateY(-2px);}
-
 .tech-selector{min-height:100vh;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   display:flex;align-items:center;justify-content:center;padding:20px;}
 .tech-selector-content{max-width:600px;width:100%;text-align:center;}
 .tech-selector-title{font-size:32px;font-weight:800;color:#fff;margin:0 0 8px;}
 .tech-selector-sub{font-size:14px;color:#cbd5e1;margin:0 0 40px;}
-.tech-button{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;
+.tech-button{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px 20px;
   margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:16px;transition:.2s;
-  text-align:left;}
+  text-align:left;height:70px;}
 .tech-button:hover{background:#334155;border-color:#475569;}
-.tech-avatar{width:50px;height:50px;border-radius:50%;background:#f59e0b;
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0;}
-.tech-button-text{flex:1;}
-.tech-button-name{font-size:16px;font-weight:700;color:#fff;}
-.tech-button-role{font-size:13px;color:#94a3b8;}
-.tech-button-arrow{color:#60a5fa;font-size:20px;}
+.tech-avatar{width:50px;height:50px;border-radius:50%;background:#ef4444;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0;font-size:16px;}
+.tech-button-text{flex:1;min-width:0;}
+.tech-button-name{font-size:16px;font-weight:700;color:#fff;text-align:left;}
+.tech-button-role{font-size:13px;color:#94a3b8;text-align:left;margin-top:3px;}
+.tech-button-arrow{color:#60a5fa;font-size:20px;flex-shrink:0;}
 
 .project-card{background:#fff;border-left:6px solid var(--primary);border-radius:10px;
   padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
@@ -273,6 +269,7 @@ td{padding:11px 14px;font-size:13px;}
 
 @media (max-width:768px){
   .navbar-title{font-size:16px;}
+  .tech-button{height:auto;padding:12px 16px;}
 }
 `;
 
@@ -556,7 +553,7 @@ function Curador() {
       {showDoc && (
         <div className="modal-overlay" onClick={() => setShowDoc(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-head" style={{ justifyContent: 'space-between' }}>
+            <div className="modal-head">
               <strong>Informe Ejecutivo</strong>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn" onClick={() => window.print()}><Printer size={16} />Imprimir</button>
@@ -610,7 +607,7 @@ function Historial() {
 }
 
 /* =========================================================
-   MODULO: VISTA TECNICO (LOGIN + DASHBOARD PERSONALIZADO)
+   MODULO: VISTA TECNICO
    ========================================================= */
 function VistaTecnico({ tecnicoName, onLogout }) {
   const tecnico = teamMembers.find(t => t.name === tecnicoName);
@@ -619,7 +616,6 @@ function VistaTecnico({ tecnicoName, onLogout }) {
   const enRevision = misProjetos.filter(p => p.estado.startsWith('REV')).length;
   const total = misProjetos.length;
 
-  // Calcula deadline para cada proyecto
   const misProyectosConDeadline = misProjetos.map(p => {
     const deadline = addBusinessDays(p.ldf, 45);
     const dias = businessDaysFromToday(deadline);
@@ -641,7 +637,7 @@ function VistaTecnico({ tecnicoName, onLogout }) {
         <div className="kpi-card"><div className="kpi-number">{total}</div><div className="kpi-label">Mis Proyectos</div></div>
         <div className="kpi-card"><div className="kpi-number">{aprobados}</div><div className="kpi-label">Aprobados</div></div>
         <div className="kpi-card"><div className="kpi-number">{enRevision}</div><div className="kpi-label">En Revisión</div></div>
-        <div className="kpi-card"><div className="kpi-number">{((aprobados / total) * 100).toFixed(0)}%</div><div className="kpi-label">% Aprobación</div></div>
+        <div className="kpi-card"><div className="kpi-number">{total > 0 ? ((aprobados / total) * 100).toFixed(0) : 0}%</div><div className="kpi-label">% Aprobación</div></div>
       </div>
 
       <h3 style={{ fontSize: 16, marginTop: 28, marginBottom: 14 }}>Detalle de Proyectos</h3>
@@ -670,7 +666,10 @@ function VistaTecnico({ tecnicoName, onLogout }) {
   );
 }
 
-function TecnicoSelector({ onSelect }) {
+/* =========================================================
+   SELECTOR DE TECNICO
+   ========================================================= */
+function TecnicoSelector({ onSelect, onContinue }) {
   return (
     <div className="tech-selector">
       <div className="tech-selector-content">
@@ -690,6 +689,11 @@ function TecnicoSelector({ onSelect }) {
             </button>
           );
         })}
+        <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid #334155' }}>
+          <button className="btn" onClick={onContinue} style={{ width: '100%', justifyContent: 'center', background: '#475569' }}>
+            Continuar al Dashboard General
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -711,8 +715,8 @@ const TABS = [
 function App() {
   const [tab, setTab] = useState('dashboard');
   const [tecnicoLogueado, setTecnicoLogueado] = useState(null);
+  const [mostrarSelector, setMostrarSelector] = useState(true);
 
-  // Si hay técnico logueado, mostrar su vista
   if (tecnicoLogueado) {
     return (
       <div className="app">
@@ -732,17 +736,18 @@ function App() {
     );
   }
 
-  // Si no hay técnico, mostrar selector
-  if (!tecnicoLogueado) {
+  if (mostrarSelector) {
     return (
       <div className="app">
         <style>{STYLES}</style>
-        <TecnicoSelector onSelect={setTecnicoLogueado} />
+        <TecnicoSelector 
+          onSelect={setTecnicoLogueado}
+          onContinue={() => setMostrarSelector(false)}
+        />
       </div>
     );
   }
 
-  // Vista normal (dashboard público)
   return (
     <div className="app">
       <style>{STYLES}</style>
@@ -752,6 +757,9 @@ function App() {
             <div className="navbar-title">📊 Curaduría Urbana N.° 2</div>
             <div className="navbar-sub">Pereira · Control de Proyectos Estratégicos</div>
           </div>
+          <button className="btn" onClick={() => setMostrarSelector(true)} style={{ background: '#ef4444' }}>
+            Ingreso de Técnico
+          </button>
         </div>
       </nav>
 

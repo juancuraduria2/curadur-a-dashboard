@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Menu, X, Printer, Clock, TrendingUp, Users, FileText, LayoutDashboard, Timer, ListChecks, BookOpen, Award, History, Tv, Search } from 'lucide-react';
+import { Menu, X, Printer, Clock, TrendingUp, Users, FileText, LayoutDashboard, Timer, ListChecks, BookOpen, Award, History, Tv, Search, LogOut } from 'lucide-react';
 
 /* =========================================================
    DATOS DE PROYECTOS
@@ -133,7 +133,7 @@ const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'
 const MONTH_MAP = { 'Ene': '01', 'Feb': '02', 'Mar': '03', 'Abr': '04', 'May': '05' };
 
 /* =========================================================
-   CSS (inyectado dentro de la app)
+   CSS
    ========================================================= */
 const STYLES = `
 :root{
@@ -150,7 +150,6 @@ body{margin:0;background:var(--light);color:var(--dark);
 .navbar-content{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
 .navbar-title{font-size:20px;font-weight:700;}
 .navbar-sub{font-size:12px;color:var(--muted);font-weight:500;}
-.menu-button{display:none;background:none;border:none;cursor:pointer;color:var(--dark);}
 
 .tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;
   display:flex;gap:2px;overflow-x:auto;max-width:1400px;margin:0 auto;width:100%;}
@@ -193,8 +192,46 @@ td{padding:11px 14px;font-size:13px;}
 .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
   border-radius:10px;padding:9px 14px;margin-bottom:16px;max-width:420px;}
 .search-bar input{border:none;outline:none;font-size:14px;width:100%;}
-.filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
-.filter-row select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;}
+
+.btn{background:var(--primary);color:#fff;border:none;padding:10px 18px;border-radius:9px;
+  font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+.btn:hover{background:#2563eb;}
+.btn-logout{background:#ef4444;}
+.btn-logout:hover{background:#dc2626;}
+
+.tech-card{background:#fff;padding:20px;border-radius:12px;border:1px solid var(--border);
+  box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;cursor:pointer;}
+.tech-card:hover{transform:translateY(-2px);}
+
+.tech-selector{min-height:100vh;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.tech-selector-content{max-width:600px;width:100%;text-align:center;}
+.tech-selector-title{font-size:32px;font-weight:800;color:#fff;margin:0 0 8px;}
+.tech-selector-sub{font-size:14px;color:#cbd5e1;margin:0 0 40px;}
+.tech-button{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;
+  margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:16px;transition:.2s;
+  text-align:left;}
+.tech-button:hover{background:#334155;border-color:#475569;}
+.tech-avatar{width:50px;height:50px;border-radius:50%;background:#f59e0b;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0;}
+.tech-button-text{flex:1;}
+.tech-button-name{font-size:16px;font-weight:700;color:#fff;}
+.tech-button-role{font-size:13px;color:#94a3b8;}
+.tech-button-arrow{color:#60a5fa;font-size:20px;}
+
+.project-card{background:#fff;border-left:6px solid var(--primary);border-radius:10px;
+  padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.project-card.urgent{border-left-color:var(--danger);}
+.project-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.project-rad{font-weight:700;color:var(--primary);font-size:15px;}
+.project-status{display:flex;align-items:center;gap:8px;}
+.project-title{font-size:15px;font-weight:600;margin:8px 0 4px;}
+.project-meta{font-size:12px;color:var(--muted);margin:4px 0;}
+.project-urgency{background:var(--danger);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
+
+.hist-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.hist-date{color:var(--muted);min-width:90px;}
+.hist-dot{width:9px;height:9px;border-radius:50%;background:var(--primary);margin-top:5px;flex-shrink:0;}
 
 .term-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
 .term-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;
@@ -210,6 +247,12 @@ td{padding:11px 14px;font-size:13px;}
 .term-days{font-size:22px;font-weight:700;margin-top:8px;}
 .term-days.green{color:var(--success);} .term-days.orange{color:var(--warning);} .term-days.red{color:var(--danger);}
 
+.bita-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;
+  margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);display:flex;gap:12px;align-items:flex-start;}
+.bita-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.bita-title{font-weight:700;font-size:14px;}
+.bita-text{font-size:13px;color:var(--muted);margin-top:2px;}
+
 .tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
 .tech-card{background:#fff;padding:20px;border-radius:12px;border:1px solid var(--border);
   box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;}
@@ -218,21 +261,6 @@ td{padding:11px 14px;font-size:13px;}
 .tech-role{font-size:12px;color:var(--muted);margin-bottom:10px;}
 .tech-stat{display:flex;justify-content:space-between;font-size:13px;margin:4px 0;}
 .tech-bignum{font-size:30px;font-weight:700;color:var(--primary);}
-.tech-alert{margin-top:8px;font-size:11px;color:var(--danger);font-weight:700;}
-
-.bita-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;
-  margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);display:flex;gap:12px;align-items:flex-start;}
-.bita-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
-.bita-title{font-weight:700;font-size:14px;}
-.bita-text{font-size:13px;color:var(--muted);margin-top:2px;}
-
-.btn{background:var(--primary);color:#fff;border:none;padding:10px 18px;border-radius:9px;
-  font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
-.btn:hover{background:#2563eb;}
-
-.hist-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;}
-.hist-date{color:var(--muted);min-width:90px;}
-.hist-dot{width:9px;height:9px;border-radius:50%;background:var(--primary);margin-top:5px;flex-shrink:0;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;
   justify-content:center;padding:30px;overflow-y:auto;z-index:1000;}
@@ -243,32 +271,8 @@ td{padding:11px 14px;font-size:13px;}
 .doc p{font-size:14px;line-height:1.6;}
 .doc ul{font-size:14px;line-height:1.7;}
 
-.tv{position:fixed;inset:0;background:#0b1120;color:#fff;z-index:2000;padding:30px 40px;overflow-y:auto;}
-.tv-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
-.tv-title{font-size:26px;font-weight:800;}
-.tv-clock{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;}
-.tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px;}
-.tv-kpi{background:#1e293b;border-radius:14px;padding:22px;text-align:center;}
-.tv-kpi .n{font-size:40px;font-weight:800;color:#60a5fa;}
-.tv-kpi .l{font-size:13px;color:#94a3b8;margin-top:4px;}
-.tv-panel{background:#1e293b;border-radius:14px;padding:22px;margin-bottom:18px;}
-.tv-panel h3{margin:0 0 14px;font-size:16px;color:#e2e8f0;}
-.tv-rank{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #334155;font-size:15px;}
-.tv-bar{height:8px;background:#334155;border-radius:5px;overflow:hidden;margin-top:5px;margin-bottom:10px;}
-.tv-bar span{display:block;height:100%;background:#60a5fa;}
-.tv-close{position:fixed;top:20px;right:24px;background:#334155;border:none;color:#fff;
-  padding:9px 16px;border-radius:9px;cursor:pointer;font-weight:600;}
-
-@media print{
-  body *{visibility:hidden;}
-  .modal,.modal *{visibility:visible;}
-  .modal{position:absolute;left:0;top:0;box-shadow:none;}
-  .no-print{display:none!important;}
-}
 @media (max-width:768px){
-  .menu-button{display:block;}
   .navbar-title{font-size:16px;}
-  .tv-grid{grid-template-columns:repeat(2,1fr);}
 }
 `;
 
@@ -332,7 +336,7 @@ function Dashboard() {
 }
 
 /* =========================================================
-   MODULO: TERMINOS (plazos legales con semaforo)
+   MODULO: TERMINOS
    ========================================================= */
 function semaforoColor(dias, vencido) {
   if (vencido || dias < 3) return 'red';
@@ -385,7 +389,7 @@ function Terminos() {
 }
 
 /* =========================================================
-   MODULO: PROYECTOS (tabla con busqueda y filtros)
+   MODULO: PROYECTOS
    ========================================================= */
 function Proyectos() {
   const [query, setQuery] = useState('');
@@ -411,11 +415,11 @@ function Proyectos() {
         <Search size={18} color="#6b7280" />
         <input placeholder="Buscar radicado, técnico o revisor..." value={query} onChange={e => setQuery(e.target.value)} />
       </div>
-      <div className="filter-row">
-        <select value={estadoF} onChange={e => setEstadoF(e.target.value)}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+        <select value={estadoF} onChange={e => setEstadoF(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff' }}>
           {estados.map(e => <option key={e} value={e}>{e === 'TODOS' ? 'Todos los estados' : e}</option>)}
         </select>
-        <select value={tecnicoF} onChange={e => setTecnicoF(e.target.value)}>
+        <select value={tecnicoF} onChange={e => setTecnicoF(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff' }}>
           {tecnicos.map(t => <option key={t} value={t}>{t === 'TODOS' ? 'Todos los técnicos' : t}</option>)}
         </select>
       </div>
@@ -447,7 +451,7 @@ function Proyectos() {
 }
 
 /* =========================================================
-   MODULO: TECNICOS (productividad por persona)
+   MODULO: TECNICOS
    ========================================================= */
 function Tecnicos() {
   const data = teamMembers.map(m => {
@@ -471,7 +475,7 @@ function Tecnicos() {
             <div className="tech-bignum">{t.totalInvol}</div>
             <div className="tech-stat"><span>Como técnico</span><strong>{t.comoTecnico}</strong></div>
             <div className="tech-stat"><span>Como rev. estruc.</span><strong>{t.comoRevisor}</strong></div>
-            {t.totalInvol === maxCarga && <div className="tech-alert">⚠ Mayor carga del equipo</div>}
+            {t.totalInvol === maxCarga && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--danger)', fontWeight: 700 }}>⚠ Mayor carga</div>}
           </div>
         ))}
       </div>
@@ -480,7 +484,7 @@ function Tecnicos() {
 }
 
 /* =========================================================
-   MODULO: BITACORA (analisis local de datos)
+   MODULO: BITACORA
    ========================================================= */
 function Bitacora() {
   const total = projectsData.length;
@@ -499,9 +503,9 @@ function Bitacora() {
 
   const insights = [
     { ico: '#3b82f6', icon: <FileText size={18} />, title: 'Volumen general', text: `Se gestionan ${total} radicados. ${aprobados} aprobados (${((aprobados / total) * 100).toFixed(0)}%), ${observaciones} en observaciones y ${noLdf} sin LDF.` },
-    { ico: '#ef4444', icon: <TrendingUp size={18} />, title: 'Distribución de carga', text: `${masCargado.name} es quien más proyectos tiene (${masCargado.n}). ${menosCargado.name} es quien menos tiene (${menosCargado.n}). Conviene equilibrar asignaciones.` },
-    { ico: '#f59e0b', icon: <Clock size={18} />, title: 'Prórrogas activas', text: `${conProrroga} proyectos tienen prórroga de 15 días aplicada sobre el plazo de observaciones.` },
-    { ico: '#10b981', icon: <ListChecks size={18} />, title: 'Tipo de licencia predominante', text: `El tipo de actuación más frecuente es "${tipoTop[0]}" con ${tipoTop[1]} radicados.` },
+    { ico: '#ef4444', icon: <TrendingUp size={18} />, title: 'Distribución de carga', text: `${masCargado.name} es quien más proyectos tiene (${masCargado.n}). ${menosCargado.name} es quien menos tiene (${menosCargado.n}).` },
+    { ico: '#f59e0b', icon: <Clock size={18} />, title: 'Prórrogas activas', text: `${conProrroga} proyectos tienen prórroga de 15 días.` },
+    { ico: '#10b981', icon: <ListChecks size={18} />, title: 'Tipo predominante', text: `"${tipoTop[0]}" es el tipo más frecuente con ${tipoTop[1]} radicados.` },
   ];
 
   return (
@@ -522,7 +526,7 @@ function Bitacora() {
 }
 
 /* =========================================================
-   MODULO: CURADOR (resumen ejecutivo + imprimir)
+   MODULO: CURADOR
    ========================================================= */
 function Curador() {
   const [showDoc, setShowDoc] = useState(false);
@@ -552,7 +556,7 @@ function Curador() {
       {showDoc && (
         <div className="modal-overlay" onClick={() => setShowDoc(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-head no-print">
+            <div className="modal-head" style={{ justifyContent: 'space-between' }}>
               <strong>Informe Ejecutivo</strong>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn" onClick={() => window.print()}><Printer size={16} />Imprimir</button>
@@ -564,20 +568,14 @@ function Curador() {
               <p style={{ color: '#6b7280' }}>Curaduría Urbana N.° 2 de Pereira · {CURADOR} · {hoy}</p>
               <h2>1. Resumen general</h2>
               <p>Durante el periodo enero–mayo de 2026 se han radicado {total} proyectos estratégicos.
-                De estos, {aprobados} han sido aprobados, {enRevision} se encuentran en revisión técnica
-                o estructural, {observaciones} están en etapa de observaciones y {noLdf} se encuentran sin LDF.</p>
-              <h2>2. Indicador de aprobación</h2>
-              <p>El porcentaje de aprobación a la fecha es del {((aprobados / total) * 100).toFixed(1)}%
-                sobre el total de radicados gestionados.</p>
-              <h2>3. Equipo técnico</h2>
+                De estos, {aprobados} han sido aprobados, {enRevision} se encuentran en revisión técnica,
+                {observaciones} en observaciones y {noLdf} sin LDF.</p>
+              <h2>2. Equipo técnico</h2>
               <ul>
                 {teamMembers.map(m => (
                   <li key={m.name}>{m.name} ({m.role}): {involucrado(m.name)} proyectos.</li>
                 ))}
               </ul>
-              <h2>4. Observaciones</h2>
-              <p>Se recomienda monitorear la distribución de carga del equipo y los plazos legales
-                de los proyectos próximos a vencer según el módulo de Términos.</p>
             </div>
           </div>
         </div>
@@ -587,15 +585,11 @@ function Curador() {
 }
 
 /* =========================================================
-   MODULO: HISTORIAL (registro de cambios)
+   MODULO: HISTORIAL
    ========================================================= */
 const historialData = [
-  { fecha: '11/06/2026', txt: 'Actualización de Modo TV con semáforo, productividad y ranking.' },
-  { fecha: '10/06/2026', txt: 'Despliegue de la plataforma en producción (Vercel).' },
-  { fecha: '08/06/2026', txt: 'Se agregaron los módulos de Términos, Bitácora, Curador, Historial y modo TV.' },
-  { fecha: '05/06/2026', txt: 'Corrección de radicados de abril (mes "Abr" incluido en filtros).' },
-  { fecha: '03/06/2026', txt: 'Incorporación de los 38 radicados de enero a mayo.' },
-  { fecha: '01/06/2026', txt: 'Creación del dashboard inicial con KPIs y gráficos.' },
+  { fecha: '11/06/2026', txt: 'Ingreso de técnico separado agregado.' },
+  { fecha: '10/06/2026', txt: 'Despliegue en producción (Vercel).' },
 ];
 
 function Historial() {
@@ -616,125 +610,86 @@ function Historial() {
 }
 
 /* =========================================================
-   MODULO: TV / COMMAND CENTER (ACTUALIZADO)
+   MODULO: VISTA TECNICO (LOGIN + DASHBOARD PERSONALIZADO)
    ========================================================= */
-function TVMode({ onClose }) {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+function VistaTecnico({ tecnicoName, onLogout }) {
+  const tecnico = teamMembers.find(t => t.name === tecnicoName);
+  const misProjetos = projectsData.filter(p => p.tecnico === tecnicoName || p.revisorEstruc === tecnicoName);
+  const aprobados = misProjetos.filter(p => p.estado === 'APROBADO').length;
+  const enRevision = misProjetos.filter(p => p.estado.startsWith('REV')).length;
+  const total = misProjetos.length;
 
-  // ESTADO GENERAL
-  const total = projectsData.length;
-  const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
-  const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
-  const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
-
-  // SEMÁFORO DE TÉRMINOS
-  const terms = projectsData
-    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
-    .map(p => {
-      const deadline = addBusinessDays(p.ldf, 45);
-      const dias = businessDaysFromToday(deadline);
-      const vencido = dias < 0;
-      if (vencido || dias < 3) return 'red';
-      if (dias <= 7) return 'orange';
-      return 'green';
-    });
-  const termsRed = terms.filter(t => t === 'red').length;
-  const termsOrange = terms.filter(t => t === 'orange').length;
-  const termsGreen = terms.filter(t => t === 'green').length;
-
-  // PRODUCTIVIDAD DEL EQUIPO
-  const ranking = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) }))
-    .sort((a, b) => b.n - a.n);
-  const maxN = Math.max(...ranking.map(r => r.n));
-
-  // RANKING DE APROBACIÓN
-  const aprobPorTecnico = teamMembers.map(m => {
-    const aprobComo = projectsData.filter(p => p.tecnico === m.name && p.estado === 'APROBADO').length;
-    return { name: m.name, aprobados: aprobComo };
-  }).sort((a, b) => b.aprobados - a.aprobados).slice(0, 5);
-
-  const clock = now.toLocaleTimeString('es-CO');
-  const fecha = now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  // Calcula deadline para cada proyecto
+  const misProyectosConDeadline = misProjetos.map(p => {
+    const deadline = addBusinessDays(p.ldf, 45);
+    const dias = businessDaysFromToday(deadline);
+    const vencido = dias < 0;
+    return { ...p, deadline, dias, vencido };
+  }).sort((a, b) => a.dias - b.dias);
 
   return (
-    <div className="tv">
-      <button className="tv-close" onClick={onClose}>✕ Salir</button>
-      <div className="tv-head">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <div className="tv-title">Curaduría Urbana N.° 2 · Pereira</div>
-          <div style={{ color: '#94a3b8', textTransform: 'capitalize' }}>{fecha}</div>
+          <h2 className="section-title" style={{ margin: 0 }}>Mis Proyectos — {tecnicoName}</h2>
+          <p className="section-desc">{tecnico.role}</p>
         </div>
-        <div className="tv-clock">{clock}</div>
+        <button className="btn btn-logout" onClick={onLogout}><LogOut size={17} />Cambiar usuario</button>
       </div>
 
-      {/* ESTADO GENERAL */}
-      <div className="tv-grid">
-        <div className="tv-kpi"><div className="n">{total}</div><div className="l">Total proyectos</div></div>
-        <div className="tv-kpi"><div className="n">{aprobados}</div><div className="l">Aprobados</div></div>
-        <div className="tv-kpi"><div className="n">{enRevision}</div><div className="l">En revisión</div></div>
-        <div className="tv-kpi"><div className="n">{noLdf}</div><div className="l">Sin LDF</div></div>
+      <div className="kpi-grid">
+        <div className="kpi-card"><div className="kpi-number">{total}</div><div className="kpi-label">Mis Proyectos</div></div>
+        <div className="kpi-card"><div className="kpi-number">{aprobados}</div><div className="kpi-label">Aprobados</div></div>
+        <div className="kpi-card"><div className="kpi-number">{enRevision}</div><div className="kpi-label">En Revisión</div></div>
+        <div className="kpi-card"><div className="kpi-number">{((aprobados / total) * 100).toFixed(0)}%</div><div className="kpi-label">% Aprobación</div></div>
       </div>
 
-      {/* 3 COLUMNAS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, marginBottom: 20 }}>
-        
-        {/* COL 1: SEMÁFORO DE TÉRMINOS */}
-        <div className="tv-panel">
-          <h3>🚨 Semáforo de Términos</h3>
-          <div style={{ display: 'flex', gap: 20, marginTop: 16 }}>
-            <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#10b981' }}>{termsGreen}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>En plazo</div>
-            </div>
-            <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#f59e0b' }}>{termsOrange}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Por vencer</div>
-            </div>
-            <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 32, fontWeight: 800, color: '#ef4444' }}>{termsRed}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Críticos</div>
-            </div>
-          </div>
-        </div>
-
-        {/* COL 2: PRODUCTIVIDAD DEL EQUIPO */}
-        <div className="tv-panel">
-          <h3>👥 Productividad del Equipo</h3>
-          {ranking.slice(0, 4).map(r => (
-            <div key={r.name}>
-              <div className="tv-rank"><span style={{ fontSize: 14 }}>{r.name}</span><strong>{r.n}</strong></div>
-              <div className="tv-bar"><span style={{ width: `${(r.n / maxN) * 100}%` }}></span></div>
-            </div>
-          ))}
-        </div>
-
-        {/* COL 3: RANKING DE APROBACIÓN */}
-        <div className="tv-panel">
-          <h3>🏆 Top Aprobaciones</h3>
-          {aprobPorTecnico.map((ap, i) => (
-            <div key={ap.name} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, paddingBottom: 6, borderBottom: '1px solid #334155' }}>
-                <span>{i + 1}. {ap.name}</span>
-                <strong style={{ color: '#60a5fa', fontSize: 18 }}>{ap.aprobados}</strong>
+      <h3 style={{ fontSize: 16, marginTop: 28, marginBottom: 14 }}>Detalle de Proyectos</h3>
+      <div>
+        {misProyectosConDeadline.map((p, i) => (
+          <div key={i} className={`project-card ${p.vencido || p.dias < 3 ? 'urgent' : ''}`}>
+            <div className="project-header">
+              <div>
+                <div className="project-rad">{p.radicado}</div>
+                <div className="project-title">{p.tipoLicencia}</div>
+              </div>
+              <div className="project-status">
+                <span className={`badge b-${p.estado.replace(/\s/g, '-')}`}>{p.estado}</span>
+                {(p.vencido || p.dias < 3) && <span className="project-urgency">⚠ VENCIDO</span>}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* FILA FINAL: ÚLTIMOS MOVIMIENTOS */}
-      <div className="tv-panel">
-        <h3>📰 Últimos Movimientos</h3>
-        {historialData.slice(0, 5).map((h, i) => (
-          <div key={i} className="tv-rank" style={{ paddingBottom: 8, marginBottom: 8 }}>
-            <span style={{ color: '#cbd5e1', fontSize: 14 }}>{h.txt}</span>
-            <span style={{ color: '#64748b', marginLeft: 10, whiteSpace: 'nowrap', fontSize: 12 }}>{h.fecha}</span>
+            <div className="project-meta">Fecha LDF: <strong>{p.ldf}</strong></div>
+            <div className="project-meta">
+              Plazo legal vence: <strong>{fmtDate(p.deadline)}</strong>
+              {p.vencido ? ` — Vencido hace ${Math.abs(p.dias)} días` : ` — ${p.dias} días hábiles restantes`}
+            </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function TecnicoSelector({ onSelect }) {
+  return (
+    <div className="tech-selector">
+      <div className="tech-selector-content">
+        <h1 className="tech-selector-title">Curaduría 2 Pereira</h1>
+        <p className="tech-selector-sub">Proyectos Estratégicos 2026</p>
+        <p style={{ fontSize: 14, color: '#cbd5e1', marginBottom: 32 }}>Selecciona tu nombre para ver tu panorama de proyectos</p>
+        {teamMembers.map(member => {
+          const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+          return (
+            <button key={member.name} className="tech-button" onClick={() => onSelect(member.name)}>
+              <div className="tech-avatar">{initials}</div>
+              <div className="tech-button-text">
+                <div className="tech-button-name">{member.name}</div>
+                <div className="tech-button-role">{member.role}</div>
+              </div>
+              <div className="tech-button-arrow">›</div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -755,21 +710,48 @@ const TABS = [
 
 function App() {
   const [tab, setTab] = useState('dashboard');
-  const [tv, setTv] = useState(false);
+  const [tecnicoLogueado, setTecnicoLogueado] = useState(null);
 
+  // Si hay técnico logueado, mostrar su vista
+  if (tecnicoLogueado) {
+    return (
+      <div className="app">
+        <style>{STYLES}</style>
+        <nav className="navbar">
+          <div className="navbar-content">
+            <div>
+              <div className="navbar-title">📊 Curaduría Urbana N.° 2</div>
+              <div className="navbar-sub">Pereira · Vista Técnico</div>
+            </div>
+          </div>
+        </nav>
+        <div className="content">
+          <VistaTecnico tecnicoName={tecnicoLogueado} onLogout={() => setTecnicoLogueado(null)} />
+        </div>
+      </div>
+    );
+  }
+
+  // Si no hay técnico, mostrar selector
+  if (!tecnicoLogueado) {
+    return (
+      <div className="app">
+        <style>{STYLES}</style>
+        <TecnicoSelector onSelect={setTecnicoLogueado} />
+      </div>
+    );
+  }
+
+  // Vista normal (dashboard público)
   return (
     <div className="app">
       <style>{STYLES}</style>
-
-      {tv && <TVMode onClose={() => setTv(false)} />}
-
       <nav className="navbar">
         <div className="navbar-content">
           <div>
             <div className="navbar-title">📊 Curaduría Urbana N.° 2</div>
             <div className="navbar-sub">Pereira · Control de Proyectos Estratégicos</div>
           </div>
-          <button className="btn" onClick={() => setTv(true)}><Tv size={17} />Modo TV</button>
         </div>
       </nav>
 

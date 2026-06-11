@@ -251,11 +251,10 @@ td{padding:11px 14px;font-size:13px;}
 .tv-kpi{background:#1e293b;border-radius:14px;padding:22px;text-align:center;}
 .tv-kpi .n{font-size:40px;font-weight:800;color:#60a5fa;}
 .tv-kpi .l{font-size:13px;color:#94a3b8;margin-top:4px;}
-.tv-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
-.tv-panel{background:#1e293b;border-radius:14px;padding:22px;}
+.tv-panel{background:#1e293b;border-radius:14px;padding:22px;margin-bottom:18px;}
 .tv-panel h3{margin:0 0 14px;font-size:16px;color:#e2e8f0;}
 .tv-rank{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #334155;font-size:15px;}
-.tv-bar{height:8px;background:#334155;border-radius:5px;overflow:hidden;margin-top:5px;}
+.tv-bar{height:8px;background:#334155;border-radius:5px;overflow:hidden;margin-top:5px;margin-bottom:10px;}
 .tv-bar span{display:block;height:100%;background:#60a5fa;}
 .tv-close{position:fixed;top:20px;right:24px;background:#334155;border:none;color:#fff;
   padding:9px 16px;border-radius:9px;cursor:pointer;font-weight:600;}
@@ -270,7 +269,6 @@ td{padding:11px 14px;font-size:13px;}
   .menu-button{display:block;}
   .navbar-title{font-size:16px;}
   .tv-grid{grid-template-columns:repeat(2,1fr);}
-  .tv-cols{grid-template-columns:1fr;}
 }
 `;
 
@@ -592,6 +590,7 @@ function Curador() {
    MODULO: HISTORIAL (registro de cambios)
    ========================================================= */
 const historialData = [
+  { fecha: '11/06/2026', txt: 'Actualización de Modo TV con semáforo, productividad y ranking.' },
   { fecha: '10/06/2026', txt: 'Despliegue de la plataforma en producción (Vercel).' },
   { fecha: '08/06/2026', txt: 'Se agregaron los módulos de Términos, Bitácora, Curador, Historial y modo TV.' },
   { fecha: '05/06/2026', txt: 'Corrección de radicados de abril (mes "Abr" incluido en filtros).' },
@@ -617,7 +616,7 @@ function Historial() {
 }
 
 /* =========================================================
-   MODULO: TV / COMMAND CENTER
+   MODULO: TV / COMMAND CENTER (ACTUALIZADO)
    ========================================================= */
 function TVMode({ onClose }) {
   const [now, setNow] = useState(new Date());
@@ -626,14 +625,37 @@ function TVMode({ onClose }) {
     return () => clearInterval(t);
   }, []);
 
+  // ESTADO GENERAL
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
   const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
 
+  // SEMÁFORO DE TÉRMINOS
+  const terms = projectsData
+    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
+    .map(p => {
+      const deadline = addBusinessDays(p.ldf, 45);
+      const dias = businessDaysFromToday(deadline);
+      const vencido = dias < 0;
+      if (vencido || dias < 3) return 'red';
+      if (dias <= 7) return 'orange';
+      return 'green';
+    });
+  const termsRed = terms.filter(t => t === 'red').length;
+  const termsOrange = terms.filter(t => t === 'orange').length;
+  const termsGreen = terms.filter(t => t === 'green').length;
+
+  // PRODUCTIVIDAD DEL EQUIPO
   const ranking = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) }))
     .sort((a, b) => b.n - a.n);
   const maxN = Math.max(...ranking.map(r => r.n));
+
+  // RANKING DE APROBACIÓN
+  const aprobPorTecnico = teamMembers.map(m => {
+    const aprobComo = projectsData.filter(p => p.tecnico === m.name && p.estado === 'APROBADO').length;
+    return { name: m.name, aprobados: aprobComo };
+  }).sort((a, b) => b.aprobados - a.aprobados).slice(0, 5);
 
   const clock = now.toLocaleTimeString('es-CO');
   const fecha = now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -648,31 +670,71 @@ function TVMode({ onClose }) {
         </div>
         <div className="tv-clock">{clock}</div>
       </div>
+
+      {/* ESTADO GENERAL */}
       <div className="tv-grid">
         <div className="tv-kpi"><div className="n">{total}</div><div className="l">Total proyectos</div></div>
         <div className="tv-kpi"><div className="n">{aprobados}</div><div className="l">Aprobados</div></div>
         <div className="tv-kpi"><div className="n">{enRevision}</div><div className="l">En revisión</div></div>
         <div className="tv-kpi"><div className="n">{noLdf}</div><div className="l">Sin LDF</div></div>
       </div>
-      <div className="tv-cols">
+
+      {/* 3 COLUMNAS */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, marginBottom: 20 }}>
+        
+        {/* COL 1: SEMÁFORO DE TÉRMINOS */}
         <div className="tv-panel">
-          <h3>Ranking de carga del equipo</h3>
-          {ranking.map(r => (
+          <h3>🚨 Semáforo de Términos</h3>
+          <div style={{ display: 'flex', gap: 20, marginTop: 16 }}>
+            <div style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#10b981' }}>{termsGreen}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>En plazo</div>
+            </div>
+            <div style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#f59e0b' }}>{termsOrange}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Por vencer</div>
+            </div>
+            <div style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#ef4444' }}>{termsRed}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>Críticos</div>
+            </div>
+          </div>
+        </div>
+
+        {/* COL 2: PRODUCTIVIDAD DEL EQUIPO */}
+        <div className="tv-panel">
+          <h3>👥 Productividad del Equipo</h3>
+          {ranking.slice(0, 4).map(r => (
             <div key={r.name}>
-              <div className="tv-rank"><span>{r.name}</span><strong>{r.n}</strong></div>
+              <div className="tv-rank"><span style={{ fontSize: 14 }}>{r.name}</span><strong>{r.n}</strong></div>
               <div className="tv-bar"><span style={{ width: `${(r.n / maxN) * 100}%` }}></span></div>
             </div>
           ))}
         </div>
+
+        {/* COL 3: RANKING DE APROBACIÓN */}
         <div className="tv-panel">
-          <h3>Últimos movimientos</h3>
-          {historialData.slice(0, 5).map((h, i) => (
-            <div key={i} className="tv-rank">
-              <span style={{ color: '#cbd5e1' }}>{h.txt}</span>
-              <span style={{ color: '#64748b', marginLeft: 10, whiteSpace: 'nowrap' }}>{h.fecha}</span>
+          <h3>🏆 Top Aprobaciones</h3>
+          {aprobPorTecnico.map((ap, i) => (
+            <div key={ap.name} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, paddingBottom: 6, borderBottom: '1px solid #334155' }}>
+                <span>{i + 1}. {ap.name}</span>
+                <strong style={{ color: '#60a5fa', fontSize: 18 }}>{ap.aprobados}</strong>
+              </div>
             </div>
           ))}
         </div>
+      </div>
+
+      {/* FILA FINAL: ÚLTIMOS MOVIMIENTOS */}
+      <div className="tv-panel">
+        <h3>📰 Últimos Movimientos</h3>
+        {historialData.slice(0, 5).map((h, i) => (
+          <div key={i} className="tv-rank" style={{ paddingBottom: 8, marginBottom: 8 }}>
+            <span style={{ color: '#cbd5e1', fontSize: 14 }}>{h.txt}</span>
+            <span style={{ color: '#64748b', marginLeft: 10, whiteSpace: 'nowrap', fontSize: 12 }}>{h.fecha}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

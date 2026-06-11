@@ -252,26 +252,60 @@ td{padding:11px 14px;font-size:13px;}
 .doc h2{font-size:15px;margin:22px 0 8px;border-bottom:2px solid var(--border);padding-bottom:5px;}
 .doc p{font-size:14px;line-height:1.6;}
 .doc ul{font-size:14px;line-height:1.7;}
-.tv{position:fixed;inset:0;background:#0f172a;color:#fff;z-index:2000;padding:30px 40px;overflow-y:auto;}
-.tv-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
-.tv-title{font-size:28px;font-weight:800;text-transform:uppercase;letter-spacing:2px;}
-.tv-subtitle{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;}
-.tv-clock{font-size:48px;font-weight:800;font-variant-numeric:tabular-nums;color:#f59e0b;}
-.tv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
-.tv-kpi{background:#1e293b;border-radius:10px;padding:20px;text-align:center;border:1px solid #334155;}
-.tv-kpi .n{font-size:34px;font-weight:800;color:#60a5fa;}
-.tv-kpi .l{font-size:12px;color:#94a3b8;margin-top:4px;text-transform:uppercase;}
-.tv-panel{background:#1e293b;border-radius:10px;padding:18px;margin-bottom:16px;border:1px solid #334155;}
-.tv-panel h3{margin:0 0 12px;font-size:13px;color:#e2e8f0;text-transform:uppercase;font-weight:700;}
-.tv-rank{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #334155;font-size:13px;color:#cbd5e1;}
-.tv-rank:last-child{border-bottom:none;}
-.tv-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden;margin-top:4px;margin-bottom:8px;}
-.tv-bar span{display:block;height:100%;background:#60a5fa;}
-.tv-move{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #334155;font-size:14px;color:#cbd5e1;}
+.tv{position:fixed;inset:0;background:linear-gradient(160deg,#0a1426 0%,#0d1d38 100%);color:#e8eef7;z-index:2000;padding:24px 32px;overflow-y:auto;}
+.tv-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;border-bottom:1px solid #1e3a5f;padding-bottom:18px;}
+.tv-brand{display:flex;align-items:center;gap:16px;}
+.tv-logo{width:42px;height:42px;background:linear-gradient(135deg,#e23b3b,#a01f1f);border-radius:4px;clip-path:polygon(0 0,100% 0,72% 50%,100% 100%,0 100%,28% 50%);}
+.tv-title{font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:700;letter-spacing:3px;color:#f4f6fb;text-transform:uppercase;line-height:1;}
+.tv-title .gold{color:#d4b15f;}
+.tv-subtitle{font-size:11px;color:#7e8ba3;text-transform:uppercase;letter-spacing:3px;margin-top:5px;}
+.tv-clockwrap{text-align:right;}
+.tv-date{font-size:13px;color:#7e8ba3;text-transform:capitalize;margin-bottom:4px;}
+.tv-clock{font-family:'Courier New',monospace;font-size:46px;font-weight:700;letter-spacing:4px;color:#d4b15f;font-variant-numeric:tabular-nums;line-height:1;}
+.tv-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px;}
+.tv-kpi{background:linear-gradient(150deg,#15294a 0%,#102138 100%);border:1px solid #1e3a5f;border-radius:14px;padding:18px 20px;}
+.tv-kpi .n{font-family:Georgia,serif;font-size:36px;font-weight:700;line-height:1;}
+.tv-kpi .l{font-size:10px;color:#8493ad;margin-top:8px;text-transform:uppercase;letter-spacing:1.5px;}
+.tv-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.tv-panel{background:linear-gradient(150deg,#13243f 0%,#0e1c33 100%);border:1px solid #1e3a5f;border-radius:14px;padding:20px;}
+.tv-panel h3{margin:0 0 16px;font-size:13px;color:#d4b15f;text-transform:uppercase;font-weight:700;letter-spacing:2px;display:flex;align-items:center;gap:8px;}
+.tv-prod-row{margin-bottom:13px;}
+.tv-prod-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;color:#cdd7e8;}
+.tv-prod-bar{height:14px;border-radius:7px;overflow:hidden;display:flex;background:#0c1830;}
+.tv-prod-bar i{display:block;height:100%;flex-shrink:0;}
+.tv-prod-legend{display:flex;gap:14px;font-size:11px;color:#8493ad;margin-top:12px;flex-wrap:wrap;}
+.tv-prod-legend span{display:flex;align-items:center;gap:5px;}
+.tv-dot{width:9px;height:9px;border-radius:50%;}
+.tv-estado-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #1b3354;font-size:14px;color:#cdd7e8;}
+.tv-estado-row:last-child{border-bottom:none;}
+.tv-estado-num{font-family:Georgia,serif;font-size:20px;font-weight:700;}
+.tv-term{background:linear-gradient(150deg,#2a1216 0%,#1a0e15 100%);border:1px solid #5a2230;border-radius:12px;padding:13px;margin-bottom:11px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.tv-term.green{background:linear-gradient(150deg,#0f2a1c,#0c1f17);border-color:#1f5a3a;}
+.tv-term.orange{background:linear-gradient(150deg,#2a2310,#1f1a0c);border-color:#5a4a1f;}
+.tv-term-rad{color:#d4b15f;font-weight:700;font-size:15px;}
+.tv-term-title{font-size:13px;color:#e8eef7;margin:3px 0;font-weight:600;}
+.tv-term-rev{font-size:12px;color:#9fb3d4;}
+.tv-term-tipo{font-size:11px;color:#7e8ba3;margin-top:1px;}
+.tv-term-badge{display:inline-block;margin-top:7px;font-size:10px;padding:2px 9px;border-radius:10px;background:#1b3354;color:#9fb3d4;font-weight:700;}
+.tv-term-days{border:1px solid;border-radius:10px;padding:8px 10px;text-align:center;min-width:62px;flex-shrink:0;}
+.tv-term-days .d{font-family:Georgia,serif;font-size:22px;font-weight:700;line-height:1;}
+.tv-term-days .t{font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
+.tv-term-days.red{border-color:#7a2a38;color:#f87171;}
+.tv-term-days.orange{border-color:#7a5e1f;color:#fbbf24;}
+.tv-term-days.green{border-color:#2a7a4f;color:#4ade80;}
+.tv-rank-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #1b3354;}
+.tv-rank-row:last-child{border-bottom:none;}
+.tv-medal{font-size:20px;width:30px;text-align:center;color:#d4b15f;font-weight:700;}
+.tv-rank-name{flex:1;font-size:15px;color:#e8eef7;font-weight:600;}
+.tv-rank-role{font-size:11px;color:#7e8ba3;font-weight:400;}
+.tv-rank-num{font-family:Georgia,serif;font-size:22px;font-weight:700;color:#4ade80;}
+.tv-move{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #1b3354;font-size:13px;color:#cdd7e8;}
 .tv-move:last-child{border-bottom:none;}
-.tv-close{position:fixed;top:20px;right:24px;background:#ef4444;border:none;color:#fff;
-  padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;}
-.tv-close:hover{background:#dc2626;}
+.tv-move-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 8px #4ade80;}
+.tv-move-txt{flex:1;}
+.tv-move-date{font-size:11px;color:#6b7a96;white-space:nowrap;}
+.tv-close{position:fixed;top:18px;right:24px;background:rgba(30,58,95,.6);border:1px solid #2e4a6f;color:#cdd7e8;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;z-index:10;}
+.tv-close:hover{background:rgba(46,74,111,.85);}
 @media print{
   body *{visibility:hidden;}
   .modal,.modal *{visibility:visible;}
@@ -279,8 +313,8 @@ td{padding:11px 14px;font-size:13px;}
 }
 @media (max-width:768px){
   .navbar-title{font-size:16px;}
-  .tv-grid{grid-template-columns:repeat(2,1fr);}
-  .tv-kpi .n{font-size:24px;}
+  .tv-kpis{grid-template-columns:repeat(3,1fr);}
+  .tv-cols{grid-template-columns:1fr;}
 }
 `;
 
@@ -375,6 +409,8 @@ function Terminos() {
               <span className={`term-dot dot-${it.color}`}></span>
             </div>
             <div className="term-row"><span>Estado</span><span><span className={`badge b-${it.estado.replace(/\s/g, '-')}`}>{it.estado}</span></span></div>
+            <div className="term-row"><span>Revisor</span><span>{it.revisorEstruc}</span></div>
+            <div className="term-row"><span>Tipo</span><span>{it.tipoLicencia}</span></div>
             <div className="term-row"><span>LDF</span><span>{it.ldf}</span></div>
             <div className="term-row"><span>Vence</span><span>{fmtDate(it.deadline)}</span></div>
             <div className={`term-days ${it.color}`}>
@@ -516,7 +552,7 @@ function Bitacora() {
 }
 
 /* =========================================================
-   CURADOR (ACTUALIZADO)
+   CURADOR
    ========================================================= */
 function Curador() {
   const [showDoc, setShowDoc] = useState(false);
@@ -613,7 +649,7 @@ function Curador() {
    HISTORIAL
    ========================================================= */
 const historialData = [
-  { fecha: '11/06/2026', txt: 'Mejoras en Vista del Curador y Modo TV (estado general y movimientos).' },
+  { fecha: '11/06/2026', txt: 'Modo TV rediseñado como Centro de Control con ranking, semáforo detallado y productividad.' },
   { fecha: '10/06/2026', txt: 'Despliegue en producción (Vercel).' },
 ];
 function Historial() {
@@ -725,7 +761,7 @@ function TecnicoSelector({ onSelect, onContinue }) {
 }
 
 /* =========================================================
-   TV MODE (ACTUALIZADO)
+   TV MODE (CENTRO DE CONTROL)
    ========================================================= */
 function TVMode({ onClose }) {
   const [now, setNow] = useState(new Date());
@@ -739,73 +775,176 @@ function TVMode({ onClose }) {
   const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
   const enActa = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
+  const pctAprob = Math.round((aprobados / total) * 100);
 
-  const terms = projectsData
+  const terminos = projectsData
     .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
     .map(p => {
       const deadline = addBusinessDays(p.ldf, 45);
       const dias = businessDaysFromToday(deadline);
       const vencido = dias < 0;
-      if (vencido || dias < 3) return 'red';
-      if (dias <= 7) return 'orange';
-      return 'green';
-    });
-  const termsRed = terms.filter(t => t === 'red').length;
-  const termsOrange = terms.filter(t => t === 'orange').length;
-  const termsGreen = terms.filter(t => t === 'green').length;
+      const color = (vencido || dias < 3) ? 'red' : dias <= 7 ? 'orange' : 'green';
+      return { ...p, deadline, dias, vencido, color };
+    })
+    .sort((a, b) => a.dias - b.dias);
+  const vencidos = terminos.filter(t => t.vencido).length;
 
-  const ranking = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) }))
-    .sort((a, b) => b.n - a.n).slice(0, 5);
-  const maxN = Math.max(...ranking.map(r => r.n));
+  const productividad = teamMembers.map(m => {
+    const asignados = projectsData.filter(p => p.tecnico === m.name || p.revisorEstruc === m.name);
+    const tot = asignados.length;
+    const apr = asignados.filter(p => p.estado === 'APROBADO').length;
+    const rev = asignados.filter(p => p.estado.startsWith('REV')).length;
+    const acta = asignados.filter(p => p.estado === 'OBSERVACIONES').length;
+    return { name: m.name, role: m.role, tot, apr, rev, acta };
+  }).filter(m => m.tot > 0).sort((a, b) => b.tot - a.tot);
+  const maxTot = Math.max(...productividad.map(p => p.tot), 1);
 
-  const clock = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const ranking = teamMembers.map(m => {
+    const asignados = projectsData.filter(p => p.tecnico === m.name || p.revisorEstruc === m.name);
+    const apr = asignados.filter(p => p.estado === 'APROBADO').length;
+    const tot = asignados.length;
+    const pct = tot > 0 ? Math.round((apr / tot) * 100) : 0;
+    return { name: m.name, role: m.role, apr, pct };
+  }).sort((a, b) => b.apr - a.apr || b.pct - a.pct).slice(0, 5);
+  const medals = ['🥇', '🥈', '🥉', '4', '5'];
+
+  const estados = [
+    { label: 'Aprobados', n: aprobados, c: '#4ade80' },
+    { label: 'En Revisión', n: enRevision, c: '#60a5fa' },
+    { label: 'En Acta', n: enActa, c: '#d4b15f' },
+    { label: 'NO LDF', n: noLdf, c: '#f87171' },
+  ];
+
+  const movimientos = [...projectsData]
+    .sort((a, b) => b.ldf.localeCompare(a.ldf))
+    .slice(0, 6)
+    .map(p => ({
+      txt: `Radicado ${p.radicado} · ${p.estado} · ${p.tecnico}`,
+      date: p.ldf.split('-').reverse().join('/')
+    }));
+
+  const clock = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   const fecha = now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="tv">
-      <button className="tv-close" onClick={onClose}>✕ Salir</button>
+      <button className="tv-close" onClick={onClose}>← Volver</button>
+
       <div className="tv-head">
-        <div>
-          <div className="tv-title">Curaduría 2 Pereira</div>
-          <div className="tv-subtitle">Centro de Control · Proyectos Estratégicos</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, textTransform: 'capitalize' }}>{fecha}</div>
+        <div className="tv-brand">
+          <div className="tv-logo"></div>
+          <div>
+            <div className="tv-title">Curaduría <span className="gold">2 Pereira</span></div>
+            <div className="tv-subtitle">Centro de Control · Proyectos Estratégicos</div>
+          </div>
         </div>
-        <div className="tv-clock">{clock}</div>
+        <div className="tv-clockwrap">
+          <div className="tv-date">{fecha}</div>
+          <div className="tv-clock">{clock}</div>
+        </div>
       </div>
 
-      <div className="tv-grid">
-        <div className="tv-kpi"><div className="n" style={{ color: '#10b981' }}>{aprobados}</div><div className="l">Aprobados</div></div>
-        <div className="tv-kpi"><div className="n" style={{ color: '#3b82f6' }}>{enRevision}</div><div className="l">En Revisión</div></div>
-        <div className="tv-kpi"><div className="n" style={{ color: '#f59e0b' }}>{enActa}</div><div className="l">En Acta</div></div>
-        <div className="tv-kpi"><div className="n" style={{ color: '#ef4444' }}>{noLdf}</div><div className="l">NO LDF</div></div>
+      <div className="tv-kpis">
+        <div className="tv-kpi"><div className="n" style={{ color: '#f4f6fb' }}>{total}</div><div className="l">Total</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#4ade80' }}>{aprobados}</div><div className="l">Aprobados</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#60a5fa' }}>{enRevision}</div><div className="l">En Revisión</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#d4b15f' }}>{enActa}</div><div className="l">En Acta</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#a78bfa' }}>{pctAprob}%</div><div className="l">Tasa Aprob.</div></div>
+        <div className="tv-kpi"><div className="n" style={{ color: '#f87171' }}>{vencidos}</div><div className="l">Urgentes</div></div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="tv-cols">
         <div className="tv-panel">
-          <h3>Semáforo de Términos</h3>
-          <div className="tv-rank"><span style={{ color: '#10b981' }}>En plazo</span><strong style={{ fontSize: 20, color: '#10b981' }}>{termsGreen}</strong></div>
-          <div className="tv-rank"><span style={{ color: '#f59e0b' }}>Por vencer</span><strong style={{ fontSize: 20, color: '#f59e0b' }}>{termsOrange}</strong></div>
-          <div className="tv-rank"><span style={{ color: '#ef4444' }}>Críticos</span><strong style={{ fontSize: 20, color: '#ef4444' }}>{termsRed}</strong></div>
+          <h3>👷 Productividad del Equipo</h3>
+          {productividad.map(p => (
+            <div key={p.name} className="tv-prod-row">
+              <div className="tv-prod-top">
+                <span>{p.name}</span>
+                <span style={{ color: '#8493ad' }}>{p.apr}A · {p.rev}R · {p.acta}Ac · {p.tot}T</span>
+              </div>
+              <div className="tv-prod-bar">
+                <i style={{ width: `${(p.apr / maxTot) * 100}%`, background: '#4ade80' }}></i>
+                <i style={{ width: `${(p.rev / maxTot) * 100}%`, background: '#60a5fa' }}></i>
+                <i style={{ width: `${(p.acta / maxTot) * 100}%`, background: '#d4b15f' }}></i>
+              </div>
+            </div>
+          ))}
+          <div className="tv-prod-legend">
+            <span><i className="tv-dot" style={{ background: '#4ade80' }}></i>Aprobados</span>
+            <span><i className="tv-dot" style={{ background: '#60a5fa' }}></i>En Revisión</span>
+            <span><i className="tv-dot" style={{ background: '#d4b15f' }}></i>En Acta</span>
+          </div>
         </div>
+
         <div className="tv-panel">
-          <h3>Productividad del Equipo</h3>
-          {ranking.map(r => (
-            <div key={r.name}>
-              <div className="tv-rank"><span>{r.name}</span><strong>{r.n}</strong></div>
-              <div className="tv-bar"><span style={{ width: `${(r.n / maxN) * 100}%` }}></span></div>
+          <h3>📊 Estado General</h3>
+          <ResponsiveContainer width="100%" height={170}>
+            <PieChart>
+              <Pie data={estados} dataKey="n" nameKey="label" cx="50%" cy="50%" innerRadius={48} outerRadius={78} paddingAngle={2}>
+                {estados.map((e, i) => <Cell key={i} fill={e.c} stroke="none" />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+          {estados.map(e => (
+            <div key={e.label} className="tv-estado-row">
+              <span><i className="tv-dot" style={{ background: e.c, display: 'inline-block', marginRight: 8 }}></i>{e.label}</span>
+              <span className="tv-estado-num" style={{ color: e.c }}>{e.n}</span>
+            </div>
+          ))}
+          <div className="tv-estado-row" style={{ borderTop: '2px solid #1b3354', marginTop: 4, paddingTop: 12 }}>
+            <span style={{ color: '#8493ad' }}>Total General</span>
+            <span className="tv-estado-num" style={{ color: '#f4f6fb' }}>{total}</span>
+          </div>
+        </div>
+
+        <div className="tv-panel">
+          <h3>⏱️ Semáforo de Términos</h3>
+          <div style={{ maxHeight: 560, overflowY: 'auto' }}>
+            {terminos.slice(0, 8).map(t => (
+              <div key={t.radicado} className={`tv-term ${t.color}`}>
+                <div>
+                  <div className="tv-term-rad">{t.radicado}</div>
+                  <div className="tv-term-title">{t.tipoLicencia}</div>
+                  <div className="tv-term-rev">Revisor: {t.revisorEstruc}</div>
+                  <div className="tv-term-tipo">Técnico: {t.tecnico}</div>
+                  <span className="tv-term-badge">{t.estado}</span>
+                </div>
+                <div className={`tv-term-days ${t.color}`}>
+                  <div className="d">{Math.abs(t.dias)}</div>
+                  <div className="t">{t.vencido ? 'Vencido' : 'Días'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="tv-cols" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="tv-panel">
+          <h3>🏆 Ranking de Aprobaciones</h3>
+          {ranking.map((r, i) => (
+            <div key={r.name} className="tv-rank-row">
+              <div className="tv-medal">{medals[i]}</div>
+              <div className="tv-rank-name">{r.name}<div className="tv-rank-role">{r.role}</div></div>
+              <div style={{ textAlign: 'right' }}>
+                <div className="tv-rank-num">{r.apr}</div>
+                <div className="tv-rank-role">{r.pct}% aprob.</div>
+              </div>
             </div>
           ))}
         </div>
-      </div>
 
-      <div className="tv-panel">
-        <h3>📰 Últimos Movimientos</h3>
-        {historialData.map((h, i) => (
-          <div key={i} className="tv-move">
-            <span>{h.txt}</span>
-            <span style={{ color: '#64748b', whiteSpace: 'nowrap', marginLeft: 16 }}>{h.fecha}</span>
-          </div>
-        ))}
+        <div className="tv-panel">
+          <h3>📰 Últimos Movimientos</h3>
+          {movimientos.map((m, i) => (
+            <div key={i} className="tv-move">
+              <div className="tv-move-dot"></div>
+              <div className="tv-move-txt">{m.txt}</div>
+              <div className="tv-move-date">{m.date}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

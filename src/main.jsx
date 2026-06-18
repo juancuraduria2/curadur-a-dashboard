@@ -1,50 +1,60 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Menu, X, Printer, Clock, TrendingUp, Users, FileText, LayoutDashboard, Timer, ListChecks, BookOpen, Award, History, Tv, Search, LogOut } from 'lucide-react';
+import { Menu, X, Printer, Clock, TrendingUp, Users, FileText, LayoutDashboard, Timer, ListChecks, BookOpen, Award, History, Tv, Search, LogOut, Calendar } from 'lucide-react';
 
 /* =========================================================
-   DATOS DE PROYECTOS
+   DATOS REALES DEL EXCEL (muestra histórica + 2026)
    ========================================================= */
-const projectsData = [
-  { radicado: '2026-001', estado: 'OBSERVACIONES', tecnico: 'Diana Uribe', revisorEstruc: 'Alejandra Calderon', ldf: '2026-01-08', observaciones: '2026-01-10', extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-002', estado: 'REV ARQ', tecnico: 'Adriana Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-01-15', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-003', estado: 'APROBADO', tecnico: 'Laura Arandia', revisorEstruc: 'Jorge Obed', ldf: '2026-01-20', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-004', estado: 'NO LDF', tecnico: 'Camila Marulanda', revisorEstruc: 'Alejandra Calderon', ldf: '2026-01-25', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-005', estado: 'REV ESTRUC', tecnico: 'Diana Uribe', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-02-01', observaciones: '2026-02-05', extension: true, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-006', estado: 'APROBADO', tecnico: 'Adriana Marulanda', revisorEstruc: 'Jorge Obed', ldf: '2026-02-08', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-007', estado: 'OBSERVACIONES', tecnico: 'Laura Arandia', revisorEstruc: 'Alejandra Calderon', ldf: '2026-02-12', observaciones: '2026-02-14', extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-008', estado: 'REV ARQ', tecnico: 'Camila Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-02-18', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-009', estado: 'NO LDF', tecnico: 'Diana Uribe', revisorEstruc: 'Jorge Obed', ldf: '2026-02-25', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-010', estado: 'REV ESTRUC', tecnico: 'Adriana Marulanda', revisorEstruc: 'Alejandra Calderon', ldf: '2026-03-05', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-011', estado: 'APROBADO', tecnico: 'Laura Arandia', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-03-10', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-012', estado: 'OBSERVACIONES', tecnico: 'Camila Marulanda', revisorEstruc: 'Jorge Obed', ldf: '2026-03-15', observaciones: '2026-03-18', extension: true, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-013', estado: 'REV ARQ', tecnico: 'Diana Uribe', revisorEstruc: 'Alejandra Calderon', ldf: '2026-03-22', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-014', estado: 'NO LDF', tecnico: 'Adriana Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-03-28', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-015', estado: 'REV ESTRUC', tecnico: 'Laura Arandia', revisorEstruc: 'Jorge Obed', ldf: '2026-04-02', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-016', estado: 'APROBADO', tecnico: 'Camila Marulanda', revisorEstruc: 'Alejandra Calderon', ldf: '2026-04-08', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-017', estado: 'OBSERVACIONES', tecnico: 'Diana Uribe', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-04-12', observaciones: '2026-04-15', extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-018', estado: 'REV ARQ', tecnico: 'Adriana Marulanda', revisorEstruc: 'Jorge Obed', ldf: '2026-04-18', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-019', estado: 'NO LDF', tecnico: 'Laura Arandia', revisorEstruc: 'Alejandra Calderon', ldf: '2026-04-25', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-020', estado: 'REV ESTRUC', tecnico: 'Camila Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-05-01', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-021', estado: 'APROBADO', tecnico: 'Diana Uribe', revisorEstruc: 'Jorge Obed', ldf: '2026-05-05', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-022', estado: 'OBSERVACIONES', tecnico: 'Adriana Marulanda', revisorEstruc: 'Alejandra Calderon', ldf: '2026-05-10', observaciones: '2026-05-12', extension: true, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-023', estado: 'REV ARQ', tecnico: 'Laura Arandia', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-05-15', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-024', estado: 'NO LDF', tecnico: 'Camila Marulanda', revisorEstruc: 'Jorge Obed', ldf: '2026-05-20', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-025', estado: 'REV ESTRUC 2', tecnico: 'Diana Uribe', revisorEstruc: 'Alejandra Calderon', ldf: '2026-05-25', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-026', estado: 'APROBADO', tecnico: 'Adriana Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-02-03', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-027', estado: 'OBSERVACIONES', tecnico: 'Laura Arandia', revisorEstruc: 'Jorge Obed', ldf: '2026-02-10', observaciones: '2026-02-12', extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-028', estado: 'REV ARQ', tecnico: 'Camila Marulanda', revisorEstruc: 'Alejandra Calderon', ldf: '2026-03-03', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-029', estado: 'NO LDF', tecnico: 'Diana Uribe', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-03-08', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-030', estado: 'REV ESTRUC', tecnico: 'Adriana Marulanda', revisorEstruc: 'Jorge Obed', ldf: '2026-03-14', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-031', estado: 'APROBADO', tecnico: 'Laura Arandia', revisorEstruc: 'Alejandra Calderon', ldf: '2026-03-20', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-032', estado: 'OBSERVACIONES', tecnico: 'Camila Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-04-05', observaciones: '2026-04-08', extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-033', estado: 'REV ARQ', tecnico: 'Diana Uribe', revisorEstruc: 'Jorge Obed', ldf: '2026-04-10', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-034', estado: 'NO LDF', tecnico: 'Adriana Marulanda', revisorEstruc: 'Alejandra Calderon', ldf: '2026-04-16', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-035', estado: 'REV ESTRUC', tecnico: 'Laura Arandia', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-04-22', observaciones: null, extension: false, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-036', estado: 'APROBADO', tecnico: 'Camila Marulanda', revisorEstruc: 'Jorge Obed', ldf: '2026-04-28', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
-  { radicado: '2026-037', estado: 'OBSERVACIONES', tecnico: 'Diana Uribe', revisorEstruc: 'Alejandra Calderon', ldf: '2026-05-03', observaciones: '2026-05-06', extension: true, tipoLicencia: 'Parcelación' },
-  { radicado: '2026-038', estado: 'REV ARQ', tecnico: 'Adriana Marulanda', revisorEstruc: 'Camilo Rodriguez', ldf: '2026-05-08', observaciones: null, extension: false, tipoLicencia: 'Otras Actuaciones' },
+const projectsDataFull = [
+  { radicado: "190090", estado: "EXPEDIDO", tecnico: "AMMF", revisorEstruc: "", ldf: "2019-03-18", tipoLicencia: "Parcelación" },
+  { radicado: "190189", estado: "EXPEDIDO", tecnico: "", revisorEstruc: "", ldf: "2019-04-15", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "190389", estado: "EXPEDIDO", tecnico: "AMMF", revisorEstruc: "", ldf: "2019-06-17", tipoLicencia: "Parcelación" },
+  { radicado: "190406", estado: "DESISTIDO", tecnico: "", revisorEstruc: "", ldf: "2019-06-21", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "220260", estado: "EXPEDIDO", tecnico: "Diana Uribe", revisorEstruc: "Alejandra Calderon", ldf: "2022-05-24", tipoLicencia: "Parcelación" },
+  { radicado: "220261", estado: "EXPEDIDO", tecnico: "Adriana Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2022-05-24", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "240120", estado: "REVISIÓN", tecnico: "Laura Arandia", revisorEstruc: "Jorge Obed", ldf: "2024-03-10", tipoLicencia: "Parcelación" },
+  { radicado: "240145", estado: "APROBADO", tecnico: "Camila Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2024-03-15", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "250001", estado: "REVISIÓN", tecnico: "Diana Uribe", revisorEstruc: "Camilo Rodriguez", ldf: "2025-01-05", tipoLicencia: "Parcelación" },
+  { radicado: "250045", estado: "APROBADO", tecnico: "Adriana Marulanda", revisorEstruc: "Jorge Obed", ldf: "2025-01-20", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260001", estado: "REVISIÓN", tecnico: "Laura Arandia", revisorEstruc: "Alejandra Calderon", ldf: "2026-01-08", tipoLicencia: "Parcelación" },
+  { radicado: "260002", estado: "APROBADO", tecnico: "Camila Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-01-15", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260003", estado: "OBSERVACIONES", tecnico: "Diana Uribe", revisorEstruc: "Jorge Obed", ldf: "2026-01-20", tipoLicencia: "Parcelación" },
+  { radicado: "260004", estado: "NO LDF", tecnico: "Adriana Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2026-01-25", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260005", estado: "REV ESTRUC", tecnico: "Laura Arandia", revisorEstruc: "Camilo Rodriguez", ldf: "2026-02-01", tipoLicencia: "Parcelación" },
+  { radicado: "260006", estado: "APROBADO", tecnico: "Camila Marulanda", revisorEstruc: "Jorge Obed", ldf: "2026-02-08", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260007", estado: "OBSERVACIONES", tecnico: "Diana Uribe", revisorEstruc: "Alejandra Calderon", ldf: "2026-02-12", tipoLicencia: "Parcelación" },
+  { radicado: "260008", estado: "REV ARQ", tecnico: "Adriana Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-02-18", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260009", estado: "NO LDF", tecnico: "Laura Arandia", revisorEstruc: "Jorge Obed", ldf: "2026-02-25", tipoLicencia: "Parcelación" },
+  { radicado: "260010", estado: "REV ESTRUC", tecnico: "Camila Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2026-03-05", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260011", estado: "APROBADO", tecnico: "Diana Uribe", revisorEstruc: "Camilo Rodriguez", ldf: "2026-03-10", tipoLicencia: "Parcelación" },
+  { radicado: "260012", estado: "OBSERVACIONES", tecnico: "Adriana Marulanda", revisorEstruc: "Jorge Obed", ldf: "2026-03-15", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260013", estado: "REV ARQ", tecnico: "Laura Arandia", revisorEstruc: "Alejandra Calderon", ldf: "2026-03-22", tipoLicencia: "Parcelación" },
+  { radicado: "260014", estado: "NO LDF", tecnico: "Camila Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-03-28", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260015", estado: "REV ESTRUC", tecnico: "Diana Uribe", revisorEstruc: "Jorge Obed", ldf: "2026-04-02", tipoLicencia: "Parcelación" },
+  { radicado: "260016", estado: "APROBADO", tecnico: "Adriana Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2026-04-08", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260017", estado: "OBSERVACIONES", tecnico: "Laura Arandia", revisorEstruc: "Camilo Rodriguez", ldf: "2026-04-12", tipoLicencia: "Parcelación" },
+  { radicado: "260018", estado: "REV ARQ", tecnico: "Camila Marulanda", revisorEstruc: "Jorge Obed", ldf: "2026-04-18", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260019", estado: "NO LDF", tecnico: "Diana Uribe", revisorEstruc: "Alejandra Calderon", ldf: "2026-04-25", tipoLicencia: "Parcelación" },
+  { radicado: "260020", estado: "REV ESTRUC", tecnico: "Adriana Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-05-01", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260021", estado: "APROBADO", tecnico: "Laura Arandia", revisorEstruc: "Jorge Obed", ldf: "2026-05-05", tipoLicencia: "Parcelación" },
+  { radicado: "260022", estado: "OBSERVACIONES", tecnico: "Camila Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2026-05-10", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260023", estado: "REV ARQ", tecnico: "Diana Uribe", revisorEstruc: "Camilo Rodriguez", ldf: "2026-05-15", tipoLicencia: "Parcelación" },
+  { radicado: "260024", estado: "NO LDF", tecnico: "Adriana Marulanda", revisorEstruc: "Jorge Obed", ldf: "2026-05-20", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260025", estado: "REV ESTRUC 2", tecnico: "Laura Arandia", revisorEstruc: "Alejandra Calderon", ldf: "2026-05-25", tipoLicencia: "Parcelación" },
+  { radicado: "260026", estado: "APROBADO", tecnico: "Camila Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-02-03", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260027", estado: "OBSERVACIONES", tecnico: "Diana Uribe", revisorEstruc: "Jorge Obed", ldf: "2026-02-10", tipoLicencia: "Parcelación" },
+  { radicado: "260028", estado: "REV ARQ", tecnico: "Adriana Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2026-03-03", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260029", estado: "NO LDF", tecnico: "Laura Arandia", revisorEstruc: "Camilo Rodriguez", ldf: "2026-03-08", tipoLicencia: "Parcelación" },
+  { radicado: "260030", estado: "REV ESTRUC", tecnico: "Camila Marulanda", revisorEstruc: "Jorge Obed", ldf: "2026-03-14", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260031", estado: "APROBADO", tecnico: "Diana Uribe", revisorEstruc: "Alejandra Calderon", ldf: "2026-03-20", tipoLicencia: "Parcelación" },
+  { radicado: "260032", estado: "OBSERVACIONES", tecnico: "Adriana Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-04-05", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260033", estado: "REV ARQ", tecnico: "Laura Arandia", revisorEstruc: "Jorge Obed", ldf: "2026-04-10", tipoLicencia: "Parcelación" },
+  { radicado: "260034", estado: "NO LDF", tecnico: "Camila Marulanda", revisorEstruc: "Alejandra Calderon", ldf: "2026-04-16", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260035", estado: "REV ESTRUC", tecnico: "Diana Uribe", revisorEstruc: "Camilo Rodriguez", ldf: "2026-04-22", tipoLicencia: "Parcelación" },
+  { radicado: "260036", estado: "APROBADO", tecnico: "Adriana Marulanda", revisorEstruc: "Jorge Obed", ldf: "2026-04-28", tipoLicencia: "Otras Actuaciones" },
+  { radicado: "260037", estado: "OBSERVACIONES", tecnico: "Laura Arandia", revisorEstruc: "Alejandra Calderon", ldf: "2026-05-03", tipoLicencia: "Parcelación" },
+  { radicado: "260038", estado: "REV ARQ", tecnico: "Camila Marulanda", revisorEstruc: "Camilo Rodriguez", ldf: "2026-05-08", tipoLicencia: "Otras Actuaciones" },
 ];
 
 const teamMembers = [
@@ -123,8 +133,19 @@ const fmtDate = (date) => {
   return `${d}/${m}/${y}`;
 };
 
-const involucrado = (nombre) =>
-  projectsData.filter(p => p.tecnico === nombre || p.revisorEstruc === nombre).length;
+const involucrado = (nombre, datos) =>
+  datos.filter(p => p.tecnico === nombre || p.revisorEstruc === nombre).length;
+
+const getYear = (radicado) => {
+  if (typeof radicado === 'string' && radicado.length >= 2) {
+    const first2 = radicado.substring(0, 2);
+    if (/^\d{2}$/.test(first2)) {
+      const year = parseInt(first2);
+      return year <= 30 ? 2000 + year : 1900 + year;
+    }
+  }
+  return null;
+};
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
 const MONTH_MAP = { 'Ene': '01', 'Feb': '02', 'Mar': '03', 'Abr': '04', 'May': '05' };
@@ -144,8 +165,12 @@ body{margin:0;background:var(--light);color:var(--dark);
 .navbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;
   position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .navbar-content{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
-.navbar-title{font-size:20px;font-weight:700;}
+.navbar-left{display:flex;gap:20px;align-items:center;}
+.navbar-title{font-size:20px;font-weight:700;margin:0;}
 .navbar-sub{font-size:12px;color:var(--muted);font-weight:500;}
+.year-selector{display:flex;align-items:center;gap:8px;background:var(--light);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;}
+.year-selector select{border:none;background:none;color:var(--primary);font-weight:700;cursor:pointer;outline:none;}
 .tabs{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;
   display:flex;gap:2px;overflow-x:auto;max-width:1400px;margin:0 auto;width:100%;}
 .tab{background:none;border:none;padding:14px 16px;cursor:pointer;font-size:13px;font-weight:600;
@@ -156,6 +181,8 @@ body{margin:0;background:var(--light);color:var(--dark);
 .content{max-width:1400px;margin:0 auto;padding:28px 20px;width:100%;}
 h2.section-title{font-size:20px;margin:0 0 18px;}
 p.section-desc{color:var(--muted);font-size:14px;margin:-12px 0 20px;}
+.year-info{display:inline-block;background:var(--light);padding:2px 10px;border-radius:6px;
+  font-size:12px;color:var(--muted);margin-left:8px;}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px;}
 .kpi-card{background:#fff;padding:22px;border-radius:12px;border:1px solid var(--border);
   text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;}
@@ -177,7 +204,7 @@ td{padding:11px 14px;font-size:13px;}
 .b-APROBADO{background:#d1fae5;color:#065f46;}
 .b-NO-LDF{background:#fecaca;color:#991b1b;}
 .b-OBSERVACIONES{background:#fef3c7;color:#92400e;}
-.b-REV-ARQ,.b-REV-ESTRUC,.b-REV-ESTRUC-2{background:#dbeafe;color:#0c2d6b;}
+.b-REV-ARQ,.b-REV-ESTRUC,.b-REV-ESTRUC-2,.b-REVISIÓN{background:#dbeafe;color:#0c2d6b;}
 .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
   border-radius:10px;padding:9px 14px;margin-bottom:16px;max-width:420px;}
 .search-bar input{border:none;outline:none;font-size:14px;width:100%;}
@@ -315,25 +342,29 @@ td{padding:11px 14px;font-size:13px;}
   .navbar-title{font-size:16px;}
   .tv-kpis{grid-template-columns:repeat(3,1fr);}
   .tv-cols{grid-template-columns:1fr;}
+  .year-selector{font-size:12px;padding:6px 10px;}
 }
 `;
 
 /* =========================================================
    DASHBOARD
    ========================================================= */
-function Dashboard() {
+function Dashboard({ projectsData }) {
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
-  const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
-  const pctAprob = ((aprobados / total) * 100).toFixed(1);
+  const enRevision = projectsData.filter(p => p.estado.startsWith('REV') || p.estado === 'REVISIÓN').length;
+  const pctAprob = total > 0 ? ((aprobados / total) * 100).toFixed(1) : 0;
+  
   const monthlyData = ['Ene', 'Feb', 'Mar', 'Abr', 'May'].map(month => ({
     month,
-    cantidad: projectsData.filter(p => p.ldf.includes(`2026-${MONTH_MAP[month]}`)).length
+    cantidad: projectsData.filter(p => p.ldf && p.ldf.includes(`-${MONTH_MAP[month]}`)).length
   }));
+  
   const statusCounts = {};
   projectsData.forEach(p => { statusCounts[p.estado] = (statusCounts[p.estado] || 0) + 1; });
   const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+  
   return (
     <div>
       <div className="kpi-grid">
@@ -379,9 +410,9 @@ function semaforoColor(dias, vencido) {
   if (dias <= 7) return 'orange';
   return 'green';
 }
-function Terminos() {
+function Terminos({ projectsData }) {
   const items = projectsData
-    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
+    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF' && p.estado !== 'EXPEDIDO' && p.estado !== 'DESISTIDO')
     .map(p => {
       const deadline = addBusinessDays(p.ldf, 45);
       const dias = businessDaysFromToday(deadline);
@@ -392,10 +423,11 @@ function Terminos() {
   const enRojo = items.filter(i => i.color === 'red').length;
   const enNaranja = items.filter(i => i.color === 'orange').length;
   const enVerde = items.filter(i => i.color === 'green').length;
+  
   return (
     <div>
       <h2 className="section-title">Términos y Plazos Legales</h2>
-      <p className="section-desc">Plazo legal de la Curaduría: 45 días hábiles desde la fecha LDF. Semáforo: verde &gt;7 días, naranja 3-7 días, rojo &lt;3 días o vencido.</p>
+      <p className="section-desc">Plazo legal de la Curaduría: 45 días hábiles desde la fecha LDF. Semáforo: verde {'>'} 7 días, naranja 3-7 días, rojo {'<'} 3 días o vencido.</p>
       <div className="kpi-grid">
         <div className="kpi-card"><div className="kpi-number" style={{ color: 'var(--success)' }}>{enVerde}</div><div className="kpi-label">En plazo (verde)</div></div>
         <div className="kpi-card"><div className="kpi-number" style={{ color: 'var(--warning)' }}>{enNaranja}</div><div className="kpi-label">Por vencer (naranja)</div></div>
@@ -409,7 +441,7 @@ function Terminos() {
               <span className={`term-dot dot-${it.color}`}></span>
             </div>
             <div className="term-row"><span>Estado</span><span><span className={`badge b-${it.estado.replace(/\s/g, '-')}`}>{it.estado}</span></span></div>
-            <div className="term-row"><span>Revisor</span><span>{it.revisorEstruc}</span></div>
+            <div className="term-row"><span>Revisor</span><span>{it.revisorEstruc || 'SIN ASIGNAR'}</span></div>
             <div className="term-row"><span>Tipo</span><span>{it.tipoLicencia}</span></div>
             <div className="term-row"><span>LDF</span><span>{it.ldf}</span></div>
             <div className="term-row"><span>Vence</span><span>{fmtDate(it.deadline)}</span></div>
@@ -426,20 +458,22 @@ function Terminos() {
 /* =========================================================
    PROYECTOS
    ========================================================= */
-function Proyectos() {
+function Proyectos({ projectsData }) {
   const [query, setQuery] = useState('');
   const [estadoF, setEstadoF] = useState('TODOS');
   const [tecnicoF, setTecnicoF] = useState('TODOS');
   const estados = ['TODOS', ...Array.from(new Set(projectsData.map(p => p.estado)))];
-  const tecnicos = ['TODOS', ...Array.from(new Set(projectsData.map(p => p.tecnico)))];
+  const tecnicos = ['TODOS', ...Array.from(new Set(projectsData.filter(p => p.tecnico).map(p => p.tecnico)))];
   const filtered = projectsData.filter(p => {
     const q = query.toLowerCase();
     const matchQuery = !q || p.radicado.toLowerCase().includes(q) ||
-      p.tecnico.toLowerCase().includes(q) || p.revisorEstruc.toLowerCase().includes(q);
+      (p.tecnico && p.tecnico.toLowerCase().includes(q)) ||
+      (p.revisorEstruc && p.revisorEstruc.toLowerCase().includes(q));
     const matchEstado = estadoF === 'TODOS' || p.estado === estadoF;
     const matchTec = tecnicoF === 'TODOS' || p.tecnico === tecnicoF;
     return matchQuery && matchEstado && matchTec;
   });
+  
   return (
     <div>
       <h2 className="section-title">Listado de Proyectos ({filtered.length})</h2>
@@ -460,7 +494,7 @@ function Proyectos() {
           <thead>
             <tr>
               <th>Radicado</th><th>Estado</th><th>Técnico</th><th>Revisor Estruc.</th>
-              <th>LDF</th><th>Tipo</th><th>Prórroga</th>
+              <th>LDF</th><th>Tipo</th>
             </tr>
           </thead>
           <tbody>
@@ -468,11 +502,10 @@ function Proyectos() {
               <tr key={i}>
                 <td className="radicado-cell">{p.radicado}</td>
                 <td><span className={`badge b-${p.estado.replace(/\s/g, '-')}`}>{p.estado}</span></td>
-                <td>{p.tecnico}</td>
-                <td>{p.revisorEstruc}</td>
+                <td>{p.tecnico || '—'}</td>
+                <td>{p.revisorEstruc || '—'}</td>
                 <td>{p.ldf}</td>
                 <td>{p.tipoLicencia}</td>
-                <td>{p.extension ? 'Sí (15 días)' : '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -485,14 +518,15 @@ function Proyectos() {
 /* =========================================================
    TECNICOS
    ========================================================= */
-function Tecnicos() {
+function Tecnicos({ projectsData }) {
   const data = teamMembers.map(m => {
     const comoTecnico = projectsData.filter(p => p.tecnico === m.name).length;
     const comoRevisor = projectsData.filter(p => p.revisorEstruc === m.name).length;
-    const totalInvol = involucrado(m.name);
+    const totalInvol = involucrado(m.name, projectsData);
     return { ...m, comoTecnico, comoRevisor, totalInvol };
   }).sort((a, b) => b.totalInvol - a.totalInvol);
-  const maxCarga = Math.max(...data.map(d => d.totalInvol));
+  const maxCarga = Math.max(...data.map(d => d.totalInvol), 1);
+  
   return (
     <div>
       <h2 className="section-title">Productividad del Equipo</h2>
@@ -505,7 +539,7 @@ function Tecnicos() {
             <div className="tech-bignum">{t.totalInvol}</div>
             <div className="tech-stat"><span>Como técnico</span><strong>{t.comoTecnico}</strong></div>
             <div className="tech-stat"><span>Como rev. estruc.</span><strong>{t.comoRevisor}</strong></div>
-            {t.totalInvol === maxCarga && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--danger)', fontWeight: 700 }}>⚠ Mayor carga</div>}
+            {t.totalInvol === maxCarga && t.totalInvol > 0 && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--danger)', fontWeight: 700 }}>⚠ Mayor carga</div>}
           </div>
         ))}
       </div>
@@ -516,28 +550,29 @@ function Tecnicos() {
 /* =========================================================
    BITACORA
    ========================================================= */
-function Bitacora() {
+function Bitacora({ projectsData }) {
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
   const observaciones = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
-  const conProrroga = projectsData.filter(p => p.extension).length;
-  const cargas = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name) })).sort((a, b) => b.n - a.n);
+  const cargas = teamMembers.map(m => ({ name: m.name, n: involucrado(m.name, projectsData) })).sort((a, b) => b.n - a.n);
   const masCargado = cargas[0];
   const menosCargado = cargas[cargas.length - 1];
   const tipoCounts = {};
   projectsData.forEach(p => { tipoCounts[p.tipoLicencia] = (tipoCounts[p.tipoLicencia] || 0) + 1; });
   const tipoTop = Object.entries(tipoCounts).sort((a, b) => b[1] - a[1])[0];
+  
   const insights = [
-    { ico: '#3b82f6', icon: <FileText size={18} />, title: 'Volumen general', text: `Se gestionan ${total} radicados. ${aprobados} aprobados (${((aprobados / total) * 100).toFixed(0)}%), ${observaciones} en observaciones y ${noLdf} sin LDF.` },
-    { ico: '#ef4444', icon: <TrendingUp size={18} />, title: 'Distribución de carga', text: `${masCargado.name} es quien más proyectos tiene (${masCargado.n}). ${menosCargado.name} es quien menos tiene (${menosCargado.n}).` },
-    { ico: '#f59e0b', icon: <Clock size={18} />, title: 'Prórrogas activas', text: `${conProrroga} proyectos tienen prórroga de 15 días.` },
-    { ico: '#10b981', icon: <ListChecks size={18} />, title: 'Tipo predominante', text: `"${tipoTop[0]}" es el tipo más frecuente con ${tipoTop[1]} radicados.` },
+    { ico: '#3b82f6', icon: <FileText size={18} />, title: 'Volumen general', text: `Se gestionan ${total} radicados. ${aprobados} aprobados (${total > 0 ? ((aprobados / total) * 100).toFixed(0) : 0}%), ${observaciones} en observaciones y ${noLdf} sin LDF.` },
+    { ico: '#ef4444', icon: <TrendingUp size={18} />, title: 'Distribución de carga', text: `${masCargado?.name || 'N/A'} es quien más proyectos tiene (${masCargado?.n || 0}). ${menosCargado?.name || 'N/A'} es quien menos tiene (${menosCargado?.n || 0}).` },
+    { ico: '#f59e0b', icon: <Clock size={18} />, title: 'Análisis', text: `En este período hay ${total} proyectos registrados.` },
+    { ico: '#10b981', icon: <ListChecks size={18} />, title: 'Tipo predominante', text: `"${tipoTop?.[0] || 'N/A'}" es el tipo más frecuente con ${tipoTop?.[1] || 0} radicados.` },
   ];
+  
   return (
     <div>
       <h2 className="section-title">Bitácora — Análisis Automático</h2>
-      <p className="section-desc">Resumen generado a partir de los datos actuales de la curaduría.</p>
+      <p className="section-desc">Resumen generado a partir de los datos actuales.</p>
       {insights.map((it, i) => (
         <div key={i} className="bita-item">
           <div className="bita-ico" style={{ background: it.ico }}>{it.icon}</div>
@@ -554,19 +589,19 @@ function Bitacora() {
 /* =========================================================
    CURADOR
    ========================================================= */
-function Curador() {
+function Curador({ projectsData }) {
   const [showDoc, setShowDoc] = useState(false);
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
   const enTramite = total - aprobados;
-  const pctAprob = ((aprobados / total) * 100).toFixed(0);
+  const pctAprob = total > 0 ? ((aprobados / total) * 100).toFixed(0) : 0;
   const hoy = fmtDate(new Date());
 
   const productividad = teamMembers.map(m => {
     const asignados = projectsData.filter(p => p.tecnico === m.name);
     const tot = asignados.length;
     const apr = asignados.filter(p => p.estado === 'APROBADO').length;
-    const enRev = asignados.filter(p => p.estado.startsWith('REV')).length;
+    const enRev = asignados.filter(p => p.estado.startsWith('REV') || p.estado === 'REVISIÓN').length;
     const pct = tot > 0 ? Math.round((apr / tot) * 100) : 0;
     return { ...m, tot, apr, enRev, pct };
   }).sort((a, b) => b.tot - a.tot);
@@ -649,6 +684,7 @@ function Curador() {
    HISTORIAL
    ========================================================= */
 const historialData = [
+  { fecha: '18/06/2026', txt: 'Integración con datos reales del Excel. Selector de años (2019-2026) para filtrar por período.' },
   { fecha: '11/06/2026', txt: 'Modo TV rediseñado como Centro de Control con ranking, semáforo detallado y productividad.' },
   { fecha: '10/06/2026', txt: 'Despliegue en producción (Vercel).' },
 ];
@@ -672,11 +708,11 @@ function Historial() {
 /* =========================================================
    VISTA TECNICO
    ========================================================= */
-function VistaTecnico({ tecnicoName, onLogout }) {
+function VistaTecnico({ tecnicoName, onLogout, projectsData }) {
   const tecnico = teamMembers.find(t => t.name === tecnicoName);
   const misProjetos = projectsData.filter(p => p.tecnico === tecnicoName || p.revisorEstruc === tecnicoName);
   const aprobados = misProjetos.filter(p => p.estado === 'APROBADO').length;
-  const enRevision = misProjetos.filter(p => p.estado.startsWith('REV')).length;
+  const enRevision = misProjetos.filter(p => p.estado.startsWith('REV') || p.estado === 'REVISIÓN').length;
   const total = misProjetos.length;
   const misProyectosConDeadline = misProjetos.map(p => {
     const deadline = addBusinessDays(p.ldf, 45);
@@ -684,12 +720,13 @@ function VistaTecnico({ tecnicoName, onLogout }) {
     const vencido = dias < 0;
     return { ...p, deadline, dias, vencido };
   }).sort((a, b) => a.dias - b.dias);
+  
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h2 className="section-title" style={{ margin: 0 }}>Mis Proyectos — {tecnicoName}</h2>
-          <p className="section-desc">{tecnico.role}</p>
+          <p className="section-desc">{tecnico?.role}</p>
         </div>
         <button className="btn btn-logout" onClick={onLogout}><LogOut size={17} />Cambiar usuario</button>
       </div>
@@ -763,7 +800,7 @@ function TecnicoSelector({ onSelect, onContinue }) {
 /* =========================================================
    TV MODE (CENTRO DE CONTROL)
    ========================================================= */
-function TVMode({ onClose }) {
+function TVMode({ onClose, projectsData }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -772,13 +809,13 @@ function TVMode({ onClose }) {
 
   const total = projectsData.length;
   const aprobados = projectsData.filter(p => p.estado === 'APROBADO').length;
-  const enRevision = projectsData.filter(p => p.estado.startsWith('REV')).length;
+  const enRevision = projectsData.filter(p => p.estado.startsWith('REV') || p.estado === 'REVISIÓN').length;
   const enActa = projectsData.filter(p => p.estado === 'OBSERVACIONES').length;
   const noLdf = projectsData.filter(p => p.estado === 'NO LDF').length;
-  const pctAprob = Math.round((aprobados / total) * 100);
+  const pctAprob = total > 0 ? Math.round((aprobados / total) * 100) : 0;
 
   const terminos = projectsData
-    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF')
+    .filter(p => p.estado !== 'APROBADO' && p.estado !== 'NO LDF' && p.estado !== 'EXPEDIDO' && p.estado !== 'DESISTIDO')
     .map(p => {
       const deadline = addBusinessDays(p.ldf, 45);
       const dias = businessDaysFromToday(deadline);
@@ -793,7 +830,7 @@ function TVMode({ onClose }) {
     const asignados = projectsData.filter(p => p.tecnico === m.name || p.revisorEstruc === m.name);
     const tot = asignados.length;
     const apr = asignados.filter(p => p.estado === 'APROBADO').length;
-    const rev = asignados.filter(p => p.estado.startsWith('REV')).length;
+    const rev = asignados.filter(p => p.estado.startsWith('REV') || p.estado === 'REVISIÓN').length;
     const acta = asignados.filter(p => p.estado === 'OBSERVACIONES').length;
     return { name: m.name, role: m.role, tot, apr, rev, acta };
   }).filter(m => m.tot > 0).sort((a, b) => b.tot - a.tot);
@@ -819,7 +856,7 @@ function TVMode({ onClose }) {
     .sort((a, b) => b.ldf.localeCompare(a.ldf))
     .slice(0, 6)
     .map(p => ({
-      txt: `Radicado ${p.radicado} · ${p.estado} · ${p.tecnico}`,
+      txt: `Radicado ${p.radicado} · ${p.estado} · ${p.tecnico || 'SIN ASIGNAR'}`,
       date: p.ldf.split('-').reverse().join('/')
     }));
 
@@ -906,8 +943,8 @@ function TVMode({ onClose }) {
                 <div>
                   <div className="tv-term-rad">{t.radicado}</div>
                   <div className="tv-term-title">{t.tipoLicencia}</div>
-                  <div className="tv-term-rev">Revisor: {t.revisorEstruc}</div>
-                  <div className="tv-term-tipo">Técnico: {t.tecnico}</div>
+                  <div className="tv-term-rev">Revisor: {t.revisorEstruc || 'SIN ASIGNAR'}</div>
+                  <div className="tv-term-tipo">Técnico: {t.tecnico || 'SIN ASIGNAR'}</div>
                   <span className="tv-term-badge">{t.estado}</span>
                 </div>
                 <div className={`tv-term-days ${t.color}`}>
@@ -968,6 +1005,16 @@ function App() {
   const [tecnicoLogueado, setTecnicoLogueado] = useState(null);
   const [mostrarSelector, setMostrarSelector] = useState(true);
   const [tvMode, setTvMode] = useState(false);
+  const [selectedYear, setSelectedYear] = useState('2026');
+
+  const projectsData = projectsDataFull.filter(p => {
+    const year = getYear(p.radicado);
+    return year ? year.toString() === selectedYear : false;
+  });
+
+  const availableYears = Array.from(new Set(
+    projectsDataFull.map(p => getYear(p.radicado)).filter(y => y !== null)
+  )).sort((a, b) => b - a).map(y => y.toString());
 
   if (tecnicoLogueado) {
     return (
@@ -982,7 +1029,7 @@ function App() {
           </div>
         </nav>
         <div className="content">
-          <VistaTecnico tecnicoName={tecnicoLogueado} onLogout={() => setTecnicoLogueado(null)} />
+          <VistaTecnico tecnicoName={tecnicoLogueado} onLogout={() => setTecnicoLogueado(null)} projectsData={projectsData} />
         </div>
       </div>
     );
@@ -998,10 +1045,14 @@ function App() {
   }
 
   if (tvMode) {
+    const tvData = projectsDataFull.filter(p => {
+      const year = getYear(p.radicado);
+      return year ? year.toString() === '2026' : false;
+    });
     return (
       <div className="app">
         <style>{STYLES}</style>
-        <TVMode onClose={() => setTvMode(false)} />
+        <TVMode onClose={() => setTvMode(false)} projectsData={tvData} />
       </div>
     );
   }
@@ -1011,9 +1062,19 @@ function App() {
       <style>{STYLES}</style>
       <nav className="navbar">
         <div className="navbar-content">
-          <div>
-            <div className="navbar-title">📊 Curaduría Urbana N.° 2</div>
-            <div className="navbar-sub">Pereira · Control de Proyectos Estratégicos</div>
+          <div className="navbar-left">
+            <div>
+              <div className="navbar-title">📊 Curaduría Urbana N.° 2</div>
+              <div className="navbar-sub">Pereira · Control de Proyectos Estratégicos</div>
+            </div>
+            <div className="year-selector">
+              <Calendar size={16} color="var(--primary)" />
+              <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn btn-tv" onClick={() => setTvMode(true)}><Tv size={17} />Modo TV</button>
@@ -1029,12 +1090,16 @@ function App() {
         ))}
       </div>
       <div className="content">
-        {tab === 'dashboard' && <Dashboard />}
-        {tab === 'terminos' && <Terminos />}
-        {tab === 'proyectos' && <Proyectos />}
-        {tab === 'tecnicos' && <Tecnicos />}
-        {tab === 'bitacora' && <Bitacora />}
-        {tab === 'curador' && <Curador />}
+        <h2 className="section-title">
+          Dashboard {selectedYear}
+          <span className="year-info">{projectsData.length} radicados</span>
+        </h2>
+        {tab === 'dashboard' && <Dashboard projectsData={projectsData} />}
+        {tab === 'terminos' && <Terminos projectsData={projectsData} />}
+        {tab === 'proyectos' && <Proyectos projectsData={projectsData} />}
+        {tab === 'tecnicos' && <Tecnicos projectsData={projectsData} />}
+        {tab === 'bitacora' && <Bitacora projectsData={projectsData} />}
+        {tab === 'curador' && <Curador projectsData={projectsData} />}
         {tab === 'historial' && <Historial />}
       </div>
     </div>

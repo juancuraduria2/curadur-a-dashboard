@@ -15,13 +15,13 @@ import {
 const STYLES = `
 * { margin:0; padding:0; box-sizing:border-box; }
 :root {
-  --bg: #f0f2f5; --card: #ffffff; --primary: #1a5f2a; --primary-light: #e8f5e9;
-  --accent: #2e7d32; --accent2: #f57c00; --danger: #d32f2f; --warning: #f9a825;
-  --success: #388e3c; --text: #1a1a2e; --text2: #555; --text3: #888;
+  --bg: #f0f2f5; --card: #ffffff; --primary: #c62828; --primary-light: #ffebee;
+  --accent: #d32f2f; --accent2: #f57c00; --danger: #d32f2f; --warning: #f9a825;
+  --success: #2e7d32; --text: #1a1a2e; --text2: #555; --text3: #888;
   --border: #e0e0e0; --shadow: 0 2px 8px rgba(0,0,0,0.08);
   --radius: 10px; --header-h: 56px;
 }
-.dark { --bg:#121212; --card:#1e1e1e; --text:#e0e0e0; --text2:#aaa; --text3:#777; --border:#333; --primary-light:#1b3a1f; }
+.dark { --bg:#121212; --card:#1e1e1e; --text:#e0e0e0; --text2:#aaa; --text3:#777; --border:#333; --primary-light:#3d1111; }
 body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
 .app { min-height:100vh; }
 .header { height:var(--header-h); background:var(--primary); color:#fff; display:flex; align-items:center; padding:0 20px; position:sticky; top:0; z-index:100; gap:12px; }
@@ -77,15 +77,6 @@ tr:hover { background:var(--primary-light); }
 .form-group label { display:block; font-size:12px; color:var(--text2); margin-bottom:4px; font-weight:500; }
 .form-group input,.form-group select { width:100%; }
 .header-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
-.tv-mode { position:fixed; inset:0; background:var(--bg); z-index:300; overflow:hidden; }
-.tv-header { height:60px; background:var(--primary); color:#fff; display:flex; align-items:center; padding:0 30px; justify-content:space-between; }
-.tv-header h1 { font-size:22px; }
-.tv-content { padding:30px; height:calc(100vh - 60px); overflow:hidden; }
-.tv-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; height:100%; }
-.tv-stat { background:var(--card); border-radius:16px; padding:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:var(--shadow); }
-.tv-stat .number { font-size:52px; font-weight:800; }
-.tv-stat .label { font-size:16px; color:var(--text2); margin-top:8px; }
-.tv-chart { grid-column:span 2; background:var(--card); border-radius:16px; padding:20px; box-shadow:var(--shadow); }
 .fade-in { animation:fadeIn .5s ease; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 .alert-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; margin-bottom:8px; font-size:13px; }
@@ -99,7 +90,6 @@ tr:hover { background:var(--primary-light); }
 @media(max-width:768px) {
   .nav { padding:0 8px; } .nav button { padding:8px 10px; font-size:12px; }
   .content { padding:12px; } .grid-4 { grid-template-columns:repeat(2,1fr); }
-  .tv-grid { grid-template-columns:repeat(2,1fr); }
 }
 `;
 
@@ -351,16 +341,19 @@ const P3=[
 ];
 const P=[...P1,...P2,...P3];
 
-const PROYECTOS_2026 = P.map(p => ({
+const _ARQS = ["Diana Uribe","Adriana Marulanda","Laura Arandia","Camila Marulanda"];
+const _INGS = ["Alejandra Calderon","Camilo Rodriguez","Jorge Obed"];
+const PROYECTOS_2026 = P.map((p, i) => ({
   radicado: p.r, fechaRad: p.f, estado: p.e, ldf: p.l, ldfReal: p.lr,
   tipoLicencia: p.t, solicitante: p.s, direccion: p.d, estrategico: p.x,
-  tecnico: "", revisorEstruc: ""
+  tecnico: p.x ? _ARQS[i % _ARQS.length] : "",
+  revisorEstruc: p.x ? _INGS[i % _INGS.length] : ""
 }));
 
 const ARQUITECTOS = ["Diana Uribe","Adriana Marulanda","Laura Arandia","Camila Marulanda"];
 const INGENIEROS = ["Alejandra Calderon","Camilo Rodriguez","Jorge Obed"];
 const CURADOR = "Luis Fernando Montes";
-const COLORS = ["#2e7d32","#1565c0","#f57c00","#7b1fa2","#c62828","#00838f","#4e342e","#283593","#558b2f","#d84315"];
+const COLORS = ["#c62828","#1565c0","#f57c00","#7b1fa2","#2e7d32","#00838f","#4e342e","#283593","#558b2f","#d84315"];
 
 const HISTORICO_ANOS = [
   { ano: 2019, total: 487, aprobados: 312, desistidos: 45, enEstudio: 0 },
@@ -415,7 +408,6 @@ function estadoColor(e) {
 function involucrado(p, nombre) {
   return p.tecnico === nombre || p.revisorEstruc === nombre;
 }
-
 // ========== COMPONENTS ==========
 
 // --- Stat Card ---
@@ -509,7 +501,6 @@ function ModoTV({ proyectos, onClose }) {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-
   const stats = useMemo(() => {
     const byEstado = {};
     proyectos.forEach(p => { byEstado[p.estado] = (byEstado[p.estado] || 0) + 1; });
@@ -531,148 +522,69 @@ function ModoTV({ proyectos, onClose }) {
       const ac = proys.filter(p => p.estado === "OBSERVACIONES" || p.estado === "CORRECCION").length;
       return { nombre: nombre.split(" ")[0] + " " + nombre.split(" ")[1], a, r, ac, total: proys.length };
     });
-    return { byEstado, estrategicos, aprobados, enRevision, tasa, urgentes, prodData, total: proyectos.length };
+    const ranking = prodData.map(p => ({...p, aprobados: p.a, tasa: p.total > 0 ? Math.round(p.a / p.total * 100) : 0})).sort((a,b) => b.aprobados - a.aprobados);
+    const movimientos = proyectos.filter(p => p.estrategico).map(p => ({ rad: p.radicado, estado: p.estado, tecnico: p.tecnico, revisor: p.revisorEstruc, fecha: p.ldf || p.fechaRad })).sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 7);
+    return { byEstado, estrategicos, aprobados, enRevision, tasa, urgentes, prodData, ranking, movimientos, total: proyectos.length };
   }, [proyectos]);
-
   const donutData = [
     { name: "Aprobados", value: stats.aprobados, color: "#2e7d32" },
     { name: "En Revisión", value: stats.enRevision, color: "#1976d2" },
     { name: "En Acta", value: (stats.byEstado["OBSERVACIONES"]||0) + (stats.byEstado["CORRECCION"]||0), color: "#f9a825" },
     { name: "NO LDF", value: stats.byEstado["NO LDF"]||0, color: "#e53935" },
   ].filter(d => d.value > 0);
-
   const fechaStr = time.toLocaleDateString("es-CO", { weekday:"long", day:"numeric", month:"long" }).replace(/^\w/, c => c.toUpperCase());
   const horaStr = time.toLocaleTimeString("es-CO", { hour12: false });
-
-  const tvStyles = `
-    .tv-bg { position:fixed;inset:0;background:#0d1117;color:#e0e0e0;overflow-y:auto;z-index:300;font-family:'Segoe UI',system-ui,sans-serif; }
-    .tv-top { display:flex;justify-content:space-between;align-items:center;padding:16px 30px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-bottom:2px solid #c62828; }
-    .tv-title { font-size:26px;font-weight:800;letter-spacing:3px;color:#c9a84c; }
-    .tv-subtitle { font-size:12px;letter-spacing:4px;color:#888;margin-top:2px; }
-    .tv-clock { font-size:48px;font-weight:200;font-family:'Courier New',monospace;color:#e0e0e0; }
-    .tv-date { font-size:13px;color:#888;text-align:right; }
-    .tv-back { background:none;border:1px solid #555;color:#aaa;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:13px; }
-    .tv-back:hover { border-color:#fff;color:#fff; }
-    .tv-stats { display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:20px 30px; }
-    .tv-stat-card { background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px;text-align:center; }
-    .tv-stat-num { font-size:40px;font-weight:700;line-height:1.1; }
-    .tv-stat-label { font-size:11px;letter-spacing:2px;color:#888;margin-top:6px;text-transform:uppercase; }
-    .tv-body { display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:0 30px 30px; }
-    .tv-panel { background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px; }
-    .tv-panel-title { font-size:13px;letter-spacing:2px;color:#888;margin-bottom:16px;font-weight:600;display:flex;align-items:center;gap:8px; }
-    .tv-prod-row { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
-    .tv-prod-name { width:120px;font-size:12px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .tv-prod-bar { flex:1;height:18px;display:flex;border-radius:4px;overflow:hidden; }
-    .tv-prod-stats { font-size:10px;color:#888;width:110px;text-align:right; }
-    .tv-legend { display:flex;gap:16px;margin-top:8px;font-size:11px;color:#888; }
-    .tv-legend-dot { width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px; }
-    .tv-donut-legend { font-size:14px;color:#ccc;display:flex;align-items:center;gap:10px;margin-bottom:10px; }
-    .tv-donut-dot { width:12px;height:12px;border-radius:50%;flex-shrink:0; }
-    .tv-donut-val { margin-left:auto;font-size:22px;font-weight:700; }
-    .tv-alert-card { background:#1a1a2e;border:1px solid #30363d;border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid #c62828; }
-    .tv-alert-rad { font-size:16px;font-weight:700;color:#c9a84c; }
-    .tv-alert-tipo { font-size:12px;color:#aaa;margin-top:2px; }
-    .tv-alert-info { font-size:11px;color:#777;margin-top:4px; }
-    .tv-alert-badge { display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-right:4px; }
-    .tv-alert-days { width:52px;height:52px;border-radius:8px;background:#c62828;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0; }
-    .tv-alert-days-num { font-size:18px;font-weight:800;color:#fff; }
-    .tv-alert-days-label { font-size:8px;color:#ffcdd2;letter-spacing:1px; }
-    @media(max-width:1200px) { .tv-stats{grid-template-columns:repeat(3,1fr)} .tv-body{grid-template-columns:1fr} }
+  const tvS = `
+    .tv-bg{position:fixed;inset:0;background:#0d1117;color:#e0e0e0;overflow-y:auto;z-index:300;font-family:'Segoe UI',system-ui,sans-serif}
+    .tv-top{display:flex;justify-content:space-between;align-items:center;padding:16px 30px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:2px solid #c62828}
+    .tv-title{font-size:26px;font-weight:800;letter-spacing:3px;color:#c9a84c}.tv-subtitle{font-size:12px;letter-spacing:4px;color:#888;margin-top:2px}
+    .tv-clock{font-size:48px;font-weight:200;font-family:'Courier New',monospace}.tv-date{font-size:13px;color:#888;text-align:right}
+    .tv-back{background:none;border:1px solid #555;color:#aaa;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:13px}
+    .tv-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:20px 30px}
+    .tv-sc{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px;text-align:center}
+    .tv-sn{font-size:40px;font-weight:700;line-height:1.1}.tv-sl{font-size:11px;letter-spacing:2px;color:#888;margin-top:6px;text-transform:uppercase}
+    .tv-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:0 30px 16px}
+    .tv-p{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px}
+    .tv-pt{font-size:13px;letter-spacing:2px;color:#888;margin-bottom:16px;font-weight:600}
+    .tv-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 30px 30px}
+    .tv-ac{background:#1a1a2e;border:1px solid #30363d;border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid #c62828;display:flex;gap:12px;align-items:center}
+    .tv-days{width:52px;height:52px;border-radius:8px;background:#c62828;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+    @media(max-width:1200px){.tv-stats{grid-template-columns:repeat(3,1fr)}.tv-body,.tv-row2{grid-template-columns:1fr}}
   `;
-
   const maxBar = Math.max(...stats.prodData.map(p => p.total), 1);
-
   return (
-    <div className="tv-bg">
-      <style>{tvStyles}</style>
+    <div className="tv-bg"><style>{tvS}</style>
       <div className="tv-top">
-        <div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:28}}>✕</span>
-            <div className="tv-title">CURADURÍA 2 PEREIRA</div>
-          </div>
-          <div className="tv-subtitle">CENTRO DE CONTROL · PROYECTOS ESTRATÉGICOS</div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:24}}>
-          <div>
-            <div className="tv-date">{fechaStr}</div>
-            <div className="tv-clock">{horaStr}</div>
-          </div>
-          <button className="tv-back" onClick={onClose}>← Volver</button>
-        </div>
+        <div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>✕</span><div className="tv-title">CURADURÍA 2 PEREIRA</div></div><div className="tv-subtitle">CENTRO DE CONTROL · PROYECTOS ESTRATÉGICOS</div></div>
+        <div style={{display:"flex",alignItems:"center",gap:24}}><div><div className="tv-date">{fechaStr}</div><div className="tv-clock">{horaStr}</div></div><button className="tv-back" onClick={onClose}>← Volver</button></div>
       </div>
       <div className="tv-stats">
-        <div className="tv-stat-card"><div className="tv-stat-num" style={{color:"#e0e0e0"}}>{stats.total}</div><div className="tv-stat-label">Total</div></div>
-        <div className="tv-stat-card"><div className="tv-stat-num" style={{color:"#c9a84c"}}>{stats.estrategicos}</div><div className="tv-stat-label">⭐ Estratégicos</div></div>
-        <div className="tv-stat-card"><div className="tv-stat-num" style={{color:"#4caf50"}}>{stats.aprobados}</div><div className="tv-stat-label">Aprobados</div></div>
-        <div className="tv-stat-card"><div className="tv-stat-num" style={{color:"#42a5f5"}}>{stats.enRevision}</div><div className="tv-stat-label">En Revisión</div></div>
-        <div className="tv-stat-card"><div className="tv-stat-num" style={{color:"#ab47bc"}}>{stats.tasa}%</div><div className="tv-stat-label">Tasa Aprob.</div></div>
-        <div className="tv-stat-card"><div className="tv-stat-num" style={{color:"#ef5350"}}>{stats.urgentes.length}</div><div className="tv-stat-label">Urgentes</div></div>
+        <div className="tv-sc"><div className="tv-sn" style={{color:"#e0e0e0"}}>{stats.total}</div><div className="tv-sl">Total</div></div>
+        <div className="tv-sc"><div className="tv-sn" style={{color:"#c9a84c"}}>{stats.estrategicos}</div><div className="tv-sl">⭐ Estratégicos</div></div>
+        <div className="tv-sc"><div className="tv-sn" style={{color:"#4caf50"}}>{stats.aprobados}</div><div className="tv-sl">Aprobados</div></div>
+        <div className="tv-sc"><div className="tv-sn" style={{color:"#42a5f5"}}>{stats.enRevision}</div><div className="tv-sl">En Revisión</div></div>
+        <div className="tv-sc"><div className="tv-sn" style={{color:"#ab47bc"}}>{stats.tasa}%</div><div className="tv-sl">Tasa Aprob.</div></div>
+        <div className="tv-sc"><div className="tv-sn" style={{color:"#ef5350"}}>{stats.urgentes.length}</div><div className="tv-sl">Urgentes</div></div>
       </div>
       <div className="tv-body">
-        <div className="tv-panel">
-          <div className="tv-panel-title">🏆 PRODUCTIVIDAD DEL EQUIPO</div>
-          {stats.prodData.map((p,i) => (
-            <div key={i} className="tv-prod-row">
-              <div className="tv-prod-name">{p.nombre}</div>
-              <div className="tv-prod-bar">
-                {p.a > 0 && <div style={{width:`${p.a/maxBar*100}%`,background:"#2e7d32",minWidth:p.a>0?4:0}} />}
-                {p.r > 0 && <div style={{width:`${p.r/maxBar*100}%`,background:"#1976d2",minWidth:p.r>0?4:0}} />}
-                {p.ac > 0 && <div style={{width:`${p.ac/maxBar*100}%`,background:"#f9a825",minWidth:p.ac>0?4:0}} />}
-              </div>
-              <div className="tv-prod-stats">{p.a}A · {p.r}R · {p.ac}Ac · {p.total}T</div>
-            </div>
-          ))}
-          <div className="tv-legend">
-            <span><span className="tv-legend-dot" style={{background:"#2e7d32"}} /> Aprobados</span>
-            <span><span className="tv-legend-dot" style={{background:"#1976d2"}} /> En Revisión</span>
-            <span><span className="tv-legend-dot" style={{background:"#f9a825"}} /> En Acta</span>
-          </div>
+        <div className="tv-p"><div className="tv-pt">🏆 PRODUCTIVIDAD DEL EQUIPO</div>
+          {stats.prodData.map((p,i) => (<div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:120,fontSize:12,color:"#ccc",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.nombre}</div><div style={{flex:1,height:18,display:"flex",borderRadius:4,overflow:"hidden"}}>{p.a>0&&<div style={{width:`${p.a/maxBar*100}%`,background:"#2e7d32",minWidth:4}}/>}{p.r>0&&<div style={{width:`${p.r/maxBar*100}%`,background:"#1976d2",minWidth:4}}/>}{p.ac>0&&<div style={{width:`${p.ac/maxBar*100}%`,background:"#f9a825",minWidth:4}}/>}</div><div style={{fontSize:10,color:"#888",width:110,textAlign:"right"}}>{p.a}A·{p.r}R·{p.ac}Ac·{p.total}T</div></div>))}
+          <div style={{display:"flex",gap:16,marginTop:8,fontSize:11,color:"#888"}}><span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#2e7d32",marginRight:4}}/>Aprobados</span><span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#1976d2",marginRight:4}}/>En Revisión</span><span><span style={{display:"inline-block",width:10,height:10,borderRadius:"50%",background:"#f9a825",marginRight:4}}/>En Acta</span></div>
         </div>
-        <div className="tv-panel">
-          <div className="tv-panel-title">📊 ESTADO GENERAL</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart><Pie data={donutData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} dataKey="value" strokeWidth={0}>
-              {donutData.map((d,i) => <Cell key={i} fill={d.color} />)}
-            </Pie></PieChart>
-          </ResponsiveContainer>
-          <div style={{marginTop:8}}>
-            {donutData.map((d,i) => (
-              <div key={i} className="tv-donut-legend">
-                <div className="tv-donut-dot" style={{background:d.color}} />
-                <span>{d.name}</span>
-                <span className="tv-donut-val" style={{color:d.color}}>{d.value}</span>
-              </div>
-            ))}
-            <div className="tv-donut-legend" style={{borderTop:"1px solid #30363d",paddingTop:8,marginTop:8}}>
-              <span style={{fontWeight:600}}>Total General</span>
-              <span className="tv-donut-val" style={{color:"#e0e0e0"}}>{stats.total}</span>
-            </div>
-          </div>
+        <div className="tv-p"><div className="tv-pt">📊 ESTADO GENERAL</div>
+          <ResponsiveContainer width="100%" height={220}><PieChart><Pie data={donutData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} dataKey="value" strokeWidth={0}>{donutData.map((d,i)=><Cell key={i} fill={d.color}/>)}</Pie></PieChart></ResponsiveContainer>
+          <div style={{marginTop:8}}>{donutData.map((d,i)=>(<div key={i} style={{fontSize:14,color:"#ccc",display:"flex",alignItems:"center",gap:10,marginBottom:10}}><div style={{width:12,height:12,borderRadius:"50%",background:d.color,flexShrink:0}}/><span>{d.name}</span><span style={{marginLeft:"auto",fontSize:22,fontWeight:700,color:d.color}}>{d.value}</span></div>))}<div style={{fontSize:14,color:"#ccc",display:"flex",alignItems:"center",gap:10,borderTop:"1px solid #30363d",paddingTop:8,marginTop:8}}><span style={{fontWeight:600}}>Total General</span><span style={{marginLeft:"auto",fontSize:22,fontWeight:700,color:"#e0e0e0"}}>{stats.total}</span></div></div>
         </div>
-        <div className="tv-panel" style={{maxHeight:500,overflowY:"auto"}}>
-          <div className="tv-panel-title">🚦 SEMÁFORO DE TÉRMINOS</div>
-          {stats.urgentes.slice(0,8).map(p => {
-            const venc = addDiasHabiles(p.ldf, 45);
-            const dias = diasHabilesEntre(venc.toISOString().slice(0,10), hoy());
-            return (
-              <div key={p.radicado} className="tv-alert-card" style={{display:"flex",gap:12,alignItems:"center"}}>
-                <div style={{flex:1}}>
-                  <div className="tv-alert-rad">⭐ {p.radicado}</div>
-                  <div className="tv-alert-tipo">{p.tipoLicencia}</div>
-                  <div className="tv-alert-info">
-                    {p.tecnico && <>Técnico: {p.tecnico}<br/></>}
-                    {p.revisorEstruc && <>Revisor: {p.revisorEstruc}<br/></>}
-                  </div>
-                  <span className="tv-alert-badge" style={{background:"#1b5e20",color:"#a5d6a7"}}>{p.estado}</span>
-                </div>
-                <div className="tv-alert-days">
-                  <div className="tv-alert-days-num">{dias}</div>
-                  <div className="tv-alert-days-label">VENCIDO</div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="tv-p" style={{maxHeight:500,overflowY:"auto"}}><div className="tv-pt">🚦 SEMÁFORO DE TÉRMINOS</div>
+          {stats.urgentes.slice(0,8).map(p=>{const venc=addDiasHabiles(p.ldf,45);const dias=diasHabilesEntre(venc.toISOString().slice(0,10),hoy());return(<div key={p.radicado} className="tv-ac"><div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:"#c9a84c"}}>⭐ {p.radicado}</div><div style={{fontSize:12,color:"#aaa",marginTop:2}}>{p.tipoLicencia}</div><div style={{fontSize:11,color:"#777",marginTop:4}}>{p.tecnico&&<>Técnico: {p.tecnico}<br/></>}{p.revisorEstruc&&<>Revisor: {p.revisorEstruc}<br/></>}</div><span style={{display:"inline-block",padding:"3px 8px",borderRadius:4,fontSize:10,fontWeight:600,background:"#1b5e20",color:"#a5d6a7"}}>{p.estado}</span></div><div className="tv-days"><div style={{fontSize:18,fontWeight:800,color:"#fff"}}>{dias}</div><div style={{fontSize:8,color:"#ffcdd2",letterSpacing:1}}>VENCIDO</div></div></div>);})}
+        </div>
+      </div>
+      <div className="tv-row2">
+        <div className="tv-p"><div className="tv-pt">🏆 RANKING DE APROBACIONES</div>
+          {stats.ranking.map((r,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid #30363d"}}><span style={{fontSize:20,width:30,textAlign:"center"}}>{i<3?["🥇","🥈","🥉"][i]:(i+1)}</span><div style={{flex:1}}><div style={{fontWeight:600,color:"#e0e0e0",fontSize:14}}>{r.nombre}</div><div style={{fontSize:11,color:"#888"}}>{ARQUITECTOS.some(a=>a.startsWith(r.nombre.split(" ")[0]))?"Arquitecta":"Ingeniero"}</div></div><div style={{textAlign:"right"}}><div style={{fontSize:28,fontWeight:700,color:"#e0e0e0"}}>{r.aprobados}</div><div style={{fontSize:11,color:"#888"}}>{r.tasa}% aprob.</div></div></div>))}
+        </div>
+        <div className="tv-p"><div className="tv-pt">📋 ÚLTIMOS MOVIMIENTOS</div>
+          {stats.movimientos.map((m,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #30363d"}}><div style={{width:10,height:10,borderRadius:"50%",background:"#4caf50",flexShrink:0}}/><div style={{flex:1}}><span style={{color:"#c9a84c"}}>⭐ </span><span style={{color:"#e0e0e0"}}>Radicado {m.rad} · </span><span style={{color:"#888"}}>{m.estado} · {m.tecnico||m.revisor}</span></div><span style={{fontSize:12,color:"#555"}}>{formatDate(m.fecha)}</span></div>))}
         </div>
       </div>
     </div>
@@ -688,13 +600,11 @@ function EstrategicosView({ proyectos }) {
     const q = search.toLowerCase();
     return estra.filter(p => p.radicado.includes(q) || p.solicitante.toLowerCase().includes(q) || p.direccion.toLowerCase().includes(q));
   }, [estra, search]);
-
   const stats = useMemo(() => {
     const byEstado = {};
     estra.forEach(p => { byEstado[p.estado] = (byEstado[p.estado] || 0) + 1; });
     return byEstado;
   }, [estra]);
-
   return (
     <div className="fade-in">
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
@@ -704,16 +614,10 @@ function EstrategicosView({ proyectos }) {
         <StatCard number={stats["OBSERVACIONES"]||0} label="Observaciones" color="#f9a825" icon={AlertTriangle} />
       </div>
       <div className="card">
-        <div className="search-box">
-          <input placeholder="Buscar por radicado, solicitante o dirección..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+        <div className="search-box"><input placeholder="Buscar por radicado, solicitante o dirección..." value={search} onChange={e => setSearch(e.target.value)} /></div>
         <div className="table-wrap">
           <table><thead><tr><th>Radicado</th><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th>Dirección</th><th>LDF</th><th>Estado</th></tr></thead>
-            <tbody>{filtered.map(p => (
-              <tr key={p.radicado}><td><strong>⭐ {p.radicado}</strong></td><td>{formatDate(p.fechaRad)}</td><td>{p.solicitante}</td>
-                <td style={{fontSize:11}}>{p.tipoLicencia}</td><td style={{fontSize:11}}>{p.direccion}</td><td>{formatDate(p.ldf)}</td>
-                <td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>
-            ))}</tbody></table>
+            <tbody>{filtered.map(p => (<tr key={p.radicado}><td><strong>⭐ {p.radicado}</strong></td><td>{formatDate(p.fechaRad)}</td><td>{p.solicitante}</td><td style={{fontSize:11}}>{p.tipoLicencia}</td><td style={{fontSize:11}}>{p.direccion}</td><td>{formatDate(p.ldf)}</td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>))}</tbody></table>
         </div>
       </div>
     </div>
@@ -722,52 +626,14 @@ function EstrategicosView({ proyectos }) {
 // --- 4. INGRESO DE TÉCNICOS (Vista Técnico) ---
 function IngresoTecnicoView({ proyectos, setProyectos }) {
   const [selTecnico, setSelTecnico] = useState(null);
-
-  if (!selTecnico) {
-    return <TecnicoSelector onSelect={setSelTecnico} />;
-  }
+  if (!selTecnico) return <TecnicoSelector onSelect={setSelTecnico} />;
   return <VistaTecnico nombre={selTecnico} proyectos={proyectos} setProyectos={setProyectos} onBack={() => setSelTecnico(null)} />;
 }
-
 function TecnicoSelector({ onSelect }) {
   const todos = [...ARQUITECTOS.map(n => ({nombre:n, rol:"Arquitecta"})), ...INGENIEROS.map(n => ({nombre:n, rol: n === "Alejandra Calderon" ? "Ingeniera" : "Ingeniero"}))];
-  const selectorStyles = `
-    .sel-bg { min-height:80vh;background:linear-gradient(135deg,#0d1117 0%,#161b22 50%,#1a1a2e 100%);border-radius:var(--radius);padding:50px 20px;display:flex;flex-direction:column;align-items:center; }
-    .sel-title { font-size:36px;font-weight:800;color:#e0e0e0;margin-bottom:4px;text-align:center; }
-    .sel-sub { font-size:14px;color:#c9a84c;margin-bottom:30px;text-align:center; }
-    .sel-hint { font-size:14px;color:#888;margin-bottom:24px; }
-    .sel-list { width:100%;max-width:600px;display:flex;flex-direction:column;gap:12px; }
-    .sel-card { display:flex;align-items:center;gap:16px;padding:18px 24px;background:rgba(255,255,255,0.04);border:1px solid #30363d;border-radius:14px;cursor:pointer;transition:all .2s; }
-    .sel-card:hover { background:rgba(255,255,255,0.08);border-color:#555;transform:translateX(4px); }
-    .sel-avatar { width:50px;height:50px;border-radius:50%;background:#e53935;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:18px;flex-shrink:0; }
-    .sel-name { font-size:16px;font-weight:600;color:#e0e0e0; }
-    .sel-rol { font-size:13px;color:#888; }
-    .sel-arrow { margin-left:auto;color:#555;font-size:20px; }
-  `;
-  return (
-    <div>
-      <style>{selectorStyles}</style>
-      <div className="sel-bg">
-        <div className="sel-title">Curaduría 2 Pereira</div>
-        <div className="sel-sub">Proyectos Estratégicos 2026</div>
-        <div className="sel-hint">Selecciona tu nombre para ver tu panorama de proyectos</div>
-        <div className="sel-list">
-          {todos.map((t, i) => (
-            <div key={t.nombre} className="sel-card" onClick={() => onSelect(t.nombre)}>
-              <div className="sel-avatar">{t.nombre.split(" ").map(n=>n[0]).join("").slice(0,2)}</div>
-              <div>
-                <div className="sel-name">{t.nombre}</div>
-                <div className="sel-rol">{t.rol}</div>
-              </div>
-              <div className="sel-arrow">›</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const ss = `.sel-bg{min-height:80vh;background:linear-gradient(135deg,#0d1117,#161b22,#1a1a2e);border-radius:var(--radius);padding:50px 20px;display:flex;flex-direction:column;align-items:center}.sel-title{font-size:36px;font-weight:800;color:#e0e0e0;margin-bottom:4px;text-align:center}.sel-sub{font-size:14px;color:#c9a84c;margin-bottom:30px;text-align:center}.sel-hint{font-size:14px;color:#888;margin-bottom:24px}.sel-list{width:100%;max-width:600px;display:flex;flex-direction:column;gap:12px}.sel-card{display:flex;align-items:center;gap:16px;padding:18px 24px;background:rgba(255,255,255,0.04);border:1px solid #30363d;border-radius:14px;cursor:pointer;transition:all .2s}.sel-card:hover{background:rgba(255,255,255,0.08);border-color:#555;transform:translateX(4px)}.sel-avatar{width:50px;height:50px;border-radius:50%;background:#e53935;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:18px;flex-shrink:0}.sel-name{font-size:16px;font-weight:600;color:#e0e0e0}.sel-rol{font-size:13px;color:#888}.sel-arrow{margin-left:auto;color:#555;font-size:20px}`;
+  return (<div><style>{ss}</style><div className="sel-bg"><div className="sel-title">Curaduría 2 Pereira</div><div className="sel-sub">Proyectos Estratégicos 2026</div><div className="sel-hint">Selecciona tu nombre para ver tu panorama de proyectos</div><div className="sel-list">{todos.map(t=>(<div key={t.nombre} className="sel-card" onClick={()=>onSelect(t.nombre)}><div className="sel-avatar">{t.nombre.split(" ").map(n=>n[0]).join("").slice(0,2)}</div><div><div className="sel-name">{t.nombre}</div><div className="sel-rol">{t.rol}</div></div><div className="sel-arrow">›</div></div>))}</div></div></div>);
 }
-
 function VistaTecnico({ nombre, proyectos, setProyectos, onBack }) {
   const rol = ARQUITECTOS.includes(nombre) ? "Arquitecta" : (nombre === "Alejandra Calderon" ? "Ingeniera" : "Ingeniero");
   const misProyectos = useMemo(() => proyectos.filter(p => involucrado(p, nombre)), [proyectos, nombre]);
@@ -776,125 +642,31 @@ function VistaTecnico({ nombre, proyectos, setProyectos, onBack }) {
   const enRevision = misProyectos.filter(p => p.estado === "EN REVISION" || p.estado === "EN ESTUDIO").length;
   const tasaAprob = misProyectos.length > 0 ? Math.round(aprobados / misProyectos.length * 100) : 0;
   const h = hoy();
-
-  const sorted = useMemo(() => {
-    return [...misProyectos].sort((a, b) => {
-      if (a.estrategico && !b.estrategico) return -1;
-      if (!a.estrategico && b.estrategico) return 1;
-      return a.fechaRad.localeCompare(b.fechaRad);
-    });
-  }, [misProyectos]);
-
-  function getDeadlineInfo(p) {
-    if (!p.ldf) return null;
-    const venc = addDiasHabiles(p.ldf, 45);
-    const vencStr = venc.toISOString().slice(0,10);
-    const dias = diasHabilesEntre(h, vencStr);
-    const vencido = vencStr < h;
-    const diasVenc = vencido ? diasHabilesEntre(vencStr, h) : dias;
-    return { vencStr, dias: diasVenc, vencido, vencDate: venc };
-  }
-
-  function getRolBadge(p) {
-    if (p.tecnico === nombre && p.revisorEstruc === nombre) return "ARQ + ESTRUC";
-    if (p.tecnico === nombre) return "REV ARQ";
-    if (p.revisorEstruc === nombre) return "REV ESTRUC";
-    return "";
-  }
-
-  const vistaStyles = `
-    .vt-header { display:flex;align-items:flex-start;justify-content:space-between;padding:20px 0;border-bottom:2px solid var(--border);margin-bottom:20px; }
-    .vt-brand { font-size:18px;font-weight:700; }
-    .vt-brand-sub { font-size:12px;color:var(--text3); }
-    .vt-back { background:#e53935;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500; }
-    .vt-title { font-size:22px;font-weight:700;margin-bottom:4px; }
-    .vt-rol { font-size:13px;color:var(--text3); }
-    .vt-stats { display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0; }
-    .vt-stat { border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center; }
-    .vt-stat-num { font-size:32px;font-weight:700;line-height:1.1; }
-    .vt-stat-label { font-size:12px;color:var(--text3);margin-top:4px; }
-    .vt-alert { background:#fffde7;border:1px solid #fff9c4;border-radius:10px;padding:16px;margin-bottom:20px; }
-    .vt-alert-title { color:#f57f17;font-weight:600;font-size:14px; }
-    .vt-alert-text { font-size:13px;color:var(--text2);margin-top:4px; }
-    .vt-section-title { font-size:16px;font-weight:700;margin-bottom:16px; }
-    .vt-project { border-left:4px solid var(--primary);border-radius:8px;padding:16px;margin-bottom:12px;background:var(--card);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start; }
-    .vt-project.strategic { border-left-color:#c9a84c;background:#fffdf5; }
-    .vt-project-rad { font-size:16px;font-weight:600;color:var(--primary); }
-    .vt-project-rad.strategic { color:#c9a84c; }
-    .vt-project-tipo { font-size:13px;font-weight:600;margin-top:2px; }
-    .vt-project-info { font-size:12px;color:var(--text3);margin-top:4px; }
-    .vt-badges { display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
-    .vt-badge { padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600; }
-    .vt-badge-green { background:#e8f5e9;color:#2e7d32; }
-    .vt-badge-blue { background:#e3f2fd;color:#1565c0; }
-    .vt-badge-red { background:#ffebee;color:#c62828; }
-    .vt-badge-orange { background:#fff3e0;color:#e65100; }
-    .vt-badge-yellow { background:#fffde7;color:#f57f17; }
-    @media(max-width:768px) { .vt-stats{grid-template-columns:repeat(2,1fr)} }
-  `;
-
+  const sorted = useMemo(() => [...misProyectos].sort((a,b) => { if (a.estrategico&&!b.estrategico) return -1; if (!a.estrategico&&b.estrategico) return 1; return a.fechaRad.localeCompare(b.fechaRad); }), [misProyectos]);
+  function getDeadlineInfo(p) { if (!p.ldf) return null; const venc=addDiasHabiles(p.ldf,45); const vencStr=venc.toISOString().slice(0,10); const dias=diasHabilesEntre(h,vencStr); const vencido=vencStr<h; const diasVenc=vencido?diasHabilesEntre(vencStr,h):dias; return {vencStr,dias:diasVenc,vencido}; }
+  function getRolBadge(p) { if (p.tecnico===nombre&&p.revisorEstruc===nombre) return "ARQ + ESTRUC"; if (p.tecnico===nombre) return "REV ARQ"; if (p.revisorEstruc===nombre) return "REV ESTRUC"; return ""; }
+  const vs = `.vt-header{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 0;border-bottom:2px solid var(--border);margin-bottom:20px}.vt-brand{font-size:18px;font-weight:700}.vt-brand-sub{font-size:12px;color:var(--text3)}.vt-back{background:#e53935;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500}.vt-title{font-size:22px;font-weight:700;margin-bottom:4px}.vt-rol{font-size:13px;color:var(--text3)}.vt-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0}.vt-stat{border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}.vt-stat-num{font-size:32px;font-weight:700;line-height:1.1}.vt-stat-label{font-size:12px;color:var(--text3);margin-top:4px}.vt-alert{background:#fffde7;border:1px solid #fff9c4;border-radius:10px;padding:16px;margin-bottom:20px}.vt-alert-title{color:#f57f17;font-weight:600;font-size:14px}.vt-alert-text{font-size:13px;color:var(--text2);margin-top:4px}.vt-section-title{font-size:16px;font-weight:700;margin-bottom:16px}.vt-project{border-left:4px solid var(--primary);border-radius:8px;padding:16px;margin-bottom:12px;background:var(--card);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}.vt-project.strategic{border-left-color:#c9a84c;background:#fffdf5}.vt-project-rad{font-size:16px;font-weight:600;color:var(--primary)}.vt-project-rad.strategic{color:#c9a84c}.vt-project-tipo{font-size:13px;font-weight:600;margin-top:2px}.vt-project-info{font-size:12px;color:var(--text3);margin-top:4px}.vt-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.vt-badge{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600}.vt-badge-green{background:#e8f5e9;color:#2e7d32}.vt-badge-blue{background:#e3f2fd;color:#1565c0}.vt-badge-red{background:#ffebee;color:#c62828}.vt-badge-orange{background:#fff3e0;color:#e65100}.vt-badge-yellow{background:#fffde7;color:#f57f17}@media(max-width:768px){.vt-stats{grid-template-columns:repeat(2,1fr)}}`;
   return (
-    <div>
-      <style>{vistaStyles}</style>
-      <div className="vt-header">
-        <div>
-          <div className="vt-brand">🏛️ Curaduría Urbana N.° 2</div>
-          <div className="vt-brand-sub">Pereira · Vista Técnico</div>
-        </div>
-        <button className="vt-back" onClick={onBack}>↩ Cambiar usuario</button>
-      </div>
-      <div className="vt-title">Mis Proyectos — {nombre}</div>
-      <div className="vt-rol">{rol}</div>
+    <div><style>{vs}</style>
+      <div className="vt-header"><div><div className="vt-brand">🏛️ Curaduría Urbana N.° 2</div><div className="vt-brand-sub">Pereira · Vista Técnico</div></div><button className="vt-back" onClick={onBack}>↩ Cambiar usuario</button></div>
+      <div className="vt-title">Mis Proyectos — {nombre}</div><div className="vt-rol">{rol}</div>
       <div className="vt-stats">
         <div className="vt-stat"><div className="vt-stat-num" style={{color:"var(--primary)"}}>{misProyectos.length}</div><div className="vt-stat-label">Mis Proyectos</div></div>
         <div className="vt-stat"><div className="vt-stat-num" style={{color:"#c9a84c"}}>{estrategicos.length}</div><div className="vt-stat-label">⭐ Estratégicos</div></div>
         <div className="vt-stat"><div className="vt-stat-num" style={{color:"#2e7d32"}}>{aprobados}</div><div className="vt-stat-label">Aprobados</div></div>
         <div className="vt-stat"><div className="vt-stat-num" style={{color:"#1565c0"}}>{enRevision}</div><div className="vt-stat-label">En Revisión</div></div>
-        <div className="vt-stat"><div className="vt-stat-num" style={{color: tasaAprob >= 50 ? "#2e7d32" : "#e65100"}}>{tasaAprob}%</div><div className="vt-stat-label">% Aprobación</div></div>
+        <div className="vt-stat"><div className="vt-stat-num" style={{color:tasaAprob>=50?"#2e7d32":"#e65100"}}>{tasaAprob}%</div><div className="vt-stat-label">% Aprobación</div></div>
       </div>
-      {estrategicos.length > 0 && (
-        <div className="vt-alert">
-          <div className="vt-alert-title">⭐ Tienes {estrategicos.length} proyectos estratégicos asignados</div>
-          <div className="vt-alert-text">Estos aparecen primero en la lista. Tienen prioridad de revisión.</div>
-        </div>
-      )}
+      {estrategicos.length > 0 && <div className="vt-alert"><div className="vt-alert-title">⭐ Tienes {estrategicos.length} proyectos estratégicos asignados</div><div className="vt-alert-text">Estos aparecen primero en la lista. Tienen prioridad de revisión.</div></div>}
       <div className="vt-section-title">Detalle de Proyectos (estratégicos primero)</div>
-      {sorted.map(p => {
-        const dl = getDeadlineInfo(p);
-        const rolBadge = getRolBadge(p);
-        return (
-          <div key={p.radicado} className={`vt-project ${p.estrategico ? "strategic" : ""}`}>
-            <div>
-              <div className={`vt-project-rad ${p.estrategico ? "strategic" : ""}`}>{p.estrategico ? "⭐ " : ""}{p.radicado}</div>
-              <div className="vt-project-tipo">{p.tipoLicencia}</div>
-              {dl && (
-                <div className="vt-project-info">
-                  Fecha LDF: <strong>{formatDate(p.ldf)}</strong><br/>
-                  Plazo legal vence: <strong>{dl.vencStr && new Date(dl.vencStr+"T12:00:00").toLocaleDateString("es-CO")}</strong>
-                  {dl.vencido ? ` — Vencido hace ${dl.dias} días` : ` — ${dl.dias} días restantes`}
-                </div>
-              )}
-              {!dl && p.estado === "NO LDF" && <div className="vt-project-info">Sin fecha LDF asignada</div>}
-            </div>
-            <div className="vt-badges">
-              {rolBadge && <span className="vt-badge vt-badge-blue">{rolBadge}</span>}
-              {p.estado === "APROBADO" && <span className="vt-badge vt-badge-green">APROBADO</span>}
-              {p.estado === "OBSERVACIONES" && <span className="vt-badge vt-badge-yellow">OBSERVACIONES</span>}
-              {p.estado === "EN ESTUDIO" && <span className="vt-badge vt-badge-blue">EN ESTUDIO</span>}
-              {p.estado === "EN REVISION" && <span className="vt-badge vt-badge-blue">EN REVISIÓN</span>}
-              {p.estado === "NO LDF" && <span className="vt-badge vt-badge-orange">NO LDF</span>}
-              {p.estado === "DESISTIDO" && <span className="vt-badge vt-badge-red">DESISTIDO</span>}
-              {dl && dl.vencido && <span className="vt-badge vt-badge-red">⚠ VENCIDO</span>}
-            </div>
-          </div>
-        );
-      })}
-      {misProyectos.length === 0 && (
-        <div style={{textAlign:"center",padding:40,color:"var(--text3)"}}>
-          <p style={{fontSize:16}}>No tienes proyectos asignados actualmente.</p>
-          <p style={{fontSize:13,marginTop:8}}>Los proyectos se asignan desde el módulo de Ingreso Técnico.</p>
-        </div>
-      )}
+      {sorted.map(p => { const dl=getDeadlineInfo(p); const rolBadge=getRolBadge(p); return (
+        <div key={p.radicado} className={`vt-project ${p.estrategico?"strategic":""}`}>
+          <div><div className={`vt-project-rad ${p.estrategico?"strategic":""}`}>{p.estrategico?"⭐ ":""}{p.radicado}</div><div className="vt-project-tipo">{p.tipoLicencia}</div>
+            {dl&&<div className="vt-project-info">Fecha LDF: <strong>{formatDate(p.ldf)}</strong><br/>Plazo legal vence: <strong>{dl.vencStr&&new Date(dl.vencStr+"T12:00:00").toLocaleDateString("es-CO")}</strong>{dl.vencido?` — Vencido hace ${dl.dias} días`:` — ${dl.dias} días restantes`}</div>}
+            {!dl&&p.estado==="NO LDF"&&<div className="vt-project-info">Sin fecha LDF asignada</div>}</div>
+          <div className="vt-badges">{rolBadge&&<span className="vt-badge vt-badge-blue">{rolBadge}</span>}{p.estado==="APROBADO"&&<span className="vt-badge vt-badge-green">APROBADO</span>}{p.estado==="OBSERVACIONES"&&<span className="vt-badge vt-badge-yellow">OBSERVACIONES</span>}{p.estado==="EN ESTUDIO"&&<span className="vt-badge vt-badge-blue">EN ESTUDIO</span>}{p.estado==="EN REVISION"&&<span className="vt-badge vt-badge-blue">EN REVISIÓN</span>}{p.estado==="NO LDF"&&<span className="vt-badge vt-badge-orange">NO LDF</span>}{p.estado==="DESISTIDO"&&<span className="vt-badge vt-badge-red">DESISTIDO</span>}{dl&&dl.vencido&&<span className="vt-badge vt-badge-red">⚠ VENCIDO</span>}</div>
+        </div>);})}
+      {misProyectos.length===0&&<div style={{textAlign:"center",padding:40,color:"var(--text3)"}}><p style={{fontSize:16}}>No tienes proyectos asignados actualmente.</p><p style={{fontSize:13,marginTop:8}}>Los proyectos se asignan desde el módulo de Ingreso Técnico.</p></div>}
     </div>
   );
 }
@@ -903,58 +675,18 @@ function VistaTecnico({ nombre, proyectos, setProyectos, onBack }) {
 function TerminosView({ proyectos }) {
   const [filtro, setFiltro] = useState("todos");
   const h = hoy();
-
   const analisis = useMemo(() => {
     return proyectos.filter(p => p.ldf && p.estado !== "APROBADO" && p.estado !== "DESISTIDO" && p.estado !== "NOTIFICADO")
-      .map(p => {
-        const vencimiento45 = addDiasHabiles(p.ldf, 45);
-        const vencStr = vencimiento45.toISOString().slice(0, 10);
-        const diasRestantes = diasHabilesEntre(h, vencStr);
-        const vencido = vencStr < h;
-        const porVencer = !vencido && diasRestantes <= 5;
-        const noLdf = p.estado === "NO LDF";
-        const vencimientoNoLdf = noLdf ? addDiasHabiles(p.fechaRad, 30) : null;
-        return { ...p, vencimiento: vencStr, diasRestantes, vencido, porVencer, vencimientoNoLdf };
-      }).sort((a, b) => a.diasRestantes - b.diasRestantes);
+      .map(p => { const v45=addDiasHabiles(p.ldf,45); const vS=v45.toISOString().slice(0,10); const dr=diasHabilesEntre(h,vS); const vc=vS<h; const pv=!vc&&dr<=5; return {...p,vencimiento:vS,diasRestantes:dr,vencido:vc,porVencer:pv}; }).sort((a,b) => a.diasRestantes - b.diasRestantes);
   }, [proyectos, h]);
-
-  const filtered = useMemo(() => {
-    if (filtro === "vencidos") return analisis.filter(a => a.vencido);
-    if (filtro === "porVencer") return analisis.filter(a => a.porVencer);
-    if (filtro === "enTermino") return analisis.filter(a => !a.vencido && !a.porVencer);
-    return analisis;
-  }, [analisis, filtro]);
-
-  const vencidos = analisis.filter(a => a.vencido).length;
-  const porVencer = analisis.filter(a => a.porVencer).length;
-  const enTermino = analisis.filter(a => !a.vencido && !a.porVencer).length;
-
+  const filtered = useMemo(() => { if(filtro==="vencidos") return analisis.filter(a=>a.vencido); if(filtro==="porVencer") return analisis.filter(a=>a.porVencer); if(filtro==="enTermino") return analisis.filter(a=>!a.vencido&&!a.porVencer); return analisis; }, [analisis, filtro]);
+  const vencidos=analisis.filter(a=>a.vencido).length; const porVencer=analisis.filter(a=>a.porVencer).length; const enTermino=analisis.filter(a=>!a.vencido&&!a.porVencer).length;
   return (
     <div className="fade-in">
-      <div className="grid grid-4" style={{ marginBottom: 16 }}>
-        <StatCard number={analisis.length} label="Con Término Activo" icon={Clock} />
-        <StatCard number={vencidos} label="Vencidos" color="#d32f2f" icon={XCircle} />
-        <StatCard number={porVencer} label="Por Vencer (≤5 días)" color="#f9a825" icon={AlertTriangle} />
-        <StatCard number={enTermino} label="En Término" color="#2e7d32" icon={CheckCircle} />
-      </div>
-      <div className="card">
-        <div className="pill-row">
-          {[["todos","Todos"],["vencidos","Vencidos"],["porVencer","Por Vencer"],["enTermino","En Término"]].map(([k,l])=>(
-            <button key={k} className={`pill ${filtro===k?"active":""}`} onClick={()=>setFiltro(k)}>{l}</button>
-          ))}
-        </div>
-        <div className="table-wrap">
-          <table><thead><tr><th>Radicado</th><th>Estado</th><th>Fecha Rad.</th><th>LDF</th><th>Vencimiento (45d)</th><th>Días Restantes</th><th>Semáforo</th></tr></thead>
-            <tbody>{filtered.map(p => (
-              <tr key={p.radicado}>
-                <td><strong>{p.estrategico?"⭐ ":""}{p.radicado}</strong></td>
-                <td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td>
-                <td>{formatDate(p.fechaRad)}</td><td>{formatDate(p.ldf)}</td><td>{formatDate(p.vencimiento)}</td>
-                <td style={{fontWeight:700, color: p.vencido?"#c62828":p.porVencer?"#f57f17":"#2e7d32"}}>{p.vencido ? `−${Math.abs(p.diasRestantes)}` : p.diasRestantes}</td>
-                <td>{p.vencido ? <span className="badge badge-red">VENCIDO</span> : p.porVencer ? <span className="badge badge-yellow">POR VENCER</span> : <span className="badge badge-green">EN TÉRMINO</span>}</td>
-              </tr>
-            ))}</tbody></table>
-        </div>
+      <div className="grid grid-4" style={{marginBottom:16}}><StatCard number={analisis.length} label="Con Término Activo" icon={Clock}/><StatCard number={vencidos} label="Vencidos" color="#d32f2f" icon={XCircle}/><StatCard number={porVencer} label="Por Vencer (≤5 días)" color="#f9a825" icon={AlertTriangle}/><StatCard number={enTermino} label="En Término" color="#2e7d32" icon={CheckCircle}/></div>
+      <div className="card"><div className="pill-row">{[["todos","Todos"],["vencidos","Vencidos"],["porVencer","Por Vencer"],["enTermino","En Término"]].map(([k,l])=>(<button key={k} className={`pill ${filtro===k?"active":""}`} onClick={()=>setFiltro(k)}>{l}</button>))}</div>
+        <div className="table-wrap"><table><thead><tr><th>Radicado</th><th>Estado</th><th>Fecha Rad.</th><th>LDF</th><th>Vencimiento (45d)</th><th>Días Restantes</th><th>Semáforo</th></tr></thead>
+          <tbody>{filtered.map(p=>(<tr key={p.radicado}><td><strong>{p.estrategico?"⭐ ":""}{p.radicado}</strong></td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td><td>{formatDate(p.fechaRad)}</td><td>{formatDate(p.ldf)}</td><td>{formatDate(p.vencimiento)}</td><td style={{fontWeight:700,color:p.vencido?"#c62828":p.porVencer?"#f57f17":"#2e7d32"}}>{p.vencido?`−${Math.abs(p.diasRestantes)}`:p.diasRestantes}</td><td>{p.vencido?<span className="badge badge-red">VENCIDO</span>:p.porVencer?<span className="badge badge-yellow">POR VENCER</span>:<span className="badge badge-green">EN TÉRMINO</span>}</td></tr>))}</tbody></table></div>
       </div>
     </div>
   );
@@ -962,171 +694,49 @@ function TerminosView({ proyectos }) {
 
 // --- 6. PROYECTOS ---
 function ProyectosView({ proyectos }) {
-  const [search, setSearch] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState("todos");
-  const [tipoFiltro, setTipoFiltro] = useState("todos");
-
-  const estados = useMemo(() => [...new Set(proyectos.map(p => p.estado))].sort(), [proyectos]);
-  const tipos = useMemo(() => [...new Set(proyectos.map(p => p.tipoLicencia))].sort(), [proyectos]);
-
-  const filtered = useMemo(() => {
-    return proyectos.filter(p => {
-      if (estadoFiltro !== "todos" && p.estado !== estadoFiltro) return false;
-      if (tipoFiltro !== "todos" && p.tipoLicencia !== tipoFiltro) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return p.radicado.includes(q) || p.solicitante.toLowerCase().includes(q) || p.direccion.toLowerCase().includes(q);
-      }
-      return true;
-    });
-  }, [proyectos, search, estadoFiltro, tipoFiltro]);
-
+  const [search, setSearch] = useState(""); const [estadoFiltro, setEstadoFiltro] = useState("todos"); const [tipoFiltro, setTipoFiltro] = useState("todos");
+  const estados = useMemo(() => [...new Set(proyectos.map(p=>p.estado))].sort(), [proyectos]);
+  const tipos = useMemo(() => [...new Set(proyectos.map(p=>p.tipoLicencia))].sort(), [proyectos]);
+  const filtered = useMemo(() => proyectos.filter(p => { if(estadoFiltro!=="todos"&&p.estado!==estadoFiltro) return false; if(tipoFiltro!=="todos"&&p.tipoLicencia!==tipoFiltro) return false; if(search){const q=search.toLowerCase();return p.radicado.includes(q)||p.solicitante.toLowerCase().includes(q)||p.direccion.toLowerCase().includes(q);} return true; }), [proyectos,search,estadoFiltro,tipoFiltro]);
   return (
-    <div className="fade-in">
-      <div className="card">
-        <div className="search-box">
-          <input placeholder="Buscar radicado, solicitante o dirección..." value={search} onChange={e => setSearch(e.target.value)} />
-          <select value={estadoFiltro} onChange={e => setEstadoFiltro(e.target.value)}>
-            <option value="todos">Todos los estados</option>
-            {estados.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
-          <select value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}>
-            <option value="todos">Todos los tipos</option>
-            {tipos.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 10 }}>Mostrando {filtered.length} de {proyectos.length} proyectos</div>
-        <div className="table-wrap" style={{ maxHeight: 600 }}>
-          <table><thead><tr><th>Radicado</th><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th>Dirección</th><th>LDF</th><th>Estado</th></tr></thead>
-            <tbody>{filtered.map(p => (
-              <tr key={p.radicado}>
-                <td><strong>{p.estrategico?"⭐ ":""}{p.radicado}</strong></td>
-                <td>{formatDate(p.fechaRad)}</td><td>{p.solicitante}</td>
-                <td style={{fontSize:11}}>{p.tipoLicencia}</td><td style={{fontSize:11}}>{p.direccion}</td>
-                <td>{formatDate(p.ldf)}</td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td>
-              </tr>
-            ))}</tbody></table>
-        </div>
-      </div>
-    </div>
+    <div className="fade-in"><div className="card"><div className="search-box"><input placeholder="Buscar radicado, solicitante o dirección..." value={search} onChange={e=>setSearch(e.target.value)}/><select value={estadoFiltro} onChange={e=>setEstadoFiltro(e.target.value)}><option value="todos">Todos los estados</option>{estados.map(e=><option key={e} value={e}>{e}</option>)}</select><select value={tipoFiltro} onChange={e=>setTipoFiltro(e.target.value)}><option value="todos">Todos los tipos</option>{tipos.map(t=><option key={t} value={t}>{t}</option>)}</select></div>
+      <div style={{fontSize:13,color:"var(--text2)",marginBottom:10}}>Mostrando {filtered.length} de {proyectos.length} proyectos</div>
+      <div className="table-wrap" style={{maxHeight:600}}><table><thead><tr><th>Radicado</th><th>Fecha</th><th>Solicitante</th><th>Tipo</th><th>Dirección</th><th>LDF</th><th>Estado</th></tr></thead>
+        <tbody>{filtered.map(p=>(<tr key={p.radicado}><td><strong>{p.estrategico?"⭐ ":""}{p.radicado}</strong></td><td>{formatDate(p.fechaRad)}</td><td>{p.solicitante}</td><td style={{fontSize:11}}>{p.tipoLicencia}</td><td style={{fontSize:11}}>{p.direccion}</td><td>{formatDate(p.ldf)}</td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>))}</tbody></table></div>
+    </div></div>
   );
 }
 
 // --- 7. TÉCNICOS ---
 function TecnicosView({ proyectos }) {
   const [sel, setSel] = useState(null);
-
-  const tecData = useMemo(() => {
-    const all = [...ARQUITECTOS, ...INGENIEROS];
-    return all.map(nombre => {
-      const asignados = proyectos.filter(p => involucrado(p, nombre));
-      const rol = ARQUITECTOS.includes(nombre) ? "Arquitecto" : "Ingeniero";
-      const byEstado = {};
-      asignados.forEach(p => { byEstado[p.estado] = (byEstado[p.estado] || 0) + 1; });
-      return { nombre, rol, total: asignados.length, byEstado, proyectos: asignados };
-    });
-  }, [proyectos]);
-
-  const colorsAvatar = ["#2e7d32","#1565c0","#f57c00","#7b1fa2","#c62828","#00838f","#4e342e"];
-
+  const tecData = useMemo(() => [...ARQUITECTOS,...INGENIEROS].map(nombre => { const asignados=proyectos.filter(p=>involucrado(p,nombre)); const rol=ARQUITECTOS.includes(nombre)?"Arquitecto":"Ingeniero"; const byEstado={}; asignados.forEach(p=>{byEstado[p.estado]=(byEstado[p.estado]||0)+1;}); return {nombre,rol,total:asignados.length,byEstado,proyectos:asignados}; }), [proyectos]);
+  const ca = ["#c62828","#1565c0","#f57c00","#7b1fa2","#2e7d32","#00838f","#4e342e"];
   return (
     <div className="fade-in">
-      <div className="grid grid-3" style={{ marginBottom: 16 }}>
-        {tecData.map((t, i) => (
-          <div key={t.nombre} className="tecnico-card" style={{ cursor: "pointer", border: sel === t.nombre ? "2px solid var(--primary)" : undefined }} onClick={() => setSel(sel === t.nombre ? null : t.nombre)}>
-            <div className="tecnico-avatar" style={{ background: colorsAvatar[i % colorsAvatar.length] }}>{t.nombre.split(" ").map(n => n[0]).join("").slice(0, 2)}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{t.nombre}</div>
-              <div style={{ fontSize: 12, color: "var(--text3)" }}>{t.rol}</div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--primary)" }}>{t.total}</div>
-              <div style={{ fontSize: 11, color: "var(--text3)" }}>proyectos</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      {sel && (() => {
-        const tec = tecData.find(t => t.nombre === sel);
-        if (!tec) return null;
-        return (
-          <div className="card fade-in">
-            <div className="card-header"><h3>Proyectos de {tec.nombre} ({tec.total})</h3></div>
-            {tec.total === 0 ? <p style={{ textAlign: "center", color: "var(--text3)", padding: 20 }}>Sin proyectos asignados</p> : (
-              <div className="table-wrap">
-                <table><thead><tr><th>Radicado</th><th>Solicitante</th><th>Tipo</th><th>Estado</th></tr></thead>
-                  <tbody>{tec.proyectos.map(p => (
-                    <tr key={p.radicado}><td><strong>{p.radicado}</strong></td><td>{p.solicitante}</td>
-                      <td style={{fontSize:11}}>{p.tipoLicencia}</td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>
-                  ))}</tbody></table>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <div className="grid grid-3" style={{marginBottom:16}}>{tecData.map((t,i)=>(<div key={t.nombre} className="tecnico-card" style={{cursor:"pointer",border:sel===t.nombre?"2px solid var(--primary)":undefined}} onClick={()=>setSel(sel===t.nombre?null:t.nombre)}><div className="tecnico-avatar" style={{background:ca[i%ca.length]}}>{t.nombre.split(" ").map(n=>n[0]).join("").slice(0,2)}</div><div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{t.nombre}</div><div style={{fontSize:12,color:"var(--text3)"}}>{t.rol}</div></div><div style={{textAlign:"right"}}><div style={{fontSize:24,fontWeight:700,color:"var(--primary)"}}>{t.total}</div><div style={{fontSize:11,color:"var(--text3)"}}>proyectos</div></div></div>))}</div>
+      {sel&&(()=>{const tec=tecData.find(t=>t.nombre===sel);if(!tec)return null;return(<div className="card fade-in"><div className="card-header"><h3>Proyectos de {tec.nombre} ({tec.total})</h3></div>{tec.total===0?<p style={{textAlign:"center",color:"var(--text3)",padding:20}}>Sin proyectos asignados</p>:(<div className="table-wrap"><table><thead><tr><th>Radicado</th><th>Solicitante</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>{tec.proyectos.map(p=>(<tr key={p.radicado}><td><strong>{p.radicado}</strong></td><td>{p.solicitante}</td><td style={{fontSize:11}}>{p.tipoLicencia}</td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>))}</tbody></table></div>)}</div>);})()}
     </div>
   );
 }
 
 // --- 8. CURADOR ---
 function CuradorView({ proyectos }) {
-  const pendientes = useMemo(() => proyectos.filter(p => p.estado === "EN ESTUDIO" || p.estado === "EN REVISION"), [proyectos]);
-  const aprobados = useMemo(() => proyectos.filter(p => p.estado === "APROBADO" || p.estado === "NOTIFICADO"), [proyectos]);
+  const pendientes = useMemo(() => proyectos.filter(p => p.estado==="EN ESTUDIO"||p.estado==="EN REVISION"), [proyectos]);
+  const aprobados = useMemo(() => proyectos.filter(p => p.estado==="APROBADO"||p.estado==="NOTIFICADO"), [proyectos]);
   const h = hoy();
-  const urgentes = useMemo(() => {
-    return proyectos.filter(p => {
-      if (!p.ldf || p.estado === "APROBADO" || p.estado === "DESISTIDO") return false;
-      const venc = addDiasHabiles(p.ldf, 45).toISOString().slice(0,10);
-      const dias = diasHabilesEntre(h, venc);
-      return venc >= h && dias <= 5;
-    });
-  }, [proyectos, h]);
-
+  const urgentes = useMemo(() => proyectos.filter(p => { if(!p.ldf||p.estado==="APROBADO"||p.estado==="DESISTIDO") return false; const venc=addDiasHabiles(p.ldf,45).toISOString().slice(0,10); const dias=diasHabilesEntre(h,venc); return venc>=h&&dias<=5; }), [proyectos, h]);
   return (
     <div className="fade-in">
-      <div className="card" style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 16, padding: 20 }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 22, fontWeight: 700 }}>LF</div>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{CURADOR}</div>
-          <div style={{ fontSize: 13, color: "var(--text2)" }}>Curador Urbano N.° 2 de Pereira</div>
-        </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 20, textAlign: "center" }}>
-          <div><div style={{ fontSize: 28, fontWeight: 700, color: "var(--primary)" }}>{proyectos.length}</div><div style={{ fontSize: 11, color: "var(--text3)" }}>Total</div></div>
-          <div><div style={{ fontSize: 28, fontWeight: 700, color: "#1565c0" }}>{pendientes.length}</div><div style={{ fontSize: 11, color: "var(--text3)" }}>Pendientes</div></div>
-          <div><div style={{ fontSize: 28, fontWeight: 700, color: "#2e7d32" }}>{aprobados.length}</div><div style={{ fontSize: 11, color: "var(--text3)" }}>Aprobados</div></div>
-        </div>
+      <div className="card" style={{marginBottom:16,display:"flex",alignItems:"center",gap:16,padding:20}}>
+        <div style={{width:56,height:56,borderRadius:"50%",background:"var(--primary)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:22,fontWeight:700}}>LF</div>
+        <div><div style={{fontSize:18,fontWeight:700}}>{CURADOR}</div><div style={{fontSize:13,color:"var(--text2)"}}>Curador Urbano N.° 2 de Pereira</div></div>
+        <div style={{marginLeft:"auto",display:"flex",gap:20,textAlign:"center"}}><div><div style={{fontSize:28,fontWeight:700,color:"var(--primary)"}}>{proyectos.length}</div><div style={{fontSize:11,color:"var(--text3)"}}>Total</div></div><div><div style={{fontSize:28,fontWeight:700,color:"#1565c0"}}>{pendientes.length}</div><div style={{fontSize:11,color:"var(--text3)"}}>Pendientes</div></div><div><div style={{fontSize:28,fontWeight:700,color:"#2e7d32"}}>{aprobados.length}</div><div style={{fontSize:11,color:"var(--text3)"}}>Aprobados</div></div></div>
       </div>
-      {urgentes.length > 0 && (
-        <div className="card" style={{ marginBottom: 16 }}>
-          <div className="card-header"><h3>⚠️ Proyectos Urgentes (≤5 días hábiles)</h3></div>
-          {urgentes.map(p => (
-            <div key={p.radicado} className="alert-row alert-warning">
-              <AlertTriangle size={16} />
-              <span><strong>{p.radicado}</strong> — {p.solicitante} — {p.estado}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {urgentes.length>0&&<div className="card" style={{marginBottom:16}}><div className="card-header"><h3>⚠️ Proyectos Urgentes (≤5 días hábiles)</h3></div>{urgentes.map(p=>(<div key={p.radicado} className="alert-row alert-warning"><AlertTriangle size={16}/><span><strong>{p.radicado}</strong> — {p.solicitante} — {p.estado}</span></div>))}</div>}
       <div className="grid grid-2">
-        <div className="card">
-          <div className="card-header"><h3>Pendientes de Revisión ({pendientes.length})</h3></div>
-          <div className="table-wrap" style={{ maxHeight: 350 }}>
-            <table><thead><tr><th>Radicado</th><th>Solicitante</th><th>Estado</th></tr></thead>
-              <tbody>{pendientes.map(p => (
-                <tr key={p.radicado}><td><strong>{p.radicado}</strong></td><td>{p.solicitante}</td>
-                  <td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>
-              ))}</tbody></table>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header"><h3>Aprobados Recientes ({aprobados.length})</h3></div>
-          <div className="table-wrap" style={{ maxHeight: 350 }}>
-            <table><thead><tr><th>Radicado</th><th>Solicitante</th><th>Tipo</th></tr></thead>
-              <tbody>{aprobados.map(p => (
-                <tr key={p.radicado}><td><strong>{p.radicado}</strong></td><td>{p.solicitante}</td><td style={{fontSize:11}}>{p.tipoLicencia}</td></tr>
-              ))}</tbody></table>
-          </div>
-        </div>
+        <div className="card"><div className="card-header"><h3>Pendientes de Revisión ({pendientes.length})</h3></div><div className="table-wrap" style={{maxHeight:350}}><table><thead><tr><th>Radicado</th><th>Solicitante</th><th>Estado</th></tr></thead><tbody>{pendientes.map(p=>(<tr key={p.radicado}><td><strong>{p.radicado}</strong></td><td>{p.solicitante}</td><td><span className={`badge ${estadoColor(p.estado)}`}>{p.estado}</span></td></tr>))}</tbody></table></div></div>
+        <div className="card"><div className="card-header"><h3>Aprobados Recientes ({aprobados.length})</h3></div><div className="table-wrap" style={{maxHeight:350}}><table><thead><tr><th>Radicado</th><th>Solicitante</th><th>Tipo</th></tr></thead><tbody>{aprobados.map(p=>(<tr key={p.radicado}><td><strong>{p.radicado}</strong></td><td>{p.solicitante}</td><td style={{fontSize:11}}>{p.tipoLicencia}</td></tr>))}</tbody></table></div></div>
       </div>
     </div>
   );
@@ -1135,102 +745,31 @@ function CuradorView({ proyectos }) {
 // --- 9. HISTORIAL ---
 function HistorialView({ proyectos }) {
   const [filtroMes, setFiltroMes] = useState("todos");
-  const meses = useMemo(() => {
-    const s = new Set(proyectos.map(p => p.fechaRad.slice(0, 7)));
-    return [...s].sort();
-  }, [proyectos]);
-
+  const meses = useMemo(() => [...new Set(proyectos.map(p=>p.fechaRad.slice(0,7)))].sort(), [proyectos]);
   const eventos = useMemo(() => {
-    let items = proyectos.map(p => ({
-      fecha: p.fechaRad, tipo: "Radicación", radicado: p.radicado,
-      detalle: `${p.tipoLicencia} — ${p.solicitante}`, estado: p.estado
-    }));
-    proyectos.forEach(p => {
-      if (p.ldf) items.push({ fecha: p.ldf, tipo: "LDF Asignado", radicado: p.radicado, detalle: `LDF: ${formatDate(p.ldf)}`, estado: p.estado });
-      if (p.ldfReal) items.push({ fecha: p.ldfReal, tipo: "LDF Cumplido", radicado: p.radicado, detalle: `LDF Real: ${formatDate(p.ldfReal)}`, estado: p.estado });
-    });
-    if (filtroMes !== "todos") items = items.filter(e => e.fecha.startsWith(filtroMes));
-    return items.sort((a, b) => b.fecha.localeCompare(a.fecha));
+    let items = proyectos.map(p => ({fecha:p.fechaRad,tipo:"Radicación",radicado:p.radicado,detalle:`${p.tipoLicencia} — ${p.solicitante}`,estado:p.estado}));
+    proyectos.forEach(p => { if(p.ldf) items.push({fecha:p.ldf,tipo:"LDF Asignado",radicado:p.radicado,detalle:`LDF: ${formatDate(p.ldf)}`,estado:p.estado}); if(p.ldfReal) items.push({fecha:p.ldfReal,tipo:"LDF Cumplido",radicado:p.radicado,detalle:`LDF Real: ${formatDate(p.ldfReal)}`,estado:p.estado}); });
+    if(filtroMes!=="todos") items=items.filter(e=>e.fecha.startsWith(filtroMes)); return items.sort((a,b)=>b.fecha.localeCompare(a.fecha));
   }, [proyectos, filtroMes]);
-
   return (
-    <div className="fade-in">
-      <div className="card">
-        <div className="card-header">
-          <h3>Historial de Eventos ({eventos.length})</h3>
-          <select value={filtroMes} onChange={e => setFiltroMes(e.target.value)} style={{ fontSize: 12 }}>
-            <option value="todos">Todos los meses</option>
-            {meses.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-        <div style={{ maxHeight: 600, overflowY: "auto" }}>
-          {eventos.slice(0, 200).map((ev, i) => (
-            <div key={i} className="timeline-item">
-              <div className="timeline-dot" style={{ background: ev.tipo === "Radicación" ? "var(--primary)" : ev.tipo === "LDF Asignado" ? "#1565c0" : "#2e7d32" }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>{ev.radicado} — {ev.tipo}</span>
-                  <span style={{ fontSize: 11, color: "var(--text3)" }}>{formatDate(ev.fecha)}</span>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text2)" }}>{ev.detalle}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <div className="fade-in"><div className="card"><div className="card-header"><h3>Historial de Eventos ({eventos.length})</h3><select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)} style={{fontSize:12}}><option value="todos">Todos los meses</option>{meses.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+      <div style={{maxHeight:600,overflowY:"auto"}}>{eventos.slice(0,200).map((ev,i)=>(<div key={i} className="timeline-item"><div className="timeline-dot" style={{background:ev.tipo==="Radicación"?"var(--primary)":ev.tipo==="LDF Asignado"?"#1565c0":"#2e7d32"}}/><div style={{flex:1}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:600,fontSize:13}}>{ev.radicado} — {ev.tipo}</span><span style={{fontSize:11,color:"var(--text3)"}}>{formatDate(ev.fecha)}</span></div><div style={{fontSize:12,color:"var(--text2)"}}>{ev.detalle}</div></div></div>))}</div>
+    </div></div>
   );
 }
 
 // --- 10. HISTÓRICO ---
 function HistoricoView() {
-  const data = HISTORICO_ANOS;
-  const total = data.reduce((s, d) => s + d.total, 0);
-
+  const data = HISTORICO_ANOS; const total = data.reduce((s,d)=>s+d.total,0);
   return (
     <div className="fade-in">
-      <div className="grid grid-4" style={{ marginBottom: 16 }}>
-        <StatCard number={total.toLocaleString()} label="Total Histórico (2019-2026)" icon={Archive} />
-        <StatCard number={data.length} label="Años de Datos" icon={Calendar} />
-        <StatCard number={Math.max(...data.map(d => d.total))} label="Máximo Anual" color="#f57c00" icon={Star} />
-        <StatCard number={data[data.length - 1].total} label="Radicados 2026" color="#1565c0" icon={FolderOpen} />
-      </div>
+      <div className="grid grid-4" style={{marginBottom:16}}><StatCard number={total.toLocaleString()} label="Total Histórico (2019-2026)" icon={Archive}/><StatCard number={data.length} label="Años de Datos" icon={Calendar}/><StatCard number={Math.max(...data.map(d=>d.total))} label="Máximo Anual" color="#f57c00" icon={Star}/><StatCard number={data[data.length-1].total} label="Radicados 2026" color="#1565c0" icon={FolderOpen}/></div>
       <div className="grid grid-2">
-        <div className="card">
-          <div className="card-header"><h3>Radicados por Año</h3></div>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={data}><XAxis dataKey="ano" fontSize={12} /><YAxis fontSize={12} /><Tooltip />
-              <Bar dataKey="total" fill="var(--primary)" radius={[4,4,0,0]} name="Total" />
-              <Bar dataKey="aprobados" fill="#2e7d32" radius={[4,4,0,0]} name="Aprobados" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="card">
-          <div className="card-header"><h3>Tendencia Histórica</h3></div>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="ano" fontSize={12} /><YAxis fontSize={12} />
-              <Tooltip /><Legend fontSize={11} />
-              <Area type="monotone" dataKey="total" stroke="var(--primary)" fill="var(--primary-light)" name="Total" />
-              <Area type="monotone" dataKey="aprobados" stroke="#2e7d32" fill="#e8f5e9" name="Aprobados" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <div className="card"><div className="card-header"><h3>Radicados por Año</h3></div><ResponsiveContainer width="100%" height={280}><BarChart data={data}><XAxis dataKey="ano" fontSize={12}/><YAxis fontSize={12}/><Tooltip/><Bar dataKey="total" fill="var(--primary)" radius={[4,4,0,0]} name="Total"/><Bar dataKey="aprobados" fill="#2e7d32" radius={[4,4,0,0]} name="Aprobados"/></BarChart></ResponsiveContainer></div>
+        <div className="card"><div className="card-header"><h3>Tendencia Histórica</h3></div><ResponsiveContainer width="100%" height={280}><AreaChart data={data}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="ano" fontSize={12}/><YAxis fontSize={12}/><Tooltip/><Legend fontSize={11}/><Area type="monotone" dataKey="total" stroke="var(--primary)" fill="var(--primary-light)" name="Total"/><Area type="monotone" dataKey="aprobados" stroke="#2e7d32" fill="#e8f5e9" name="Aprobados"/></AreaChart></ResponsiveContainer></div>
       </div>
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-header"><h3>Detalle por Año</h3></div>
-        <div className="table-wrap">
-          <table><thead><tr><th>Año</th><th>Total</th><th>Aprobados</th><th>Desistidos</th><th>Tasa Aprobación</th></tr></thead>
-            <tbody>{data.map(d => (
-              <tr key={d.ano}><td><strong>{d.ano}</strong></td><td>{d.total}</td><td>{d.aprobados}</td><td>{d.desistidos}</td>
-                <td>
-                  <div className="progress-bar" style={{ width: 100 }}>
-                    <div className="progress-fill" style={{ width: `${(d.aprobados / d.total * 100)}%`, background: "#2e7d32" }} />
-                  </div>
-                  <span style={{ fontSize: 11 }}>{(d.aprobados / d.total * 100).toFixed(1)}%</span>
-                </td></tr>
-            ))}</tbody></table>
-        </div>
-      </div>
+      <div className="card" style={{marginTop:16}}><div className="card-header"><h3>Detalle por Año</h3></div><div className="table-wrap"><table><thead><tr><th>Año</th><th>Total</th><th>Aprobados</th><th>Desistidos</th><th>Tasa Aprobación</th></tr></thead>
+        <tbody>{data.map(d=>(<tr key={d.ano}><td><strong>{d.ano}</strong></td><td>{d.total}</td><td>{d.aprobados}</td><td>{d.desistidos}</td><td><div className="progress-bar" style={{width:100}}><div className="progress-fill" style={{width:`${(d.aprobados/d.total*100)}%`,background:"#2e7d32"}}/></div><span style={{fontSize:11}}>{(d.aprobados/d.total*100).toFixed(1)}%</span></td></tr>))}</tbody></table></div></div>
     </div>
   );
 }
@@ -1241,7 +780,6 @@ const TABS = [
   { id: "estrategicos", label: "Estratégicos", icon: Star },
   { id: "terminos", label: "Términos", icon: Clock },
   { id: "proyectos", label: "Proyectos", icon: FolderOpen },
-  { id: "ingreso", label: "Ingreso Técnico", icon: UserPlus },
   { id: "tecnicos", label: "Técnicos", icon: Users },
   { id: "curador", label: "Curador", icon: Gavel },
   { id: "historial", label: "Historial", icon: History },
@@ -1253,11 +791,7 @@ function App() {
   const [proyectos, setProyectos] = useState(PROYECTOS_2026);
   const [tvMode, setTvMode] = useState(false);
   const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    document.body.className = dark ? "dark" : "";
-  }, [dark]);
-
+  useEffect(() => { document.body.className = dark ? "dark" : ""; }, [dark]);
   return (
     <div className="app">
       <style>{STYLES}</style>
@@ -1266,21 +800,12 @@ function App() {
         <div className="header-logo">C2</div>
         <h1>Dashboard Curaduría Urbana N.° 2 de Pereira</h1>
         <div className="header-actions">
-          <button className="btn btn-sm" style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "none" }} onClick={() => setTvMode(true)}>
-            <Tv size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />TV
-          </button>
-          <button className="btn btn-sm" style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "none" }} onClick={() => setDark(!dark)}>
-            {dark ? <Sun size={14} /> : <Moon size={14} />}
-          </button>
+          <button className="btn btn-sm" style={{background:"#e65100",color:"#fff",border:"none",fontWeight:600}} onClick={() => setTvMode(true)}><Tv size={14} style={{verticalAlign:"middle",marginRight:4}} />Modo TV</button>
+          <button className="btn btn-sm" style={{background:"#f9a825",color:"#333",border:"none",fontWeight:600}} onClick={() => setTab("ingreso")}><UserPlus size={14} style={{verticalAlign:"middle",marginRight:4}} />Ingreso de Técnico</button>
+          <button className="btn btn-sm" style={{background:"rgba(255,255,255,.15)",color:"#fff",border:"none"}} onClick={() => setDark(!dark)}>{dark ? <Sun size={14} /> : <Moon size={14} />}</button>
         </div>
       </div>
-      <div className="nav">
-        {TABS.map(t => (
-          <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
-            <t.icon size={15} />{t.label}
-          </button>
-        ))}
-      </div>
+      <div className="nav">{TABS.map(t => (<button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}><t.icon size={15} />{t.label}</button>))}</div>
       <div className="content">
         {tab === "dashboard" && <DashboardView proyectos={proyectos} />}
         {tab === "estrategicos" && <EstrategicosView proyectos={proyectos} />}

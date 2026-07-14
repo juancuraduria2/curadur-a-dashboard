@@ -1,13 +1,9 @@
 export default async (req, res) => {
   try {
-    // Verificar variables de entorno
     const debug = {
       tenantIdExists: !!process.env.AZURE_TENANT_ID,
       clientIdExists: !!process.env.AZURE_CLIENT_ID,
-      secretExists: !!process.env.AZURE_CLIENT_SECRET,
-      tenantIdLength: process.env.AZURE_TENANT_ID?.length || 0,
-      clientIdLength: process.env.AZURE_CLIENT_ID?.length || 0,
-      secretLength: process.env.AZURE_CLIENT_SECRET?.length || 0
+      secretExists: !!process.env.AZURE_CLIENT_SECRET
     };
 
     // Obtener token de acceso
@@ -32,7 +28,6 @@ export default async (req, res) => {
         success: false,
         error: 'No se pudo obtener token de Azure AD',
         azureResponse: tokenData,
-        debug: debug,
         timestamp: new Date().toISOString()
       });
     }
@@ -50,16 +45,30 @@ export default async (req, res) => {
       throw new Error('No se encontró el sitio SharePoint: ' + JSON.stringify(siteData));
     }
 
-    // Obtener archivos en Archivos de Control
+    // Obtener archivos en la ruta correcta
     const filesResponse = await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/root:/Archivos de Control:/children`,
+      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/root:/Curaduria 2 Pereira/Seguimiento Proyectos/Archivos de Control:/children`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
     const filesData = await filesResponse.json();
 
-    const excelFile = filesData.value?.find(f => f.name === 'Seguimiento Proyectos.xlsx');
+    if (!filesData.value) {
+      return res.status(500).json({
+        success: false,
+        error: 'No se pudo listar archivos',
+        sharePointResponse: filesData,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const excelFile = filesData.value.find(f => f.name === 'Seguimiento Proyectos.xlsx');
     if (!excelFile) {
-      throw new Error('Archivo no encontrado en SharePoint');
+      return res.status(500).json({
+        success: false,
+        error: 'Archivo no encontrado',
+        archivosDisponibles: filesData.value.map(f => f.name),
+        timestamp: new Date().toISOString()
+      });
     }
 
     // Obtener datos del Excel

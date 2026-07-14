@@ -789,15 +789,16 @@ function App() {
           const fechaMaxLegal = excelDateToDate(p.maximaLegal);
           const diasLegal = diasEntreFechas(fechaMaxLegal);
           
-          // Semáforo etapa
+          // Semáforo etapa - solo si está en revisión activa
           let semaforoEtapa = 'verde';
-          if (diasEtapa !== null) {
+          const estaEnRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estadoActual);
+          if (diasEtapa !== null && estaEnRevision) {
             if (diasEtapa < 0) semaforoEtapa = 'rojo';
             else if (diasEtapa <= 2) semaforoEtapa = 'amarillo';
           }
           
-          const urgencia = diasEtapa !== null && diasEtapa < 0 ? 'urgente' : 
-                          diasEtapa !== null && diasEtapa <= 2 ? 'pronto' : 'ok';
+          const urgencia = estaEnRevision && diasEtapa !== null && diasEtapa < 0 ? 'urgente' : 
+                          estaEnRevision && diasEtapa !== null && diasEtapa <= 2 ? 'pronto' : 'ok';
           
           return (
             <div key={p.radicado} className={`proyecto-tecnico ${urgencia}`}>
@@ -808,7 +809,7 @@ function App() {
                   <span className="estado-badge" style={{background: estadoInfo?.bg, color: estadoInfo?.color}}>
                     {estadoInfo?.icon} {estadoInfo?.label}
                   </span>
-                  {diasEtapa !== null && (
+                  {diasEtapa !== null && estaEnRevision && (
                     <span className={`semaforo-mini ${semaforoEtapa}`}>
                       <Clock size={12} /> 
                       {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d etapa`}
@@ -824,10 +825,16 @@ function App() {
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
                   <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
-                    {diasLegal !== null && (
+                    {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE'].includes(estadoActual) && (
                       diasLegal < 0 
                         ? <span style={{color:'#c62828'}}> (Vencido {Math.abs(diasLegal)}d)</span>
                         : <span style={{color:'#388e3c'}}> ({diasLegal}d restantes)</span>
+                    )}
+                    {diasLegal !== null && ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estadoActual) && (
+                      <span style={{color:'#388e3c'}}> ✓ En revisión</span>
+                    )}
+                    {['ACTA_OBS'].includes(estadoActual) && (
+                      <span style={{color:'#f57c00'}}> ⏸ Términos suspendidos</span>
                     )}
                   </div>
                 </div>

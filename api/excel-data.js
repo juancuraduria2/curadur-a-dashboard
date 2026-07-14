@@ -24,17 +24,60 @@ export default async (req, res) => {
 
     const fileId = '01WQFWMZ5Z3Y7KPKOJ2ZD2M7NFHUUHWQW3';
 
-    // Listar todas las hojas
-    const sheetsResponse = await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${fileId}/workbook/worksheets`,
+    // Leer rango amplio para cubrir crecimiento futuro (fila 4239 hasta 6000)
+    const rangeResponse = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${fileId}/workbook/worksheets('Seguimiento Proyectos')/range(address='A4239:BA6000')`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
-    const sheetsData = await sheetsResponse.json();
+    const rangeData = await rangeResponse.json();
+
+    const rows = rangeData.values || [];
+
+    const COLUMN_MAP = {
+      'RADICADO': 0,
+      'FECHA RADICACIÓN': 1,
+      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
+      'FECHA DE LEGAL Y DEBIDA FORMA': 7,
+      'ESTADO ACTUAL DEL PROYECTO': 14,
+      'NOMBRE PROFESIONAL ARQUITECTURA': 22,
+      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
+      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
+      'NOMBRE PROFESIONAL INGENIERÍA': 27,
+      'FECHA PRIMERA REVISIÓN INGENIERÍA': 29,
+      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 34,
+      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 41,
+      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 52
+    };
+
+    const datos = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const proyecto = {
+        radicado: row[COLUMN_MAP['RADICADO']] || '',
+        fechaRadicacion: row[COLUMN_MAP['FECHA RADICACIÓN']] || '',
+        maximaLegal: row[COLUMN_MAP['FECHA MÁXIMA LEGAL Y DEBIDA FORMA']] || '',
+        fechaLegal: row[COLUMN_MAP['FECHA DE LEGAL Y DEBIDA FORMA']] || '',
+        estadoActual: row[COLUMN_MAP['ESTADO ACTUAL DEL PROYECTO']] || '',
+        nombreArquitecto: row[COLUMN_MAP['NOMBRE PROFESIONAL ARQUITECTURA']] || '',
+        fechaAsignacionArq: row[COLUMN_MAP['FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA']] || '',
+        fechaPrimeraRevArq: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN ARQUITECTÓNICA']] || '',
+        nombreIngeniero: row[COLUMN_MAP['NOMBRE PROFESIONAL INGENIERÍA']] || '',
+        fechaPrimeraRevIng: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN INGENIERÍA']] || '',
+        actaObservaciones: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN']] || '',
+        fechaFinalizacion: row[COLUMN_MAP['FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN']] || '',
+        fechaLicencia: row[COLUMN_MAP['LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN']] || ''
+      };
+
+      // Solo agregar si el radicado no está vacío
+      if (proyecto.radicado && proyecto.radicado !== '') {
+        datos.push(proyecto);
+      }
+    }
 
     res.status(200).json({
       success: true,
-      hojasDisponibles: sheetsData.value?.map(s => s.name) || [],
-      respuestaCompleta: sheetsData,
+      total: datos.length,
+      proyectos: datos,
       timestamp: new Date().toISOString()
     });
 

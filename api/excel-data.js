@@ -24,13 +24,31 @@ export default async (req, res) => {
     );
     const siteData = await siteResponse.json();
 
-    // Archivos
+    // Archivos - RUTA CORRECTA: solo Archivos de Control
     const filesResponse = await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/root:/Curaduria 2 Pereira/Seguimiento Proyectos/Archivos de Control:/children`,
+      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/root:/Archivos de Control:/children`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
     const filesData = await filesResponse.json();
+
+    if (!filesData.value) {
+      return res.status(500).json({
+        success: false,
+        error: 'No se pudo listar archivos',
+        sharePointResponse: filesData,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const excelFile = filesData.value.find(f => f.name === 'Seguimiento Proyectos.xlsx');
+    if (!excelFile) {
+      return res.status(500).json({
+        success: false,
+        error: 'Archivo no encontrado',
+        archivosDisponibles: filesData.value.map(f => f.name),
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Obtener las primeras 5 filas para inspección
     const workbookResponse = await fetch(
@@ -44,7 +62,7 @@ export default async (req, res) => {
     res.status(200).json({
       success: true,
       totalRows: rows.length,
-      primeras5Filas: rows.slice(0, 5),
+      primeras3Filas: rows.slice(0, 3),
       timestamp: new Date().toISOString()
     });
 

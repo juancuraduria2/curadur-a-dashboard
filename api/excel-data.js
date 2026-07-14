@@ -1,12 +1,6 @@
 export default async (req, res) => {
   try {
-    const debug = {
-      tenantIdExists: !!process.env.AZURE_TENANT_ID,
-      clientIdExists: !!process.env.AZURE_CLIENT_ID,
-      secretExists: !!process.env.AZURE_CLIENT_SECRET
-    };
-
-    // Obtener token de acceso
+    // Obtener token
     const tokenResponse = await fetch(
       `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
       {
@@ -20,58 +14,25 @@ export default async (req, res) => {
         }).toString()
       }
     );
-
     const tokenData = await tokenResponse.json();
-    
-    if (!tokenData.access_token) {
-      return res.status(500).json({
-        success: false,
-        error: 'No se pudo obtener token de Azure AD',
-        azureResponse: tokenData,
-        timestamp: new Date().toISOString()
-      });
-    }
-
     const token = tokenData.access_token;
 
-    // Obtener el sitio
+    // Sitio
     const siteResponse = await fetch(
       'https://graph.microsoft.com/v1.0/sites/curaduria2pereira.sharepoint.com:/sites/intranet',
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
     const siteData = await siteResponse.json();
 
-    if (!siteData.id) {
-      throw new Error('No se encontró el sitio SharePoint: ' + JSON.stringify(siteData));
-    }
-
-    // Obtener archivos en la ruta correcta
+    // Archivos
     const filesResponse = await fetch(
       `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/root:/Curaduria 2 Pereira/Seguimiento Proyectos/Archivos de Control:/children`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
     const filesData = await filesResponse.json();
-
-    if (!filesData.value) {
-      return res.status(500).json({
-        success: false,
-        error: 'No se pudo listar archivos',
-        sharePointResponse: filesData,
-        timestamp: new Date().toISOString()
-      });
-    }
-
     const excelFile = filesData.value.find(f => f.name === 'Seguimiento Proyectos.xlsx');
-    if (!excelFile) {
-      return res.status(500).json({
-        success: false,
-        error: 'Archivo no encontrado',
-        archivosDisponibles: filesData.value.map(f => f.name),
-        timestamp: new Date().toISOString()
-      });
-    }
 
-    // Obtener datos del Excel
+    // Obtener las primeras 5 filas para inspección
     const workbookResponse = await fetch(
       `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${excelFile.id}/workbook/worksheets('Seguimiento Proyectos')/usedRange?$select=values`,
       { headers: { 'Authorization': `Bearer ${token}` } }
@@ -80,50 +41,10 @@ export default async (req, res) => {
 
     const rows = workbookData.value || [];
 
-    const COLUMN_MAP = {
-      'RADICADO': 0,
-      'FECHA RADICACIÓN': 1,
-      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
-      'FECHA DE LEGAL Y DEBIDA FORMA': 7,
-      'ESTADO ACTUAL DEL PROYECTO': 14,
-      'NOMBRE PROFESIONAL ARQUITECTURA': 22,
-      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
-      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
-      'NOMBRE PROFESIONAL INGENIERÍA': 27,
-      'FECHA PRIMERA REVISIÓN INGENIERÍA': 29,
-      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 34,
-      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 41,
-      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 52
-    };
-
-    const datos = [];
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const proyecto = {
-        radicado: row[COLUMN_MAP['RADICADO']] || '',
-        fechaRadicacion: row[COLUMN_MAP['FECHA RADICACIÓN']] || '',
-        maximaLegal: row[COLUMN_MAP['FECHA MÁXIMA LEGAL Y DEBIDA FORMA']] || '',
-        fechaLegal: row[COLUMN_MAP['FECHA DE LEGAL Y DEBIDA FORMA']] || '',
-        estadoActual: row[COLUMN_MAP['ESTADO ACTUAL DEL PROYECTO']] || '',
-        nombreArquitecto: row[COLUMN_MAP['NOMBRE PROFESIONAL ARQUITECTURA']] || '',
-        fechaAsignacionArq: row[COLUMN_MAP['FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA']] || '',
-        fechaPrimeraRevArq: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN ARQUITECTÓNICA']] || '',
-        nombreIngeniero: row[COLUMN_MAP['NOMBRE PROFESIONAL INGENIERÍA']] || '',
-        fechaPrimeraRevIng: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN INGENIERÍA']] || '',
-        actaObservaciones: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN']] || '',
-        fechaFinalizacion: row[COLUMN_MAP['FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN']] || '',
-        fechaLicencia: row[COLUMN_MAP['LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN']] || ''
-      };
-
-      if (proyecto.radicado) {
-        datos.push(proyecto);
-      }
-    }
-
     res.status(200).json({
       success: true,
-      total: datos.length,
-      proyectos: datos,
+      totalRows: rows.length,
+      primeras5Filas: rows.slice(0, 5),
       timestamp: new Date().toISOString()
     });
 

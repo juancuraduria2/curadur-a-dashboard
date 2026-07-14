@@ -1,143 +1,78 @@
-const https = require('https');
-
-// Mapeo de columnas del Excel a sus índices
-const COLUMN_MAP = {
-  'RADICADO': 0,
-  'FECHA RADICACIÓN': 1,
-  'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
-  'FECHA DE LEGAL Y DEBIDA FORMA': 7,
-  'ESTADO ACTUAL DEL PROYECTO': 14,
-  'NOMBRE PROFESIONAL ARQUITECTURA': 22,
-  'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
-  'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
-  'NOMBRE PROFESIONAL INGENIERÍA': 27,
-  'FECHA PRIMERA REVISIÓN INGENIERÍA': 29,
-  'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 34,
-  'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 41,
-  'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 52
-};
-
-async function getAccessToken() {
-  return new Promise((resolve, reject) => {
-    const postData = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: process.env.AZURE_CLIENT_ID,
-      client_secret: process.env.AZURE_CLIENT_SECRET,
-      scope: 'https://graph.microsoft.com/.default'
-    });
-
-    const options = {
-      hostname: 'login.microsoftonline.com',
-      path: `/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData.toString())
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          resolve(json.access_token);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.write(postData.toString());
-    req.end();
-  });
-}
-
-async function graphRequest(accessToken, path) {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'graph.microsoft.com',
-      path: path,
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (e) {
-          reject(e);
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
-    const token = await getAccessToken();
-    // Obtener el sitio de SharePoint
-    const siteId = await graphRequest(
-      token,
-      '/v1.0/sites/curaduria2pereira.sharepoint.com:/sites/intranet'
+    // Obtener token de acceso
+    const tokenResponse = await fetch(
+      `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: process.env.AZURE_CLIENT_ID,
+          client_secret: process.env.AZURE_CLIENT_SECRET,
+          scope: 'https://graph.microsoft.com/.default'
+        }).toString()
+      }
     );
 
-    if (!siteId.id) {
-      throw new Error('No se encontró el sitio de SharePoint');
+    const tokenData = await tokenResponse.json();
+    if (!tokenData.access_token) {
+      throw new Error('No se pudo obtener token de Azure AD');
     }
 
-    // Obtener la lista de "Archivos de Control"
-    const driveId = await graphRequest(
-      token,
-      `/v1.0/sites/${siteId.id}/drive`
-    );
+    const token = tokenData.access_token;
 
-    if (!driveId.id) {
-      throw new Error('No se encontró la unidad de SharePoint');
+    // Obtener el sitio
+    const siteResponse = await fetch(
+      'https://graph.microsoft.com/v1.0/sites/curaduria2pereira.sharepoint.com:/sites/intranet',
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    const siteData = await siteResponse.json();
+
+    if (!siteData.id) {
+      throw new Error('No se encontró el sitio SharePoint: ' + JSON.stringify(siteData));
     }
 
-    // Buscar el archivo "Seguimiento Proyectos.xlsx"
-    const searchResults = await graphRequest(
-      token,
-      `/v1.0/sites/${siteId.id}/drive/root/children?$filter=name eq 'Archivos de Control'`
+    // Obtener archivos en Archivos de Control
+    const filesResponse = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/root:/Archivos de Control:/children`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
     );
+    const filesData = await filesResponse.json();
 
-    let folderContent = await graphRequest(
-      token,
-      `/v1.0/sites/${siteId.id}/drive/root:/Archivos de Control:/children`
-    );
-
-    const excelFile = folderContent.value.find(f => f.name === 'Seguimiento Proyectos.xlsx');
-    
+    const excelFile = filesData.value?.find(f => f.name === 'Seguimiento Proyectos.xlsx');
     if (!excelFile) {
-      throw new Error('No se encontró el archivo Seguimiento Proyectos.xlsx');
+      throw new Error('Archivo no encontrado en SharePoint');
     }
 
-    // Obtener el contenido del Excel
-    const workbookContent = await graphRequest(
-      token,
-      `/v1.0/sites/${siteId.id}/drive/items/${excelFile.id}/workbook/worksheets('Seguimiento Proyectos')/usedRange?$select=values`
+    // Obtener datos del Excel
+    const workbookResponse = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${excelFile.id}/workbook/worksheets('Seguimiento Proyectos')/usedRange?$select=values`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
     );
+    const workbookData = await workbookResponse.json();
 
-    // Procesar los datos
-    const rows = workbookContent.value;
+    const rows = workbookData.value || [];
+
+    const COLUMN_MAP = {
+      'RADICADO': 0,
+      'FECHA RADICACIÓN': 1,
+      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
+      'FECHA DE LEGAL Y DEBIDA FORMA': 7,
+      'ESTADO ACTUAL DEL PROYECTO': 14,
+      'NOMBRE PROFESIONAL ARQUITECTURA': 22,
+      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
+      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
+      'NOMBRE PROFESIONAL INGENIERÍA': 27,
+      'FECHA PRIMERA REVISIÓN INGENIERÍA': 29,
+      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 34,
+      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 41,
+      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 52
+    };
+
     const datos = [];
-
-    // Saltamos la fila de encabezados (fila 0)
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      
       const proyecto = {
         radicado: row[COLUMN_MAP['RADICADO']] || '',
         fechaRadicacion: row[COLUMN_MAP['FECHA RADICACIÓN']] || '',

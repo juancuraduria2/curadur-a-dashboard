@@ -1,5 +1,15 @@
 export default async (req, res) => {
   try {
+    // Verificar variables de entorno
+    const debug = {
+      tenantIdExists: !!process.env.AZURE_TENANT_ID,
+      clientIdExists: !!process.env.AZURE_CLIENT_ID,
+      secretExists: !!process.env.AZURE_CLIENT_SECRET,
+      tenantIdLength: process.env.AZURE_TENANT_ID?.length || 0,
+      clientIdLength: process.env.AZURE_CLIENT_ID?.length || 0,
+      secretLength: process.env.AZURE_CLIENT_SECRET?.length || 0
+    };
+
     // Obtener token de acceso
     const tokenResponse = await fetch(
       `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
@@ -16,8 +26,15 @@ export default async (req, res) => {
     );
 
     const tokenData = await tokenResponse.json();
+    
     if (!tokenData.access_token) {
-      throw new Error('No se pudo obtener token de Azure AD');
+      return res.status(500).json({
+        success: false,
+        error: 'No se pudo obtener token de Azure AD',
+        azureResponse: tokenData,
+        debug: debug,
+        timestamp: new Date().toISOString()
+      });
     }
 
     const token = tokenData.access_token;
@@ -102,7 +119,6 @@ export default async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
     res.status(500).json({
       success: false,
       error: error.message,

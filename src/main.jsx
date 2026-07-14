@@ -1,7 +1,154 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Home, Star, Clock, FileText, Users, User, History, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, RefreshCw, ArrowLeft, StickyNote, Trophy, TrafficCone, ClipboardList } from 'lucide-react';
+import { Home, Star, Clock, FileText, Users, User, History, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send } from 'lucide-react';
+
+// ============================================
+// CONFIGURACIÓN
+// ============================================
+
+const MAPEO_ARQUITECTOS = {
+  'LAA': 'Laura Arandia',
+  'AMMF': 'Adriana Marulanda',
+  'MCMF': 'Camila Marulanda',
+  'DMUM': 'Diana Uribe'
+};
+
+const MAPEO_INGENIEROS = {
+  'JOGL': 'Jorge Obed',
+  'ACU': 'Alejandra Calderon',
+  'CERA': 'Camilo Rodriguez'
+};
+
+const TECNICOS = [
+  { nombre: 'Diana Uribe', inicial: 'DU', rol: 'Arquitecta', tipo: 'arquitecto' },
+  { nombre: 'Adriana Marulanda', inicial: 'AM', rol: 'Arquitecta', tipo: 'arquitecto' },
+  { nombre: 'Laura Arandia', inicial: 'LA', rol: 'Arquitecta', tipo: 'arquitecto' },
+  { nombre: 'Camila Marulanda', inicial: 'CM', rol: 'Arquitecta', tipo: 'arquitecto' },
+  { nombre: 'Alejandra Calderon', inicial: 'AC', rol: 'Ingeniera', tipo: 'ingeniero' },
+  { nombre: 'Camilo Rodriguez', inicial: 'CR', rol: 'Ingeniero', tipo: 'ingeniero' },
+  { nombre: 'Jorge Obed', inicial: 'JO', rol: 'Ingeniero', tipo: 'ingeniero' }
+];
+
+// Estados del proyecto (locales, no afectan Excel)
+const ESTADOS_FLUJO = {
+  'PENDIENTE_LDF': { label: 'Pendiente LDF', color: '#f57c00', bg: '#fff3e0', icon: '🟠' },
+  'REV_ARQ_1': { label: 'Rev. Arquitectónica', color: '#1976d2', bg: '#e3f2fd', icon: '🔵' },
+  'REV_ESTR_1': { label: 'Rev. Estructural', color: '#7b1fa2', bg: '#f3e5f5', icon: '🟣' },
+  'ACTA_OBS': { label: 'Acta Observaciones', color: '#f9a825', bg: '#fffde7', icon: '🟡' },
+  'REV_ARQ_2': { label: 'Rev. Arq. 2da vuelta', color: '#1976d2', bg: '#e3f2fd', icon: '🔄' },
+  'REV_ESTR_2': { label: 'Rev. Estr. 2da vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔄' },
+  'EXPEDIDO': { label: 'Expedido', color: '#388e3c', bg: '#e8f5e9', icon: '✅' },
+  'PENDIENTE': { label: 'Pendiente', color: '#616161', bg: '#f5f5f5', icon: '⏸️' },
+  'DESISTIDO': { label: 'Desistido', color: '#c62828', bg: '#ffebee', icon: '❌' }
+};
+
+// Días hábiles por etapa
+const DIAS_ETAPA = {
+  REV_ARQ: 9,
+  REV_ESTR: 9,
+  ACTA_OBS: 30
+};
+
+// Festivos Colombia 2026
+const FESTIVOS_2026 = [
+  '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03',
+  '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29',
+  '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02',
+  '2026-11-16', '2026-12-08', '2026-12-25'
+];
+
+// ============================================
+// HELPERS DE FECHAS
+// ============================================
+
+const excelDateToJSDate = (serial) => {
+  if (!serial || serial === '') return '';
+  if (typeof serial === 'string' && serial.includes('/')) return serial;
+  const num = Number(serial);
+  if (isNaN(num) || num < 1) return String(serial);
+  const utcDays = num - 25569;
+  const date = new Date(utcDays * 86400 * 1000);
+  return `${String(date.getUTCDate()).padStart(2,'0')}/${String(date.getUTCMonth()+1).padStart(2,'0')}/${date.getUTCFullYear()}`;
+};
+
+const excelDateToDate = (serial) => {
+  if (!serial) return null;
+  if (typeof serial === 'string' && serial.includes('/')) {
+    const p = serial.split('/');
+    if (p.length !== 3) return null;
+    return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+  }
+  const num = Number(serial);
+  if (isNaN(num) || num < 1) return null;
+  return new Date((num - 25569) * 86400 * 1000);
+};
+
+const mapearArquitecto = (i) => MAPEO_ARQUITECTOS[i] || i || '';
+const mapearIngeniero = (i) => MAPEO_INGENIEROS[i] || i || '';
+
+const esFestivo = (fecha) => {
+  const str = fecha.toISOString().split('T')[0];
+  return FESTIVOS_2026.includes(str);
+};
+
+const esDiaHabil = (fecha) => {
+  const dia = fecha.getDay();
+  if (dia === 0 || dia === 6) return false;
+  return !esFestivo(fecha);
+};
+
+const sumarDiasHabiles = (fechaInicio, dias) => {
+  if (!fechaInicio) return null;
+  const fecha = new Date(fechaInicio);
+  let contados = 0;
+  while (contados < dias) {
+    fecha.setDate(fecha.getDate() + 1);
+    if (esDiaHabil(fecha)) contados++;
+  }
+  return fecha;
+};
+
+const contarDiasHabiles = (fechaInicio, fechaFin) => {
+  if (!fechaInicio || !fechaFin) return 0;
+  const inicio = new Date(fechaInicio);
+  const fin = new Date(fechaFin);
+  let dias = 0;
+  const actual = new Date(inicio);
+  while (actual <= fin) {
+    if (esDiaHabil(actual)) dias++;
+    actual.setDate(actual.getDate() + 1);
+  }
+  return dias;
+};
+
+const formatoFechaLarga = (fechaStr) => {
+  if (!fechaStr) return '';
+  const p = fechaStr.split('/');
+  if (p.length !== 3) return fechaStr;
+  const meses = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'];
+  return `${parseInt(p[0])} de ${meses[parseInt(p[1])-1]} de ${p[2]}`;
+};
+
+const diasEntreFechas = (fecha) => {
+  if (!fecha) return null;
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  const f = new Date(fecha);
+  f.setHours(0,0,0,0);
+  return Math.floor((f - hoy) / (1000*60*60*24));
+};
+
+const diasHabilesRestantes = (fechaLimite) => {
+  if (!fechaLimite) return null;
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  if (fechaLimite < hoy) return -contarDiasHabiles(fechaLimite, hoy);
+  return contarDiasHabiles(hoy, fechaLimite);
+};
+// ============================================
+// ESTILOS
+// ============================================
 
 const STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,6 +189,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .badge.red { background: #ffebee; color: #c62828; }
 .badge.orange { background: #fff3e0; color: #f57c00; }
 .badge.blue { background: #e3f2fd; color: #1976d2; }
+.badge.purple { background: #f3e5f5; color: #7b1fa2; }
 .badge.gray { background: #f5f5f5; color: #666; }
 .badge.yellow { background: #fffde7; color: #f9a825; }
 .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -71,33 +219,45 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .vista-tecnico-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
 .vista-tecnico-title h2 { font-size: 24px; color: #333; }
 .vista-tecnico-title p { color: #666; margin-top: 5px; }
-.tecnico-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px; }
+.tecnico-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 30px; }
 .tecnico-stat { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; text-align: center; }
-.tecnico-stat .num { font-size: 36px; font-weight: 700; margin-bottom: 5px; }
-.tecnico-stat .label { color: #666; font-size: 13px; }
+.tecnico-stat .num { font-size: 32px; font-weight: 700; margin-bottom: 5px; }
+.tecnico-stat .label { color: #666; font-size: 12px; }
 .tecnico-stat.red .num { color: #c62828; }
 .tecnico-stat.gold .num { color: #f9a825; }
 .tecnico-stat.green .num { color: #388e3c; }
 .tecnico-stat.blue .num { color: #1976d2; }
 .tecnico-stat.orange .num { color: #f57c00; }
-.aviso-estrategicos { background: #fffde7; border: 1px solid #fdd835; border-radius: 8px; padding: 15px 20px; margin-bottom: 30px; color: #f57f17; }
-.proyecto-tecnico { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
-.proyecto-tecnico.atendido { background: #f1f8e9; border-color: #7cb342; }
+.tecnico-stat.purple .num { color: #7b1fa2; }
+
+.tabs-tecnico { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+.tab-tecnico { background: none; border: none; padding: 12px 24px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.tab-tecnico.active { color: #c62828; border-bottom-color: #c62828; font-weight: 600; }
+.tab-tecnico .count { background: #f5f5f5; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+.tab-tecnico.active .count { background: #c62828; color: white; }
+
+.proyecto-tecnico { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; gap: 20px; }
+.proyecto-tecnico.urgente { border-left: 4px solid #c62828; }
+.proyecto-tecnico.pronto { border-left: 4px solid #f57c00; }
+.proyecto-tecnico.ok { border-left: 4px solid #388e3c; }
 .proyecto-tecnico-info { flex: 1; }
 .proyecto-tecnico-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .proyecto-tecnico-radicado { font-size: 18px; font-weight: 700; color: #f9a825; }
-.proyecto-tecnico-tipo { color: #666; font-size: 14px; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; }
-.proyecto-tecnico-fecha { color: #999; font-size: 13px; }
-.proyecto-tecnico-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.proyecto-tecnico-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-.btn-atender { background: #c62828; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-.btn-atender.atendido { background: #388e3c; }
-.btn-nota { background: transparent; border: 1px solid #e0e0e0; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #666; }
+.estado-badge { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.proyecto-info-row { display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap; }
+.info-item { font-size: 13px; color: #666; }
+.info-item strong { color: #333; }
+.proyecto-tecnico-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; min-width: 200px; }
+.estado-selector { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; width: 100%; cursor: pointer; }
+.btn-nota { background: transparent; border: 1px solid #e0e0e0; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #666; width: 100%; }
 .nota-personal { background: #fff8e1; border: 1px solid #ffe082; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 13px; color: #6d4c00; }
-.nota-input { width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; margin-top: 10px; resize: vertical; min-height: 60px; }
-.nota-input { width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; margin-top: 10px; resize: vertical; min-height: 60px; }
-
-/* MODO TV - Command Center */
+.semaforo-mini { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.semaforo-mini.verde { background: #e8f5e9; color: #388e3c; }
+.semaforo-mini.amarillo { background: #fff3e0; color: #f57c00; }
+.semaforo-mini.rojo { background: #ffebee; color: #c62828; }
+`;
+// Añadir estilos del Modo TV al STYLES
+const STYLES_TV = `
 .tv-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0a0a0f; color: white; z-index: 1000; overflow-y: auto; padding: 30px; }
 .tv-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 30px; border-bottom: 2px solid #ff5252; }
 .tv-header-left { display: flex; align-items: center; gap: 20px; }
@@ -149,83 +309,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tv-mov-tecnico { color: white; flex: 1; }
 .tv-mov-fecha { color: #666; font-size: 11px; }
 `;
-// ============================================
-// CONFIGURACIÓN Y HELPERS
-// ============================================
-
-const MAPEO_ARQUITECTOS = {
-  'LAA': 'Laura Arandia',
-  'AMMF': 'Adriana Marulanda',
-  'MCMF': 'Camila Marulanda',
-  'DMUM': 'Diana Uribe'
-};
-
-const MAPEO_INGENIEROS = {
-  'JOGL': 'Jorge Obed',
-  'ACU': 'Alejandra Calderon',
-  'CERA': 'Camilo Rodriguez'
-};
-
-const TECNICOS = [
-  { nombre: 'Diana Uribe', inicial: 'DU', rol: 'Arquitecta', tipo: 'arquitecto' },
-  { nombre: 'Adriana Marulanda', inicial: 'AM', rol: 'Arquitecta', tipo: 'arquitecto' },
-  { nombre: 'Laura Arandia', inicial: 'LA', rol: 'Arquitecta', tipo: 'arquitecto' },
-  { nombre: 'Camila Marulanda', inicial: 'CM', rol: 'Arquitecta', tipo: 'arquitecto' },
-  { nombre: 'Alejandra Calderon', inicial: 'AC', rol: 'Ingeniera', tipo: 'ingeniero' },
-  { nombre: 'Camilo Rodriguez', inicial: 'CR', rol: 'Ingeniero', tipo: 'ingeniero' },
-  { nombre: 'Jorge Obed', inicial: 'JO', rol: 'Ingeniero', tipo: 'ingeniero' }
-];
-
-const excelDateToJSDate = (serial) => {
-  if (!serial || serial === '') return '';
-  if (typeof serial === 'string' && serial.includes('/')) return serial;
-  const num = Number(serial);
-  if (isNaN(num) || num < 1) return String(serial);
-  const utcDays = num - 25569;
-  const utcValue = utcDays * 86400;
-  const date = new Date(utcValue * 1000);
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const yyyy = date.getUTCFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-};
-
-const excelDateToDate = (serial) => {
-  if (!serial) return null;
-  if (typeof serial === 'string' && serial.includes('/')) {
-    const partes = serial.split('/');
-    if (partes.length !== 3) return null;
-    return new Date(partes[2], partes[1] - 1, partes[0]);
-  }
-  const num = Number(serial);
-  if (isNaN(num) || num < 1) return null;
-  const utcDays = num - 25569;
-  const utcValue = utcDays * 86400;
-  return new Date(utcValue * 1000);
-};
-
-const mapearArquitecto = (inicial) => MAPEO_ARQUITECTOS[inicial] || inicial || '';
-const mapearIngeniero = (inicial) => MAPEO_INGENIEROS[inicial] || inicial || '';
-
-const formatoFechaLarga = (fechaStr) => {
-  if (!fechaStr) return '';
-  const partes = fechaStr.split('/');
-  if (partes.length !== 3) return fechaStr;
-  const meses = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
-  return `${parseInt(partes[0])} de ${meses[parseInt(partes[1]) - 1]} de ${partes[2]}`;
-};
-
-const diasEntreFechas = (fecha) => {
-  if (!fecha) return null;
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const f = new Date(fecha);
-  f.setHours(0, 0, 0, 0);
-  return Math.floor((f - hoy) / (1000 * 60 * 60 * 24));
-};
 
 // ============================================
-// COMPONENTE PRINCIPAL
+// COMPONENTE APP
 // ============================================
 
 function App() {
@@ -237,6 +323,7 @@ function App() {
   const [modoTV, setModoTV] = useState(false);
   const [horaTV, setHoraTV] = useState(new Date());
   const [tecnicoActivo, setTecnicoActivo] = useState(null);
+  const [tabTecnico, setTabTecnico] = useState('activos');
   
   const [estrategicos, setEstrategicos] = useState(() => {
     const saved = localStorage.getItem('estrategicos');
@@ -248,8 +335,8 @@ function App() {
     return saved ? JSON.parse(saved) : {};
   });
   
-  const [atendidos, setAtendidos] = useState(() => {
-    const saved = localStorage.getItem('atendidos');
+  const [estadosFlujo, setEstadosFlujo] = useState(() => {
+    const saved = localStorage.getItem('estadosFlujo');
     return saved ? JSON.parse(saved) : {};
   });
 
@@ -286,10 +373,7 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
-
+  useEffect(() => { cargarDatos(); }, []);
   useEffect(() => {
     if (modoTV) {
       const timer = setInterval(() => setHoraTV(new Date()), 1000);
@@ -299,26 +383,21 @@ function App() {
 
   const toggleEstrategico = (radicado) => {
     const radStr = String(radicado);
-    const nuevosEstrategicos = estrategicos.includes(radStr)
-      ? estrategicos.filter(r => r !== radStr)
-      : [...estrategicos, radStr];
-    setEstrategicos(nuevosEstrategicos);
-    localStorage.setItem('estrategicos', JSON.stringify(nuevosEstrategicos));
-    setProyectos(proyectos.map(p => 
-      String(p.radicado) === radStr ? { ...p, estrategico: !p.estrategico } : p
-    ));
+    const nuevos = estrategicos.includes(radStr) ? estrategicos.filter(r => r !== radStr) : [...estrategicos, radStr];
+    setEstrategicos(nuevos);
+    localStorage.setItem('estrategicos', JSON.stringify(nuevos));
+    setProyectos(proyectos.map(p => String(p.radicado) === radStr ? { ...p, estrategico: !p.estrategico } : p));
   };
 
-  const toggleAtendido = (radicado, tecnico) => {
-    const key = `${tecnico}_${radicado}`;
-    const nuevos = { ...atendidos };
-    if (nuevos[key]) {
-      delete nuevos[key];
+  const cambiarEstadoFlujo = (radicado, nuevoEstado) => {
+    const nuevos = { ...estadosFlujo };
+    if (nuevoEstado === 'AUTO') {
+      delete nuevos[radicado];
     } else {
-      nuevos[key] = new Date().toISOString();
+      nuevos[radicado] = { estado: nuevoEstado, fecha: new Date().toISOString() };
     }
-    setAtendidos(nuevos);
-    localStorage.setItem('atendidos', JSON.stringify(nuevos));
+    setEstadosFlujo(nuevos);
+    localStorage.setItem('estadosFlujo', JSON.stringify(nuevos));
   };
 
   const guardarNota = (radicado, tecnico, nota) => {
@@ -329,30 +408,68 @@ function App() {
     localStorage.setItem('notasPersonales', JSON.stringify(nuevas));
   };
 
+  // Obtener estado flujo del proyecto (local o del Excel)
+  const getEstadoFlujo = (p) => {
+    const local = estadosFlujo[p.radicado];
+    if (local) return local.estado;
+    // Inferir del Excel
+    if (p.estadoActual === 'EXPEDIDO') return 'EXPEDIDO';
+    if (p.estadoActual === 'DESISTIDO') return 'DESISTIDO';
+    if (p.estadoActual === 'NO L.D.F' || !p.fechaLegal) return 'PENDIENTE_LDF';
+    if (p.actaObservaciones) return 'ACTA_OBS';
+    if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
+    if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
+    if (p.fechaLegal) return 'REV_ARQ_1';
+    return 'PENDIENTE_LDF';
+  };
   // Cálculos generales
   const totalProyectos = proyectos.length;
   const proyectosEstrategicos = proyectos.filter(p => p.estrategico).length;
-  const enEstudio = proyectos.filter(p => p.estadoActual === 'REVISIÓN' || p.estadoActual === 'EN ESTUDIO').length;
-  const aprobados = proyectos.filter(p => p.estadoActual === 'EXPEDIDO').length;
-  const observaciones = proyectos.filter(p => p.estadoActual === 'OBSERVACIONES' || p.actaObservaciones).length;
-  const sinLDF = proyectos.filter(p => p.estadoActual === 'NO L.D.F' || !p.fechaLegal).length;
-  const desistidos = proyectos.filter(p => p.estadoActual === 'DESISTIDO').length;
+  const enEstudio = proyectos.filter(p => {
+    const e = getEstadoFlujo(p);
+    return ['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2'].includes(e);
+  }).length;
+  const aprobados = proyectos.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
+  const observaciones = proyectos.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
+  const sinLDF = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE_LDF').length;
+  const desistidos = proyectos.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
   const tasaAprobacion = totalProyectos > 0 ? Math.round((aprobados / totalProyectos) * 100) : 0;
 
+  // Vencidos INTELIGENTES - solo los que NO están en revisión/acta/expedido/desistido y pasaron plazo legal
   const hoy = new Date();
   const vencidos = proyectos.filter(p => {
+    const estado = getEstadoFlujo(p);
+    // No están vencidos si están en revisión activa, acta, expedido o desistido
+    if (['ACTA_OBS', 'EXPEDIDO', 'DESISTIDO', 'PENDIENTE'].includes(estado)) return false;
     const fecha = excelDateToDate(p.maximaLegal);
     if (!fecha) return false;
-    return fecha < hoy && p.estadoActual !== 'EXPEDIDO' && p.estadoActual !== 'DESISTIDO';
+    return fecha < hoy;
   });
-  // Últimos movimientos (basados en fechas del Excel)
+
+  // Calcular fecha límite de etapa interna (9 días hábiles)
+  const getFechaLimiteEtapa = (p) => {
+    const estado = getEstadoFlujo(p);
+    if (estado === 'REV_ARQ_1' || estado === 'REV_ARQ_2') {
+      const fechaInicio = excelDateToDate(p.fechaLegal) || excelDateToDate(p.fechaAsignacionArq);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ);
+    }
+    if (estado === 'REV_ESTR_1' || estado === 'REV_ESTR_2') {
+      const fechaInicio = excelDateToDate(p.fechaPrimeraRevArq);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ESTR);
+    }
+    return null;
+  };
+
+  // Últimos movimientos
   const ultimosMovimientos = () => {
     const movs = [];
     proyectos.forEach(p => {
       const eventos = [
-        { fecha: p.fechaPrimeraRevArq, tipo: 'EN ESTUDIO', tecnico: p.nombreArquitecto },
-        { fecha: p.fechaPrimeraRevIng, tipo: 'EN REVISION', tecnico: p.nombreIngeniero },
-        { fecha: p.actaObservaciones, tipo: 'OBSERVACIONES', tecnico: p.nombreArquitecto || p.nombreIngeniero },
+        { fecha: p.fechaPrimeraRevArq, tipo: 'REV ARQ', tecnico: p.nombreArquitecto },
+        { fecha: p.fechaPrimeraRevIng, tipo: 'REV ESTRUC', tecnico: p.nombreIngeniero },
+        { fecha: p.actaObservaciones, tipo: 'ACTA OBS', tecnico: p.nombreArquitecto || p.nombreIngeniero },
         { fecha: p.fechaFinalizacion, tipo: 'FINALIZADO', tecnico: p.nombreArquitecto || p.nombreIngeniero },
         { fecha: p.fechaLicencia, tipo: 'EXPEDIDO', tecnico: p.nombreArquitecto || p.nombreIngeniero }
       ];
@@ -361,34 +478,28 @@ function App() {
           const fechaObj = excelDateToDate(e.fecha);
           if (fechaObj) {
             movs.push({
-              radicado: p.radicado,
-              tipo: e.tipo,
-              tecnico: e.tecnico,
-              fecha: fechaObj,
-              fechaStr: formatoFechaLarga(e.fecha),
-              estrategico: p.estrategico
+              radicado: p.radicado, tipo: e.tipo, tecnico: e.tecnico,
+              fecha: fechaObj, fechaStr: formatoFechaLarga(e.fecha), estrategico: p.estrategico
             });
           }
         }
       });
     });
-    return movs.sort((a, b) => b.fecha - a.fecha).slice(0, 10);
+    return movs.sort((a, b) => b.fecha - a.fecha).slice(0, 15);
   };
 
-  // Productividad del equipo
   const productividadEquipo = () => {
     const stats = {};
-    TECNICOS.forEach(t => {
-      stats[t.nombre] = { aprobados: 0, revision: 0, acta: 0, total: 0 };
-    });
+    TECNICOS.forEach(t => { stats[t.nombre] = { aprobados: 0, revision: 0, acta: 0, total: 0 }; });
     proyectos.forEach(p => {
+      const estado = getEstadoFlujo(p);
       const nombres = [p.nombreArquitecto, p.nombreIngeniero].filter(Boolean);
       nombres.forEach(n => {
         if (stats[n]) {
           stats[n].total++;
-          if (p.estadoActual === 'EXPEDIDO') stats[n].aprobados++;
-          else if (p.estadoActual === 'REVISIÓN' || p.estadoActual === 'EN ESTUDIO') stats[n].revision++;
-          if (p.actaObservaciones) stats[n].acta++;
+          if (estado === 'EXPEDIDO') stats[n].aprobados++;
+          else if (['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estado)) stats[n].revision++;
+          if (estado === 'ACTA_OBS') stats[n].acta++;
         }
       });
     });
@@ -401,13 +512,13 @@ function App() {
   if (modoTV) {
     const movs = ultimosMovimientos();
     const prod = productividadEquipo();
-    const nombresMeses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    const diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-    const fechaHoy = `${diasSemana[horaTV.getDay()]}, ${horaTV.getDate()} de ${nombresMeses[horaTV.getMonth()]}`;
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const diasSem = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const fechaHoy = `${diasSem[horaTV.getDay()]}, ${horaTV.getDate()} de ${meses[horaTV.getMonth()]}`;
     
     return (
       <div className="tv-mode">
-        <style>{STYLES}</style>
+        <style>{STYLES + STYLES_TV}</style>
         <div className="tv-header">
           <div className="tv-header-left">
             <button className="tv-close" onClick={() => setModoTV(false)}>×</button>
@@ -428,38 +539,17 @@ function App() {
         </div>
 
         <div className="tv-stats-grid">
-          <div className="tv-stat-box total">
-            <div className="num">{totalProyectos}</div>
-            <div className="label">Total</div>
-          </div>
-          <div className="tv-stat-box strat">
-            <div className="num">{proyectosEstrategicos}</div>
-            <div className="label">⭐ Estratégicos</div>
-          </div>
-          <div className="tv-stat-box aprob">
-            <div className="num">{aprobados}</div>
-            <div className="label">Aprobados</div>
-          </div>
-          <div className="tv-stat-box rev">
-            <div className="num">{enEstudio}</div>
-            <div className="label">En Revisión</div>
-          </div>
-          <div className="tv-stat-box tasa">
-            <div className="num">{tasaAprobacion}%</div>
-            <div className="label">Tasa Aprob.</div>
-          </div>
-          <div className="tv-stat-box urg">
-            <div className="num">{vencidos.length}</div>
-            <div className="label">Urgentes</div>
-          </div>
+          <div className="tv-stat-box total"><div className="num">{totalProyectos}</div><div className="label">Total</div></div>
+          <div className="tv-stat-box strat"><div className="num">{proyectosEstrategicos}</div><div className="label">⭐ Estratégicos</div></div>
+          <div className="tv-stat-box aprob"><div className="num">{aprobados}</div><div className="label">Aprobados</div></div>
+          <div className="tv-stat-box rev"><div className="num">{enEstudio}</div><div className="label">En Revisión</div></div>
+          <div className="tv-stat-box tasa"><div className="num">{tasaAprobacion}%</div><div className="label">Tasa Aprob.</div></div>
+          <div className="tv-stat-box urg"><div className="num">{vencidos.length}</div><div className="label">Urgentes</div></div>
         </div>
 
         <div className="tv-grid-main">
-          {/* PRODUCTIVIDAD */}
           <div className="tv-panel">
-            <div className="tv-panel-title">
-              <Trophy size={14} /> PRODUCTIVIDAD DEL EQUIPO
-            </div>
+            <div className="tv-panel-title"><Trophy size={14} /> PRODUCTIVIDAD DEL EQUIPO</div>
             {TECNICOS.map(t => {
               const s = prod[t.nombre] || { aprobados: 0, revision: 0, acta: 0, total: 0 };
               const maxVal = Math.max(1, s.aprobados + s.revision + s.acta);
@@ -482,47 +572,25 @@ function App() {
             </div>
           </div>
 
-          {/* ESTADO GENERAL */}
           <div className="tv-panel">
-            <div className="tv-panel-title">
-              📊 ESTADO GENERAL
-            </div>
+            <div className="tv-panel-title">📊 ESTADO GENERAL</div>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie 
-                  data={[
-                    {name: 'Aprobados', value: aprobados, color: '#4caf50'},
-                    {name: 'En Revisión', value: enEstudio, color: '#2196f3'},
-                    {name: 'Observaciones', value: observaciones, color: '#ff9800'},
-                    {name: 'Vencidos', value: vencidos.length, color: '#f44336'}
-                  ].filter(d => d.value > 0)} 
-                  cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value"
-                >
-                  {[
-                    {color: '#4caf50'}, {color: '#2196f3'}, {color: '#ff9800'}, {color: '#f44336'}
-                  ].map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={[
+                  {name:'Aprobados',value:aprobados,color:'#4caf50'},
+                  {name:'En Revisión',value:enEstudio,color:'#2196f3'},
+                  {name:'Observaciones',value:observaciones,color:'#ff9800'},
+                  {name:'Vencidos',value:vencidos.length,color:'#f44336'}
+                ].filter(d=>d.value>0)} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value">
+                  {[{color:'#4caf50'},{color:'#2196f3'},{color:'#ff9800'},{color:'#f44336'}].map((e,i)=><Cell key={i} fill={e.color}/>)}
                 </Pie>
-                <Tooltip contentStyle={{background: '#1a1a2e', border: '1px solid #333'}} />
+                <Tooltip contentStyle={{background:'#1a1a2e',border:'1px solid #333'}} />
               </PieChart>
             </ResponsiveContainer>
-            <div style={{marginTop: '15px'}}>
-              <div className="tv-leyenda-item" style={{marginBottom: '8px'}}>
-                <div className="tv-leyenda-dot" style={{background:'#4caf50'}}></div>Aprobados <span style={{marginLeft:'auto', color:'#4caf50', fontWeight:600}}>{aprobados}</span>
-              </div>
-              <div className="tv-leyenda-item" style={{marginBottom: '8px'}}>
-                <div className="tv-leyenda-dot" style={{background:'#2196f3'}}></div>En Revisión <span style={{marginLeft:'auto', color:'#2196f3', fontWeight:600}}>{enEstudio}</span>
-              </div>
-              <div className="tv-leyenda-item" style={{marginBottom: '8px'}}>
-                <div className="tv-leyenda-dot" style={{background:'#ff9800'}}></div>Observaciones <span style={{marginLeft:'auto', color:'#ff9800', fontWeight:600}}>{observaciones}</span>
-              </div>
-            </div>
           </div>
 
-          {/* SEMÁFORO DE TÉRMINOS */}
           <div className="tv-panel">
-            <div className="tv-panel-title">
-              🚦 SEMÁFORO DE TÉRMINOS
-            </div>
+            <div className="tv-panel-title">🚦 SEMÁFORO DE TÉRMINOS</div>
             {vencidos.slice(0, 5).map(p => {
               const fecha = excelDateToDate(p.maximaLegal);
               const diasVenc = Math.abs(diasEntreFechas(fecha));
@@ -533,12 +601,11 @@ function App() {
                       {p.estrategico && <Star size={14} fill="#f9a825" color="#f9a825" />}
                       {p.radicado}
                     </div>
-                    <div className="tv-semaforo-tipo">{p.estadoActual || 'SIN ESTADO'}</div>
+                    <div className="tv-semaforo-tipo">{ESTADOS_FLUJO[getEstadoFlujo(p)]?.label || 'SIN ESTADO'}</div>
                     <div className="tv-semaforo-detalles">
                       Técnico: {p.nombreArquitecto || '-'}<br/>
                       Revisor: {p.nombreIngeniero || '-'}
                     </div>
-                    <span className={`tv-badge-mini ${p.estadoActual === 'REVISIÓN' ? 'rev' : 'estudio'}`}>{p.estadoActual || 'PENDIENTE'}</span>
                   </div>
                   <div className="tv-semaforo-vencido">
                     <div className="num">{diasVenc}</div>
@@ -550,11 +617,8 @@ function App() {
           </div>
         </div>
 
-        {/* ÚLTIMOS MOVIMIENTOS */}
         <div className="tv-panel">
-          <div className="tv-panel-title">
-            <ClipboardList size={14} /> ÚLTIMOS MOVIMIENTOS
-          </div>
+          <div className="tv-panel-title"><ClipboardList size={14} /> ÚLTIMOS MOVIMIENTOS</div>
           {movs.map((m, i) => (
             <div key={i} className="tv-movimientos-item">
               <div className="tv-mov-dot"></div>
@@ -581,7 +645,7 @@ function App() {
         <div className="hint">Selecciona tu nombre para ver tu panorama de proyectos</div>
         <div className="tecnico-list">
           {TECNICOS.map(t => (
-            <div key={t.nombre} className="tecnico-card" onClick={() => setTecnicoActivo(t)}>
+            <div key={t.nombre} className="tecnico-card" onClick={() => { setTecnicoActivo(t); setTabTecnico('activos'); }}>
               <div className="tecnico-avatar">{t.inicial}</div>
               <div className="tecnico-info">
                 <div className="nombre">{t.nombre}</div>
@@ -604,16 +668,57 @@ function App() {
   // VISTA PERSONAL DEL TÉCNICO
   // ==============================
   if (tecnicoActivo) {
+    // Filtrar proyectos según el rol del técnico
     const misProyectos = proyectos.filter(p => 
       p.nombreArquitecto === tecnicoActivo.nombre || p.nombreIngeniero === tecnicoActivo.nombre
     );
-    const misEstrategicos = misProyectos.filter(p => p.estrategico);
-    const misAprobados = misProyectos.filter(p => p.estadoActual === 'EXPEDIDO').length;
-    const misRevision = misProyectos.filter(p => p.estadoActual === 'REVISIÓN' || p.estadoActual === 'EN ESTUDIO').length;
-    const miTasa = misProyectos.length > 0 ? Math.round((misAprobados / misProyectos.length) * 100) : 0;
+
+    // Clasificar proyectos según su estado y rol del técnico
+    const clasificarProyecto = (p) => {
+      const estado = getEstadoFlujo(p);
+      const esArq = p.nombreArquitecto === tecnicoActivo.nombre;
+      const esIng = p.nombreIngeniero === tecnicoActivo.nombre;
+      
+      // ENTREGADOS - ya no está con él
+      if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE'].includes(estado)) return 'entregados';
+      
+      // Para Arquitectos
+      if (esArq) {
+        if (['REV_ARQ_1', 'REV_ARQ_2'].includes(estado)) return 'activos';
+        if (['REV_ESTR_1', 'REV_ESTR_2', 'ACTA_OBS'].includes(estado)) return 'entregados';
+        if (estado === 'PENDIENTE_LDF') return 'vienen';
+      }
+      
+      // Para Ingenieros
+      if (esIng) {
+        if (['REV_ESTR_1', 'REV_ESTR_2'].includes(estado)) return 'activos';
+        if (['REV_ARQ_1', 'REV_ARQ_2', 'PENDIENTE_LDF'].includes(estado)) return 'vienen';
+        if (estado === 'ACTA_OBS') return 'entregados';
+      }
+      
+      return 'vienen';
+    };
+
+    const proyectosVienen = misProyectos.filter(p => clasificarProyecto(p) === 'vienen');
+    const proyectosActivos = misProyectos.filter(p => clasificarProyecto(p) === 'activos');
+    const proyectosEntregados = misProyectos.filter(p => clasificarProyecto(p) === 'entregados');
     
-    // Estratégicos primero
-    const proyectosOrdenados = [...misProyectos].sort((a, b) => (b.estrategico ? 1 : 0) - (a.estrategico ? 1 : 0));
+    const misEstrategicos = misProyectos.filter(p => p.estrategico);
+    const misAprobados = misProyectos.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
+    const miTasa = misProyectos.length > 0 ? Math.round((misAprobados / misProyectos.length) * 100) : 0;
+
+    const proyectosMostrar = tabTecnico === 'vienen' ? proyectosVienen : 
+                            tabTecnico === 'activos' ? proyectosActivos : proyectosEntregados;
+    
+    // Ordenar: estratégicos primero, luego por urgencia
+    const proyectosOrdenados = [...proyectosMostrar].sort((a, b) => {
+      if (a.estrategico !== b.estrategico) return b.estrategico ? 1 : -1;
+      const fechaA = getFechaLimiteEtapa(a) || excelDateToDate(a.maximaLegal);
+      const fechaB = getFechaLimiteEtapa(b) || excelDateToDate(b.maximaLegal);
+      if (!fechaA) return 1;
+      if (!fechaB) return -1;
+      return fechaA - fechaB;
+    });
 
     return (
       <div className="vista-tecnico">
@@ -632,83 +737,121 @@ function App() {
         <p style={{color:'#666', marginBottom:'25px'}}>{tecnicoActivo.rol}</p>
 
         <div className="tecnico-stats">
-          <div className="tecnico-stat red">
-            <div className="num">{misProyectos.length}</div>
-            <div className="label">Mis Proyectos</div>
-          </div>
-          <div className="tecnico-stat gold">
-            <div className="num">{misEstrategicos.length}</div>
-            <div className="label">⭐ Estratégicos</div>
-          </div>
-          <div className="tecnico-stat green">
-            <div className="num">{misAprobados}</div>
-            <div className="label">Aprobados</div>
-          </div>
-          <div className="tecnico-stat blue">
-            <div className="num">{misRevision}</div>
-            <div className="label">En Revisión</div>
-          </div>
-          <div className="tecnico-stat orange">
-            <div className="num">{miTasa}%</div>
-            <div className="label">% Aprobación</div>
-          </div>
+          <div className="tecnico-stat red"><div className="num">{misProyectos.length}</div><div className="label">Total</div></div>
+          <div className="tecnico-stat gold"><div className="num">{misEstrategicos.length}</div><div className="label">⭐ Estratégicos</div></div>
+          <div className="tecnico-stat blue"><div className="num">{proyectosVienen.length}</div><div className="label">📥 Vienen</div></div>
+          <div className="tecnico-stat orange"><div className="num">{proyectosActivos.length}</div><div className="label">🔥 Activos</div></div>
+          <div className="tecnico-stat green"><div className="num">{proyectosEntregados.length}</div><div className="label">✅ Entregados</div></div>
+          <div className="tecnico-stat purple"><div className="num">{miTasa}%</div><div className="label">% Aprobación</div></div>
         </div>
 
-        {misEstrategicos.length > 0 && (
-          <div className="aviso-estrategicos">
-            ⭐ <strong>Tienes {misEstrategicos.length} proyectos estratégicos asignados</strong><br/>
-            <span style={{fontSize:'13px'}}>Estos aparecen primero en la lista. Tienen prioridad de revisión.</span>
+        <div className="tabs-tecnico">
+          <button className={`tab-tecnico ${tabTecnico === 'vienen' ? 'active' : ''}`} onClick={() => setTabTecnico('vienen')}>
+            <Inbox size={16} /> Vienen para mí <span className="count">{proyectosVienen.length}</span>
+          </button>
+          <button className={`tab-tecnico ${tabTecnico === 'activos' ? 'active' : ''}`} onClick={() => setTabTecnico('activos')}>
+            <Flame size={16} /> Activos conmigo <span className="count">{proyectosActivos.length}</span>
+          </button>
+          <button className={`tab-tecnico ${tabTecnico === 'entregados' ? 'active' : ''}`} onClick={() => setTabTecnico('entregados')}>
+            <Send size={16} /> Entregados <span className="count">{proyectosEntregados.length}</span>
+          </button>
+        </div>
+
+        {tabTecnico === 'vienen' && proyectosVienen.length > 0 && (
+          <div style={{background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: '8px', padding: '15px 20px', marginBottom: '20px', color: '#1565c0'}}>
+            📥 <strong>{proyectosVienen.length} proyectos vienen para ti</strong><br/>
+            <span style={{fontSize:'13px'}}>Estos proyectos están en manos de otro técnico y llegarán pronto a tu revisión.</span>
           </div>
         )}
 
-        <h3 style={{marginBottom:'15px'}}>Detalle de Proyectos (estratégicos primero)</h3>
+        {tabTecnico === 'activos' && misEstrategicos.filter(p => clasificarProyecto(p) === 'activos').length > 0 && (
+          <div style={{background: '#fffde7', border: '1px solid #fdd835', borderRadius: '8px', padding: '15px 20px', marginBottom: '20px', color: '#f57f17'}}>
+            ⭐ <strong>Tienes {misEstrategicos.filter(p => clasificarProyecto(p) === 'activos').length} proyectos estratégicos activos</strong><br/>
+            <span style={{fontSize:'13px'}}>Estos aparecen primero. Tienen prioridad de revisión.</span>
+          </div>
+        )}
+
+        {proyectosOrdenados.length === 0 && (
+          <div style={{textAlign:'center', padding:'60px', color:'#999', background:'white', borderRadius:'12px'}}>
+            No hay proyectos en esta sección
+          </div>
+        )}
         
         {proyectosOrdenados.map(p => {
           const key = `${tecnicoActivo.nombre}_${p.radicado}`;
-          const estaAtendido = !!atendidos[key];
           const nota = notasPersonales[key] || '';
-          const fechaMaxima = excelDateToDate(p.maximaLegal);
-          const dias = diasEntreFechas(fechaMaxima);
-          const vencido = dias !== null && dias < 0;
+          const estadoActual = getEstadoFlujo(p);
+          const estadoInfo = ESTADOS_FLUJO[estadoActual];
+          
+          // Cálculos de tiempo
+          const fechaLimiteEtapa = getFechaLimiteEtapa(p);
+          const diasEtapa = fechaLimiteEtapa ? diasHabilesRestantes(fechaLimiteEtapa) : null;
+          const fechaMaxLegal = excelDateToDate(p.maximaLegal);
+          const diasLegal = diasEntreFechas(fechaMaxLegal);
+          
+          // Semáforo etapa
+          let semaforoEtapa = 'verde';
+          if (diasEtapa !== null) {
+            if (diasEtapa < 0) semaforoEtapa = 'rojo';
+            else if (diasEtapa <= 2) semaforoEtapa = 'amarillo';
+          }
+          
+          const urgencia = diasEtapa !== null && diasEtapa < 0 ? 'urgente' : 
+                          diasEtapa !== null && diasEtapa <= 2 ? 'pronto' : 'ok';
           
           return (
-            <div key={p.radicado} className={`proyecto-tecnico ${estaAtendido ? 'atendido' : ''}`}>
+            <div key={p.radicado} className={`proyecto-tecnico ${urgencia}`}>
               <div className="proyecto-tecnico-info">
                 <div className="proyecto-tecnico-header">
                   {p.estrategico && <Star size={20} fill="#f9a825" color="#f9a825" />}
                   <div className="proyecto-tecnico-radicado">{p.radicado}</div>
-                </div>
-                <div className="proyecto-tecnico-tipo">{p.estadoActual || 'SIN ESTADO'}</div>
-                <div className="proyecto-tecnico-fecha">
-                  Fecha LDF: <strong>{formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</strong>
-                </div>
-                <div className="proyecto-tecnico-fecha">
-                  Plazo legal vence: <strong>{p.maximaLegal || 'Sin fecha'}</strong>
-                  {dias !== null && (
-                    vencido 
-                      ? <span style={{color:'#c62828'}}> — Vencido hace {Math.abs(dias)} días</span>
-                      : <span style={{color:'#388e3c'}}> — {dias} días restantes</span>
+                  <span className="estado-badge" style={{background: estadoInfo?.bg, color: estadoInfo?.color}}>
+                    {estadoInfo?.icon} {estadoInfo?.label}
+                  </span>
+                  {diasEtapa !== null && (
+                    <span className={`semaforo-mini ${semaforoEtapa}`}>
+                      <Clock size={12} /> 
+                      {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d etapa`}
+                    </span>
                   )}
                 </div>
+                
+                <div className="proyecto-info-row">
+                  <div className="info-item"><strong>Arquitecto:</strong> {p.nombreArquitecto || '-'}</div>
+                  <div className="info-item"><strong>Ingeniero:</strong> {p.nombreIngeniero || '-'}</div>
+                </div>
+                
+                <div className="proyecto-info-row">
+                  <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
+                  <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
+                    {diasLegal !== null && (
+                      diasLegal < 0 
+                        ? <span style={{color:'#c62828'}}> (Vencido {Math.abs(diasLegal)}d)</span>
+                        : <span style={{color:'#388e3c'}}> ({diasLegal}d restantes)</span>
+                    )}
+                  </div>
+                </div>
+                
                 {nota && (
                   <div className="nota-personal">
                     <strong>📝 Mi nota:</strong> {nota}
                   </div>
                 )}
               </div>
+              
               <div className="proyecto-tecnico-actions">
-                <div className="proyecto-tecnico-badges">
-                  {p.estadoActual === 'REVISIÓN' && <span className="badge blue">REV ARQ</span>}
-                  {p.actaObservaciones && <span className="badge orange">OBSERVACIONES</span>}
-                  {vencido && <span className="badge red">⚠ VENCIDO</span>}
-                  {p.estadoActual === 'EXPEDIDO' && <span className="badge green">✓ EXPEDIDO</span>}
-                </div>
-                <button 
-                  className={`btn-atender ${estaAtendido ? 'atendido' : ''}`}
-                  onClick={() => toggleAtendido(p.radicado, tecnicoActivo.nombre)}
+                <label style={{fontSize:'12px', color:'#666', marginBottom:'2px'}}>Cambiar estado:</label>
+                <select 
+                  className="estado-selector" 
+                  value={estadoActual}
+                  onChange={(e) => cambiarEstadoFlujo(p.radicado, e.target.value)}
                 >
-                  {estaAtendido ? '✓ Atendido hoy' : 'Marcar como atendido'}
-                </button>
+                  {Object.entries(ESTADOS_FLUJO).map(([key, info]) => (
+                    <option key={key} value={key}>{info.icon} {info.label}</option>
+                  ))}
+                  <option value="AUTO">🔄 Restaurar automático</option>
+                </select>
+                
                 <button 
                   className="btn-nota"
                   onClick={() => {
@@ -726,7 +869,6 @@ function App() {
       </div>
     );
   }
-
   // ==============================
   // DASHBOARD PRINCIPAL
   // ==============================
@@ -736,12 +878,12 @@ function App() {
     return String(p.radicado).toLowerCase().includes(b) ||
            (p.nombreArquitecto || '').toLowerCase().includes(b) ||
            (p.nombreIngeniero || '').toLowerCase().includes(b) ||
-           (p.estadoActual || '').toLowerCase().includes(b);
+           (ESTADOS_FLUJO[getEstadoFlujo(p)]?.label || '').toLowerCase().includes(b);
   });
 
   return (
     <div className="app">
-      <style>{STYLES}</style>
+      <style>{STYLES + STYLES_TV}</style>
       <div className="header">
         <h1>Dashboard Curaduría Urbana N.° 2 de Pereira</h1>
         <div className="header-buttons">
@@ -786,11 +928,13 @@ function App() {
           <>
             <div className="stats-grid">
               <div className="stat-card"><h3>Total Radicados 2026</h3><div className="value">{totalProyectos}</div></div>
-              <div className="stat-card info"><h3>Estratégicos</h3><div className="value">{proyectosEstrategicos}</div></div>
+              <div className="stat-card info"><h3>⭐ Estratégicos</h3><div className="value">{proyectosEstrategicos}</div></div>
               <div className="stat-card info"><h3>En Revisión</h3><div className="value">{enEstudio}</div></div>
               <div className="stat-card success"><h3>Expedidos</h3><div className="value">{aprobados}</div></div>
+              <div className="stat-card warning"><h3>Observaciones</h3><div className="value">{observaciones}</div></div>
               <div className="stat-card warning"><h3>Sin L.D.F</h3><div className="value">{sinLDF}</div></div>
-              <div className="stat-card warning"><h3>Vencidos</h3><div className="value">{vencidos.length}</div></div>
+              <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencidos.length}</div></div>
+              <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaAprobacion}%</div></div>
             </div>
             <div className="charts-grid">
               <div className="chart-card">
@@ -799,12 +943,13 @@ function App() {
                   <PieChart>
                     <Pie data={[
                       {name:'Expedido',value:aprobados,color:'#388e3c'},
-                      {name:'Revisión',value:enEstudio,color:'#1976d2'},
-                      {name:'Desistido',value:desistidos,color:'#757575'},
-                      {name:'Sin L.D.F',value:sinLDF,color:'#f57c00'},
-                      {name:'Observaciones',value:observaciones,color:'#c62828'}
+                      {name:'En Revisión',value:enEstudio,color:'#1976d2'},
+                      {name:'Observaciones',value:observaciones,color:'#f57c00'},
+                      {name:'Sin L.D.F',value:sinLDF,color:'#f9a825'},
+                      {name:'Desistidos',value:desistidos,color:'#757575'},
+                      {name:'Vencidos',value:vencidos.length,color:'#c62828'}
                     ].filter(d=>d.value>0)} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={(e)=>`${e.name}: ${e.value}`}>
-                      {[{color:'#388e3c'},{color:'#1976d2'},{color:'#757575'},{color:'#f57c00'},{color:'#c62828'}].map((e,i)=><Cell key={i} fill={e.color} />)}
+                      {[{color:'#388e3c'},{color:'#1976d2'},{color:'#f57c00'},{color:'#f9a825'},{color:'#757575'},{color:'#c62828'}].map((e,i)=><Cell key={i} fill={e.color} />)}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -830,21 +975,25 @@ function App() {
 
         {!loading && !error && vista === 'estrategicos' && (
           <>
-            <h2 style={{marginBottom:'20px'}}>Proyectos Estratégicos ({proyectosEstrategicos})</h2>
+            <h2 style={{marginBottom:'20px'}}>⭐ Proyectos Estratégicos ({proyectosEstrategicos})</h2>
             <div className="table">
               <table>
                 <thead><tr><th>Radicado</th><th>Fecha Rad.</th><th>Estado</th><th>Arquitecto</th><th>Ingeniero</th><th>Máx. Legal</th></tr></thead>
                 <tbody>
-                  {proyectos.filter(p=>p.estrategico).map(p=>(
-                    <tr key={p.radicado}>
-                      <td><strong>{p.radicado}</strong></td>
-                      <td>{p.fechaRadicacion}</td>
-                      <td><span className="badge blue">{p.estadoActual||'Sin estado'}</span></td>
-                      <td>{p.nombreArquitecto||'-'}</td>
-                      <td>{p.nombreIngeniero||'-'}</td>
-                      <td>{p.maximaLegal}</td>
-                    </tr>
-                  ))}
+                  {proyectos.filter(p=>p.estrategico).map(p=>{
+                    const estado = getEstadoFlujo(p);
+                    const info = ESTADOS_FLUJO[estado];
+                    return (
+                      <tr key={p.radicado}>
+                        <td><strong>{p.radicado}</strong></td>
+                        <td>{p.fechaRadicacion}</td>
+                        <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
+                        <td>{p.nombreArquitecto||'-'}</td>
+                        <td>{p.nombreIngeniero||'-'}</td>
+                        <td>{p.maximaLegal}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -853,7 +1002,7 @@ function App() {
 
         {!loading && !error && vista === 'terminos' && (
           <>
-            <h2 style={{marginBottom:'20px'}}>Términos Legales (45 días)</h2>
+            <h2 style={{marginBottom:'20px'}}>⏰ Términos Legales (45 días)</h2>
             <div className="table">
               <table>
                 <thead><tr><th>Radicado</th><th>Fecha Rad.</th><th>Fecha Máx. Legal</th><th>Estado</th><th>Días</th></tr></thead>
@@ -862,8 +1011,11 @@ function App() {
                     const fecha = excelDateToDate(p.maximaLegal);
                     const dias = diasEntreFechas(fecha);
                     if (dias === null) return null;
-                    let badge = 'green', texto = `${dias} días`;
-                    if (dias < 0) { badge='red'; texto=`Vencido ${Math.abs(dias)}d`; }
+                    const estado = getEstadoFlujo(p);
+                    const info = ESTADOS_FLUJO[estado];
+                    let badge='green', texto=`${dias} días`;
+                    if (['EXPEDIDO','DESISTIDO','PENDIENTE','ACTA_OBS'].includes(estado)) { badge='gray'; texto='—'; }
+                    else if (dias < 0) { badge='red'; texto=`Vencido ${Math.abs(dias)}d`; }
                     else if (dias <= 5) badge='red';
                     else if (dias <= 15) badge='orange';
                     return (
@@ -871,7 +1023,7 @@ function App() {
                         <td><strong>{p.radicado}</strong></td>
                         <td>{p.fechaRadicacion}</td>
                         <td>{p.maximaLegal}</td>
-                        <td><span className="badge blue">{p.estadoActual||'Sin estado'}</span></td>
+                        <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
                         <td><span className={`badge ${badge}`}>{texto}</span></td>
                       </tr>
                     );
@@ -885,23 +1037,27 @@ function App() {
         {!loading && !error && vista === 'proyectos' && (
           <>
             <div className="search-box">
-              <input type="text" className="search-input" placeholder="Buscar..." value={busqueda} onChange={(e)=>setBusqueda(e.target.value)} />
+              <input type="text" className="search-input" placeholder="Buscar por radicado, técnico, estado..." value={busqueda} onChange={(e)=>setBusqueda(e.target.value)} />
             </div>
             <div className="table">
               <table>
                 <thead><tr><th>⭐</th><th>Radicado</th><th>Fecha</th><th>Estado</th><th>Arquitecto</th><th>Ingeniero</th><th>Máx. Legal</th></tr></thead>
                 <tbody>
-                  {proyectosFiltrados.map(p=>(
-                    <tr key={p.radicado}>
-                      <td><button className="btn-star" onClick={()=>toggleEstrategico(p.radicado)}><Star size={20} fill={p.estrategico?'#ffc107':'none'} color={p.estrategico?'#ffc107':'#ccc'} /></button></td>
-                      <td><strong>{p.radicado}</strong></td>
-                      <td>{p.fechaRadicacion}</td>
-                      <td><span className="badge blue">{p.estadoActual||'Sin estado'}</span></td>
-                      <td>{p.nombreArquitecto||'-'}</td>
-                      <td>{p.nombreIngeniero||'-'}</td>
-                      <td>{p.maximaLegal}</td>
-                    </tr>
-                  ))}
+                  {proyectosFiltrados.map(p=>{
+                    const estado = getEstadoFlujo(p);
+                    const info = ESTADOS_FLUJO[estado];
+                    return (
+                      <tr key={p.radicado}>
+                        <td><button className="btn-star" onClick={()=>toggleEstrategico(p.radicado)}><Star size={20} fill={p.estrategico?'#ffc107':'none'} color={p.estrategico?'#ffc107':'#ccc'} /></button></td>
+                        <td><strong>{p.radicado}</strong></td>
+                        <td>{p.fechaRadicacion}</td>
+                        <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
+                        <td>{p.nombreArquitecto||'-'}</td>
+                        <td>{p.nombreIngeniero||'-'}</td>
+                        <td>{p.maximaLegal}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -932,12 +1088,12 @@ function App() {
 
         {!loading && !error && vista === 'historial' && (
           <>
-            <h2 style={{marginBottom:'20px'}}>Historial Completo de Movimientos</h2>
+            <h2 style={{marginBottom:'20px'}}>📜 Historial Completo de Movimientos</h2>
             <div className="table">
               <table>
                 <thead><tr><th></th><th>Radicado</th><th>Estado</th><th>Técnico</th><th>Fecha</th></tr></thead>
                 <tbody>
-                  {ultimosMovimientos().concat(ultimosMovimientos()).slice(0,30).map((m,i)=>(
+                  {ultimosMovimientos().map((m,i)=>(
                     <tr key={i}>
                       <td>{m.estrategico && <Star size={16} fill="#f9a825" color="#f9a825" />}</td>
                       <td><strong>{m.radicado}</strong></td>

@@ -1,6 +1,5 @@
 export default async (req, res) => {
   try {
-    // Obtener token
     const tokenResponse = await fetch(
       `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
       {
@@ -17,69 +16,25 @@ export default async (req, res) => {
     const tokenData = await tokenResponse.json();
     const token = tokenData.access_token;
 
-    // Sitio
     const siteResponse = await fetch(
       'https://graph.microsoft.com/v1.0/sites/curaduria2pereira.sharepoint.com:/sites/intranet',
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
     const siteData = await siteResponse.json();
 
-    // ID del archivo Excel (encontrado por búsqueda)
     const fileId = '01WQFWMZ5Z3Y7KPKOJ2ZD2M7NFHUUHWQW3';
 
-    // Obtener datos del Excel
-    const workbookResponse = await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${fileId}/workbook/worksheets('Seguimiento Proyectos')/usedRange?$select=values`,
+    // Listar todas las hojas
+    const sheetsResponse = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${fileId}/workbook/worksheets`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
-    const workbookData = await workbookResponse.json();
-
-    const rows = workbookData.value || [];
-
-    const COLUMN_MAP = {
-      'RADICADO': 0,
-      'FECHA RADICACIÓN': 1,
-      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
-      'FECHA DE LEGAL Y DEBIDA FORMA': 7,
-      'ESTADO ACTUAL DEL PROYECTO': 14,
-      'NOMBRE PROFESIONAL ARQUITECTURA': 22,
-      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
-      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
-      'NOMBRE PROFESIONAL INGENIERÍA': 27,
-      'FECHA PRIMERA REVISIÓN INGENIERÍA': 29,
-      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 34,
-      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 41,
-      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 52
-    };
-
-    const datos = [];
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const proyecto = {
-        radicado: row[COLUMN_MAP['RADICADO']] || '',
-        fechaRadicacion: row[COLUMN_MAP['FECHA RADICACIÓN']] || '',
-        maximaLegal: row[COLUMN_MAP['FECHA MÁXIMA LEGAL Y DEBIDA FORMA']] || '',
-        fechaLegal: row[COLUMN_MAP['FECHA DE LEGAL Y DEBIDA FORMA']] || '',
-        estadoActual: row[COLUMN_MAP['ESTADO ACTUAL DEL PROYECTO']] || '',
-        nombreArquitecto: row[COLUMN_MAP['NOMBRE PROFESIONAL ARQUITECTURA']] || '',
-        fechaAsignacionArq: row[COLUMN_MAP['FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA']] || '',
-        fechaPrimeraRevArq: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN ARQUITECTÓNICA']] || '',
-        nombreIngeniero: row[COLUMN_MAP['NOMBRE PROFESIONAL INGENIERÍA']] || '',
-        fechaPrimeraRevIng: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN INGENIERÍA']] || '',
-        actaObservaciones: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN']] || '',
-        fechaFinalizacion: row[COLUMN_MAP['FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN']] || '',
-        fechaLicencia: row[COLUMN_MAP['LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN']] || ''
-      };
-
-      if (proyecto.radicado) {
-        datos.push(proyecto);
-      }
-    }
+    const sheetsData = await sheetsResponse.json();
 
     res.status(200).json({
       success: true,
-      total: datos.length,
-      proyectos: datos,
+      hojasDisponibles: sheetsData.value?.map(s => s.name) || [],
+      respuestaCompleta: sheetsData,
       timestamp: new Date().toISOString()
     });
 

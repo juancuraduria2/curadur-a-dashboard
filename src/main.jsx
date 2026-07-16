@@ -360,7 +360,7 @@ function App() {
           fechaLicencia: excelDateToJSDate(p.fechaLicencia),
           nombreArquitecto: mapearArquitecto(p.nombreArquitecto),
           nombreIngeniero: mapearIngeniero(p.nombreIngeniero),
-          estrategico: estrategicos.includes(String(p.radicado))
+          estrategico: (p.estrategicoExcel && String(p.estrategicoExcel).toUpperCase().trim() === 'SI') || estrategicos.includes(String(p.radicado))
         }));
         setProyectos(proyectosProcesados);
       } else {

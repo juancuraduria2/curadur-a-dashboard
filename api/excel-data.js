@@ -1,5 +1,6 @@
 export default async (req, res) => {
   try {
+    // Obtener token
     const tokenResponse = await fetch(
       `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
       {
@@ -39,6 +40,7 @@ export default async (req, res) => {
       'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
       'FECHA DE LEGAL Y DEBIDA FORMA': 7,
       'ESTADO ACTUAL DEL PROYECTO': 14,
+      'PROYECTO ESTRATEGICO': 18,
       'NOMBRE PROFESIONAL ARQUITECTURA': 22,
       'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
       'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
@@ -58,6 +60,7 @@ export default async (req, res) => {
         maximaLegal: row[COLUMN_MAP['FECHA MÁXIMA LEGAL Y DEBIDA FORMA']] || '',
         fechaLegal: row[COLUMN_MAP['FECHA DE LEGAL Y DEBIDA FORMA']] || '',
         estadoActual: row[COLUMN_MAP['ESTADO ACTUAL DEL PROYECTO']] || '',
+        estrategicoExcel: row[COLUMN_MAP['PROYECTO ESTRATEGICO']] || '',
         nombreArquitecto: row[COLUMN_MAP['NOMBRE PROFESIONAL ARQUITECTURA']] || '',
         fechaAsignacionArq: row[COLUMN_MAP['FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA']] || '',
         fechaPrimeraRevArq: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN ARQUITECTÓNICA']] || '',
@@ -68,7 +71,6 @@ export default async (req, res) => {
         fechaLicencia: row[COLUMN_MAP['LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN']] || ''
       };
 
-      // Solo agregar si el radicado no está vacío
       if (proyecto.radicado && proyecto.radicado !== '') {
         datos.push(proyecto);
       }

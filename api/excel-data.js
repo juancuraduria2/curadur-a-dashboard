@@ -34,21 +34,22 @@ export default async (req, res) => {
 
     const rows = rangeData.values || [];
 
+    // Índices actualizados con columna S agregada (PROYECTO ESTRATEGICO)
     const COLUMN_MAP = {
-      'RADICADO': 0,
-      'FECHA RADICACIÓN': 1,
-      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,
-      'FECHA DE LEGAL Y DEBIDA FORMA': 7,
-      'ESTADO ACTUAL DEL PROYECTO': 14,
-      'PROYECTO ESTRATEGICO': 18,
-      'NOMBRE PROFESIONAL ARQUITECTURA': 22,
-      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 23,
-      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 24,
-      'NOMBRE PROFESIONAL INGENIERÍA': 27,
-      'FECHA PRIMERA REVISIÓN INGENIERÍA': 29,
-      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 34,
-      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 41,
-      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 52
+      'RADICADO': 0,                                          // A
+      'FECHA RADICACIÓN': 1,                                  // B
+      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,                // F
+      'FECHA DE LEGAL Y DEBIDA FORMA': 7,                    // H
+      'ESTADO ACTUAL DEL PROYECTO': 14,                      // O
+      'PROYECTO ESTRATEGICO': 18,                            // S (nueva)
+      'NOMBRE PROFESIONAL ARQUITECTURA': 23,                 // X
+      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 24,          // Y
+      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 25,           // Z
+      'NOMBRE PROFESIONAL INGENIERÍA': 28,                   // AC
+      'FECHA PRIMERA REVISIÓN INGENIERÍA': 30,               // AE
+      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 35,        // AJ
+      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 42,     // AQ
+      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 53    // BB
     };
 
     const datos = [];

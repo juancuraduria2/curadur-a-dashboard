@@ -412,10 +412,25 @@ function App() {
   const getEstadoFlujo = (p) => {
     const local = estadosFlujo[p.radicado];
     if (local) return local.estado;
-    // Inferir del Excel
-    if (p.estadoActual === 'EXPEDIDO') return 'EXPEDIDO';
-    if (p.estadoActual === 'DESISTIDO') return 'DESISTIDO';
-    if (p.estadoActual === 'NO L.D.F' || !p.fechaLegal) return 'PENDIENTE_LDF';
+    // Inferir del Excel según ESTADO ACTUAL DEL PROYECTO
+    const estado = String(p.estadoActual || '').toUpperCase().trim();
+    if (estado === 'EXPEDIDO' || estado === 'EN EXPEDICION') return 'EXPEDIDO';
+    if (estado === 'DESISTIDO') return 'DESISTIDO';
+    if (estado === 'NEGADO') return 'DESISTIDO';
+    if (estado === 'NO L.D.F' || !p.fechaLegal) return 'PENDIENTE_LDF';
+    if (estado === 'ACTA DE OBSERVACIONES') return 'ACTA_OBS';
+    if (estado === 'SUSPENSIÓN DE TÉRMINOS' || estado === 'PAGOS') return 'ACTA_OBS';
+    if (estado === 'REVISION ARQ 1' || estado === 'REVISIÓN ARQ 1') return 'REV_ARQ_1';
+    if (estado === 'REVISION ESTRUC 1' || estado === 'REVISIÓN ESTRUC 1') return 'REV_ESTR_1';
+    if (estado === 'REVISIÓN ARQ 2' || estado === 'REVISION ARQ 2') return 'REV_ARQ_2';
+    if (estado === 'REVISION ESTRUC 2' || estado === 'REVISIÓN ESTRUC 2') return 'REV_ESTR_2';
+    if (estado === 'REVISIÓN' || estado === 'REVISION') {
+      // Si dice REVISIÓN general, inferir cuál según las fechas
+      if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
+      if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
+      return 'REV_ARQ_1';
+    }
+    // Fallback: inferir por fechas
     if (p.actaObservaciones) return 'ACTA_OBS';
     if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
     if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';

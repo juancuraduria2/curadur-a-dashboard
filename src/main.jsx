@@ -152,18 +152,31 @@ const diasHabilesRestantes = (fechaLimite) => {
 
 const STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; -webkit-tap-highlight-color: transparent; }
 .app { min-height: 100vh; }
-.header { background: #c62828; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* HEADER */
+.header { background: #c62828; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
 .header h1 { font-size: 22px; font-weight: 600; }
 .header-buttons { display: flex; gap: 10px; }
 .header-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
 .header-btn:hover { background: rgba(255,255,255,0.3); }
-.nav { background: white; padding: 0 30px; display: flex; gap: 5px; border-bottom: 1px solid #e0e0e0; overflow-x: auto; }
+
+/* Menú Hamburguesa (solo móvil) */
+.menu-toggle { display: none; background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 6px; cursor: pointer; }
+.menu-mobile { display: none; }
+
+/* NAV */
+.nav { background: white; padding: 0 30px; display: flex; gap: 5px; border-bottom: 1px solid #e0e0e0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nav::-webkit-scrollbar { height: 3px; }
+.nav::-webkit-scrollbar-thumb { background: #c62828; }
 .nav-btn { background: none; border: none; padding: 15px 20px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .nav-btn:hover { color: #c62828; }
 .nav-btn.active { color: #c62828; border-bottom-color: #c62828; font-weight: 600; }
+
 .content { padding: 30px; max-width: 1400px; margin: 0 auto; }
+
+/* STATS */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
 .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #c62828; }
 .stat-card h3 { color: #666; font-size: 13px; font-weight: 500; text-transform: uppercase; margin-bottom: 10px; }
@@ -174,16 +187,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .stat-card.success .value { color: #388e3c; }
 .stat-card.info { border-left-color: #1976d2; }
 .stat-card.info .value { color: #1976d2; }
+
+/* CHARTS */
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
 .chart-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .chart-card h3 { margin-bottom: 20px; color: #333; font-size: 16px; }
+
 .loading { text-align: center; padding: 60px; font-size: 18px; color: #666; }
 .error-msg { background: #ffebee; color: #c62828; padding: 20px; border-radius: 8px; margin: 20px 0; }
-.table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-.table table { width: 100%; border-collapse: collapse; }
+
+/* TABLA */
+.table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table table { width: 100%; border-collapse: collapse; min-width: 600px; }
 .table th { background: #f5f5f5; padding: 12px; text-align: left; font-size: 13px; color: #666; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
 .table td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
 .table tr:hover { background: #fafafa; }
+
+/* BADGES */
 .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
 .badge.green { background: #e8f5e9; color: #388e3c; }
 .badge.red { background: #ffebee; color: #c62828; }
@@ -192,6 +212,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .badge.purple { background: #f3e5f5; color: #7b1fa2; }
 .badge.gray { background: #f5f5f5; color: #666; }
 .badge.yellow { background: #fffde7; color: #f9a825; }
+
 .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
 .search-input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .search-input:focus { outline: none; border-color: #c62828; }
@@ -199,7 +220,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-primary:hover { background: #b71c1c; }
 .btn-star { background: none; border: none; cursor: pointer; padding: 4px; }
 
-/* Selector de Técnico */
+/* SELECTOR DE TÉCNICO */
 .tecnico-selector { min-height: 100vh; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%); color: white; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .tecnico-selector h1 { font-size: 48px; font-weight: 700; margin-bottom: 10px; text-align: center; }
 .tecnico-selector .subtitle { color: #ffc107; font-size: 20px; margin-bottom: 40px; text-align: center; }
@@ -207,16 +228,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tecnico-list { display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%; }
 .tecnico-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s; }
 .tecnico-card:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
-.tecnico-avatar { width: 60px; height: 60px; border-radius: 50%; background: #c62828; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+.tecnico-card:active { background: rgba(255,255,255,0.15); }
+.tecnico-avatar { width: 60px; height: 60px; border-radius: 50%; background: #c62828; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0; }
 .tecnico-info { flex: 1; }
 .tecnico-info .nombre { font-size: 20px; font-weight: 600; }
 .tecnico-info .rol { color: #999; font-size: 14px; }
 .tecnico-arrow { color: #999; }
 .back-btn-tecnico { background: #c62828; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; }
 
-/* Vista Técnico */
+/* VISTA TÉCNICO */
 .vista-tecnico { padding: 30px; max-width: 1400px; margin: 0 auto; }
-.vista-tecnico-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; }
+.vista-tecnico-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; gap: 15px; }
 .vista-tecnico-title h2 { font-size: 24px; color: #333; }
 .vista-tecnico-title p { color: #666; margin-top: 5px; }
 .tecnico-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 30px; }
@@ -230,8 +252,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tecnico-stat.orange .num { color: #f57c00; }
 .tecnico-stat.purple .num { color: #7b1fa2; }
 
-.tabs-tecnico { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
-.tab-tecnico { background: none; border: none; padding: 12px 24px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.tabs-tecnico { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tab-tecnico { background: none; border: none; padding: 12px 24px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 8px; font-weight: 500; white-space: nowrap; }
 .tab-tecnico.active { color: #c62828; border-bottom-color: #c62828; font-weight: 600; }
 .tab-tecnico .count { background: #f5f5f5; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
 .tab-tecnico.active .count { background: #c62828; color: white; }
@@ -241,20 +263,90 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .proyecto-tecnico.pronto { border-left: 4px solid #f57c00; }
 .proyecto-tecnico.ok { border-left: 4px solid #388e3c; }
 .proyecto-tecnico-info { flex: 1; }
-.proyecto-tecnico-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.proyecto-tecnico-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .proyecto-tecnico-radicado { font-size: 18px; font-weight: 700; color: #f9a825; }
 .estado-badge { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 .proyecto-info-row { display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap; }
 .info-item { font-size: 13px; color: #666; }
 .info-item strong { color: #333; }
 .proyecto-tecnico-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; min-width: 200px; }
-.estado-selector { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; width: 100%; cursor: pointer; }
+.estado-selector { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; width: 100%; cursor: pointer; background: white; }
 .btn-nota { background: transparent; border: 1px solid #e0e0e0; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #666; width: 100%; }
 .nota-personal { background: #fff8e1; border: 1px solid #ffe082; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 13px; color: #6d4c00; }
 .semaforo-mini { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 .semaforo-mini.verde { background: #e8f5e9; color: #388e3c; }
 .semaforo-mini.amarillo { background: #fff3e0; color: #f57c00; }
 .semaforo-mini.rojo { background: #ffebee; color: #c62828; }
+
+/* ========================================
+   RESPONSIVE - MÓVIL (menor a 768px)
+   ======================================== */
+@media (max-width: 768px) {
+  /* Header móvil */
+  .header { padding: 12px 15px; flex-wrap: wrap; }
+  .header h1 { font-size: 16px; flex: 1; }
+  .header-buttons { display: none; }
+  .menu-toggle { display: flex; align-items: center; justify-content: center; }
+  
+  /* Menú móvil desplegable */
+  .menu-mobile { display: none; background: #b71c1c; padding: 15px; flex-direction: column; gap: 10px; width: 100%; }
+  .menu-mobile.open { display: flex; }
+  .menu-mobile .header-btn { justify-content: center; width: 100%; padding: 12px; font-size: 15px; }
+  
+  /* Nav móvil */
+  .nav { padding: 0 10px; }
+  .nav-btn { padding: 12px 14px; font-size: 13px; }
+  
+  /* Content móvil */
+  .content { padding: 15px; }
+  
+  /* Stats en móvil - más compactas */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat-card { padding: 15px; }
+  .stat-card h3 { font-size: 11px; }
+  .stat-card .value { font-size: 24px; }
+  
+  /* Charts en columna */
+  .charts-grid { grid-template-columns: 1fr; gap: 15px; }
+  .chart-card { padding: 15px; }
+  
+  /* Selector técnico móvil */
+  .tecnico-selector { padding: 20px; }
+  .tecnico-selector h1 { font-size: 32px; }
+  .tecnico-selector .subtitle { font-size: 16px; }
+  .tecnico-card { padding: 15px; }
+  .tecnico-avatar { width: 50px; height: 50px; font-size: 18px; }
+  .tecnico-info .nombre { font-size: 17px; }
+  
+  /* Vista técnico móvil */
+  .vista-tecnico { padding: 15px; }
+  .vista-tecnico-header { flex-direction: column; align-items: flex-start; }
+  .vista-tecnico-title h2 { font-size: 20px; }
+  
+  .tecnico-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tecnico-stat { padding: 12px 8px; }
+  .tecnico-stat .num { font-size: 22px; }
+  .tecnico-stat .label { font-size: 10px; }
+  
+  /* Proyecto técnico móvil - columna */
+  .proyecto-tecnico { flex-direction: column; padding: 15px; }
+  .proyecto-tecnico-actions { min-width: 100%; align-items: stretch; }
+  .proyecto-info-row { flex-direction: column; gap: 8px; }
+  .proyecto-tecnico-radicado { font-size: 20px; }
+  
+  /* Tablas con scroll horizontal */
+  .table { border-radius: 8px; }
+  .table td, .table th { padding: 8px; font-size: 12px; }
+}
+
+/* ========================================
+   RESPONSIVE - TABLET (768px a 1024px)
+   ======================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .tecnico-stats { grid-template-columns: repeat(3, 1fr); }
+  .charts-grid { grid-template-columns: 1fr; }
+}
 `;
 // Añadir estilos del Modo TV al STYLES
 const STYLES_TV = `
@@ -324,6 +416,7 @@ function App() {
   const [horaTV, setHoraTV] = useState(new Date());
   const [tecnicoActivo, setTecnicoActivo] = useState(null);
   const [tabTecnico, setTabTecnico] = useState('activos');
+  const [menuAbierto, setMenuAbierto] = useState(false);
   
   const [estrategicos, setEstrategicos] = useState(() => {
     const saved = localStorage.getItem('estrategicos');
@@ -907,7 +1000,7 @@ function App() {
     <div className="app">
       <style>{STYLES + STYLES_TV}</style>
       <div className="header">
-        <h1>Dashboard Curaduría Urbana N.° 2 de Pereira</h1>
+        <h1>Dashboard Curaduría 2 Pereira</h1>
         <div className="header-buttons">
           <button className="header-btn" onClick={cargarDatos}>
             <RefreshCw size={16} /> Actualizar
@@ -919,6 +1012,20 @@ function App() {
             <Tv size={16} /> Modo TV
           </button>
         </div>
+        <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>
+          ☰
+        </button>
+      </div>
+      <div className={`menu-mobile ${menuAbierto ? 'open' : ''}`}>
+        <button className="header-btn" onClick={() => { cargarDatos(); setMenuAbierto(false); }}>
+          <RefreshCw size={16} /> Actualizar
+        </button>
+        <button className="header-btn" onClick={() => { setVista('ingreso'); setMenuAbierto(false); }}>
+          <LogIn size={16} /> Ingreso de Técnico
+        </button>
+        <button className="header-btn" onClick={() => { setModoTV(true); setMenuAbierto(false); }}>
+          <Tv size={16} /> Modo TV
+        </button>
       </div>
       
       <div className="nav">

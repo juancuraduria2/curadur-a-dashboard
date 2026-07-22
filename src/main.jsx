@@ -11,7 +11,8 @@ const MAPEO_ARQUITECTOS = {
   'LAA': 'Laura Arandia',
   'AMMF': 'Adriana Marulanda',
   'MCMF': 'Camila Marulanda',
-  'DMUM': 'Diana Uribe'
+  'DMUM': 'Diana Uribe',
+  'MPMP': 'Maria Paula Montes'
 };
 
 const MAPEO_INGENIEROS = {
@@ -25,6 +26,7 @@ const TECNICOS = [
   { nombre: 'Adriana Marulanda', inicial: 'AM', rol: 'Arquitecta', tipo: 'arquitecto' },
   { nombre: 'Laura Arandia', inicial: 'LA', rol: 'Arquitecta', tipo: 'arquitecto' },
   { nombre: 'Camila Marulanda', inicial: 'CM', rol: 'Arquitecta', tipo: 'arquitecto' },
+  { nombre: 'Maria Paula Montes', inicial: 'MP', rol: 'Arquitecta', tipo: 'arquitecto' },
   { nombre: 'Alejandra Calderon', inicial: 'AC', rol: 'Ingeniera', tipo: 'ingeniero' },
   { nombre: 'Camilo Rodriguez', inicial: 'CR', rol: 'Ingeniero', tipo: 'ingeniero' },
   { nombre: 'Jorge Obed', inicial: 'JO', rol: 'Ingeniero', tipo: 'ingeniero' }

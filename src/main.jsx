@@ -1049,6 +1049,9 @@ function App() {
         <button className={`nav-btn ${vista === 'historial' ? 'active' : ''}`} onClick={() => setVista('historial')}>
           <History size={16} /> Historial
         </button>
+        <button className={`nav-btn ${vista === 'estadisticas' ? 'active' : ''}`} onClick={() => setVista('estadisticas')}>
+          <TrendingUp size={16} /> Estadísticas
+        </button>
       </div>
 
       <div className="content">
@@ -1099,6 +1102,149 @@ function App() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </>
+        )}
+        {!loading && !error && vista === 'estadisticas' && (
+          <>
+            <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
+            
+            <div className="chart-card" style={{marginBottom:'20px'}}>
+              <h3>Radicados vs Expedidos por Mes</h3>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={(() => {
+                  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                  const data = meses.map(m => ({ mes: m, radicados: 0, expedidos: 0 }));
+                  proyectos.forEach(p => {
+                    if (p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') {
+                        const mesIdx = parseInt(partes[1]) - 1;
+                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
+                      }
+                    }
+                    if (p.fechaLicencia) {
+                      const partes = p.fechaLicencia.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') {
+                        const mesIdx = parseInt(partes[1]) - 1;
+                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
+                      }
+                    }
+                  });
+                  return data;
+                })()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="radicados" fill="#c62828" name="Radicados" />
+                  <Bar dataKey="expedidos" fill="#388e3c" name="Expedidos" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="chart-card" style={{marginBottom:'20px'}}>
+              <h3>Resumen Detallado por Mes</h3>
+              <div className="table" style={{boxShadow:'none'}}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Mes</th>
+                      <th>Radicados</th>
+                      <th>Expedidos</th>
+                      <th>Desistidos</th>
+                      <th>En Observaciones</th>
+                      <th>% Aprobación Mes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                      return meses.map((nombreMes, idx) => {
+                        const radicados = proyectos.filter(p => {
+                          if (!p.fechaRadicacion) return false;
+                          const partes = p.fechaRadicacion.split('/');
+                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
+                        });
+                        const expedidos = proyectos.filter(p => {
+                          if (!p.fechaLicencia) return false;
+                          const partes = p.fechaLicencia.split('/');
+                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
+                        }).length;
+                        const desistidos = radicados.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
+                        const observaciones = radicados.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
+                        const tasa = radicados.length > 0 ? Math.round((expedidos / radicados.length) * 100) : 0;
+                        
+                        if (radicados.length === 0 && expedidos === 0) return null;
+                        
+                        return (
+                          <tr key={nombreMes}>
+                            <td><strong>{nombreMes}</strong></td>
+                            <td><span className="badge blue">{radicados.length}</span></td>
+                            <td><span className="badge green">{expedidos}</span></td>
+                            <td><span className="badge gray">{desistidos}</span></td>
+                            <td><span className="badge orange">{observaciones}</span></td>
+                            <td><strong style={{color: tasa >= 50 ? '#388e3c' : tasa >= 30 ? '#f57c00' : '#c62828'}}>{tasa}%</strong></td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h3>Promedio Radicados/Mes</h3>
+                <div className="value">{(() => {
+                  const mesesActivos = new Set();
+                  proyectos.forEach(p => {
+                    if (p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
+                    }
+                  });
+                  return mesesActivos.size > 0 ? Math.round(totalProyectos / mesesActivos.size) : 0;
+                })()}</div>
+              </div>
+              <div className="stat-card success">
+                <h3>Promedio Expedidos/Mes</h3>
+                <div className="value">{(() => {
+                  const mesesActivos = new Set();
+                  proyectos.forEach(p => {
+                    if (p.fechaLicencia) {
+                      const partes = p.fechaLicencia.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
+                    }
+                  });
+                  return mesesActivos.size > 0 ? Math.round(aprobados / mesesActivos.size) : 0;
+                })()}</div>
+              </div>
+              <div className="stat-card info">
+                <h3>Mes con Más Radicados</h3>
+                <div className="value" style={{fontSize:'22px'}}>{(() => {
+                  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                  const conteos = new Array(12).fill(0);
+                  proyectos.forEach(p => {
+                    if (p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') {
+                        const idx = parseInt(partes[1]) - 1;
+                        if (idx >= 0 && idx < 12) conteos[idx]++;
+                      }
+                    }
+                  });
+                  const max = Math.max(...conteos);
+                  const idx = conteos.indexOf(max);
+                  return max > 0 ? `${meses[idx]} (${max})` : '-';
+                })()}</div>
+              </div>
+              <div className="stat-card success">
+                <h3>Tasa Aprobación Anual</h3>
+                <div className="value">{tasaAprobacion}%</div>
               </div>
             </div>
           </>

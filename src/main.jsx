@@ -1189,8 +1189,8 @@ function App() {
                         if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
                       }
                     }
-                    if (p.fechaLicencia) {
-                      const partes = p.fechaLicencia.split('/');
+                    if (getEstadoFlujo(p) === 'EXPEDIDO' && p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
                       if (partes.length === 3 && partes[2] === '2026') {
                         const mesIdx = parseInt(partes[1]) - 1;
                         if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
@@ -1233,11 +1233,7 @@ function App() {
                           const partes = p.fechaRadicacion.split('/');
                           return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
                         });
-                        const expedidosMes = proyectos.filter(p => {
-                          if (!p.fechaLicencia) return false;
-                          const partes = p.fechaLicencia.split('/');
-                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
-                        }).length;
+                        const expedidosMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
                         const desistidosMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
                         const obsMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
                         const tasaMes = radicadosMes.length > 0 ? Math.round((expedidosMes / radicadosMes.length) * 100) : 0;
@@ -1280,8 +1276,8 @@ function App() {
                 <div className="value">{(() => {
                   const mesesActivos = new Set();
                   proyectos.forEach(p => {
-                    if (p.fechaLicencia) {
-                      const partes = p.fechaLicencia.split('/');
+                    if (getEstadoFlujo(p) === 'EXPEDIDO' && p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
                       if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
                     }
                   });

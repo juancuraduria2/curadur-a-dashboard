@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Home, Star, Clock, FileText, Users, User, History, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send } from 'lucide-react';
+import { Home, Star, Clock, FileText, Users, User, History, TrendingUp, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send } from 'lucide-react';
 
 // ============================================
 // CONFIGURACIÓN
@@ -32,7 +32,6 @@ const TECNICOS = [
   { nombre: 'Jorge Obed', inicial: 'JO', rol: 'Ingeniero', tipo: 'ingeniero' }
 ];
 
-// Estados del proyecto (locales, no afectan Excel)
 const ESTADOS_FLUJO = {
   'PENDIENTE_LDF': { label: 'Pendiente LDF', color: '#f57c00', bg: '#fff3e0', icon: '🟠' },
   'REV_ARQ_1': { label: 'Rev. Arquitectónica', color: '#1976d2', bg: '#e3f2fd', icon: '🔵' },
@@ -45,14 +44,12 @@ const ESTADOS_FLUJO = {
   'DESISTIDO': { label: 'Desistido', color: '#c62828', bg: '#ffebee', icon: '❌' }
 };
 
-// Días hábiles por etapa
 const DIAS_ETAPA = {
   REV_ARQ: 9,
   REV_ESTR: 9,
   ACTA_OBS: 30
 };
 
-// Festivos Colombia 2026
 const FESTIVOS_2026 = [
   '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03',
   '2026-05-01', '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29',
@@ -156,29 +153,20 @@ const STYLES = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; -webkit-tap-highlight-color: transparent; }
 .app { min-height: 100vh; }
-
-/* HEADER */
 .header { background: #c62828; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
 .header h1 { font-size: 22px; font-weight: 600; }
 .header-buttons { display: flex; gap: 10px; }
 .header-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
 .header-btn:hover { background: rgba(255,255,255,0.3); }
-
-/* Menú Hamburguesa (solo móvil) */
 .menu-toggle { display: none; background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 6px; cursor: pointer; }
 .menu-mobile { display: none; }
-
-/* NAV */
 .nav { background: white; padding: 0 30px; display: flex; gap: 5px; border-bottom: 1px solid #e0e0e0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .nav::-webkit-scrollbar { height: 3px; }
 .nav::-webkit-scrollbar-thumb { background: #c62828; }
 .nav-btn { background: none; border: none; padding: 15px 20px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .nav-btn:hover { color: #c62828; }
 .nav-btn.active { color: #c62828; border-bottom-color: #c62828; font-weight: 600; }
-
 .content { padding: 30px; max-width: 1400px; margin: 0 auto; }
-
-/* STATS */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
 .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #c62828; }
 .stat-card h3 { color: #666; font-size: 13px; font-weight: 500; text-transform: uppercase; margin-bottom: 10px; }
@@ -189,23 +177,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .stat-card.success .value { color: #388e3c; }
 .stat-card.info { border-left-color: #1976d2; }
 .stat-card.info .value { color: #1976d2; }
-
-/* CHARTS */
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
 .chart-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .chart-card h3 { margin-bottom: 20px; color: #333; font-size: 16px; }
-
 .loading { text-align: center; padding: 60px; font-size: 18px; color: #666; }
 .error-msg { background: #ffebee; color: #c62828; padding: 20px; border-radius: 8px; margin: 20px 0; }
-
-/* TABLA */
 .table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table table { width: 100%; border-collapse: collapse; min-width: 600px; }
 .table th { background: #f5f5f5; padding: 12px; text-align: left; font-size: 13px; color: #666; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
 .table td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
 .table tr:hover { background: #fafafa; }
-
-/* BADGES */
 .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
 .badge.green { background: #e8f5e9; color: #388e3c; }
 .badge.red { background: #ffebee; color: #c62828; }
@@ -214,15 +195,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .badge.purple { background: #f3e5f5; color: #7b1fa2; }
 .badge.gray { background: #f5f5f5; color: #666; }
 .badge.yellow { background: #fffde7; color: #f9a825; }
-
 .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
 .search-input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .search-input:focus { outline: none; border-color: #c62828; }
 .btn-primary { background: #c62828; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .btn-primary:hover { background: #b71c1c; }
 .btn-star { background: none; border: none; cursor: pointer; padding: 4px; }
-
-/* SELECTOR DE TÉCNICO */
 .tecnico-selector { min-height: 100vh; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%); color: white; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .tecnico-selector h1 { font-size: 48px; font-weight: 700; margin-bottom: 10px; text-align: center; }
 .tecnico-selector .subtitle { color: #ffc107; font-size: 20px; margin-bottom: 40px; text-align: center; }
@@ -230,15 +208,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tecnico-list { display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%; }
 .tecnico-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s; }
 .tecnico-card:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
-.tecnico-card:active { background: rgba(255,255,255,0.15); }
 .tecnico-avatar { width: 60px; height: 60px; border-radius: 50%; background: #c62828; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0; }
 .tecnico-info { flex: 1; }
 .tecnico-info .nombre { font-size: 20px; font-weight: 600; }
 .tecnico-info .rol { color: #999; font-size: 14px; }
 .tecnico-arrow { color: #999; }
 .back-btn-tecnico { background: #c62828; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-
-/* VISTA TÉCNICO */
 .vista-tecnico { padding: 30px; max-width: 1400px; margin: 0 auto; }
 .vista-tecnico-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; gap: 15px; }
 .vista-tecnico-title h2 { font-size: 24px; color: #333; }
@@ -253,13 +228,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .tecnico-stat.blue .num { color: #1976d2; }
 .tecnico-stat.orange .num { color: #f57c00; }
 .tecnico-stat.purple .num { color: #7b1fa2; }
-
 .tabs-tecnico { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tab-tecnico { background: none; border: none; padding: 12px 24px; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 8px; font-weight: 500; white-space: nowrap; }
 .tab-tecnico.active { color: #c62828; border-bottom-color: #c62828; font-weight: 600; }
 .tab-tecnico .count { background: #f5f5f5; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
 .tab-tecnico.active .count { background: #c62828; color: white; }
-
 .proyecto-tecnico { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; gap: 20px; }
 .proyecto-tecnico.urgente { border-left: 4px solid #c62828; }
 .proyecto-tecnico.pronto { border-left: 4px solid #f57c00; }
@@ -280,77 +253,50 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .semaforo-mini.amarillo { background: #fff3e0; color: #f57c00; }
 .semaforo-mini.rojo { background: #ffebee; color: #c62828; }
 
-/* ========================================
-   RESPONSIVE - MÓVIL (menor a 768px)
-   ======================================== */
 @media (max-width: 768px) {
-  /* Header móvil */
   .header { padding: 12px 15px; flex-wrap: wrap; }
   .header h1 { font-size: 16px; flex: 1; }
   .header-buttons { display: none; }
   .menu-toggle { display: flex; align-items: center; justify-content: center; }
-  
-  /* Menú móvil desplegable */
   .menu-mobile { display: none; background: #b71c1c; padding: 15px; flex-direction: column; gap: 10px; width: 100%; }
   .menu-mobile.open { display: flex; }
   .menu-mobile .header-btn { justify-content: center; width: 100%; padding: 12px; font-size: 15px; }
-  
-  /* Nav móvil */
   .nav { padding: 0 10px; }
   .nav-btn { padding: 12px 14px; font-size: 13px; }
-  
-  /* Content móvil */
   .content { padding: 15px; }
-  
-  /* Stats en móvil - más compactas */
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
   .stat-card { padding: 15px; }
   .stat-card h3 { font-size: 11px; }
   .stat-card .value { font-size: 24px; }
-  
-  /* Charts en columna */
   .charts-grid { grid-template-columns: 1fr; gap: 15px; }
   .chart-card { padding: 15px; }
-  
-  /* Selector técnico móvil */
   .tecnico-selector { padding: 20px; }
   .tecnico-selector h1 { font-size: 32px; }
   .tecnico-selector .subtitle { font-size: 16px; }
   .tecnico-card { padding: 15px; }
   .tecnico-avatar { width: 50px; height: 50px; font-size: 18px; }
   .tecnico-info .nombre { font-size: 17px; }
-  
-  /* Vista técnico móvil */
   .vista-tecnico { padding: 15px; }
   .vista-tecnico-header { flex-direction: column; align-items: flex-start; }
   .vista-tecnico-title h2 { font-size: 20px; }
-  
   .tecnico-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .tecnico-stat { padding: 12px 8px; }
   .tecnico-stat .num { font-size: 22px; }
   .tecnico-stat .label { font-size: 10px; }
-  
-  /* Proyecto técnico móvil - columna */
   .proyecto-tecnico { flex-direction: column; padding: 15px; }
   .proyecto-tecnico-actions { min-width: 100%; align-items: stretch; }
   .proyecto-info-row { flex-direction: column; gap: 8px; }
   .proyecto-tecnico-radicado { font-size: 20px; }
-  
-  /* Tablas con scroll horizontal */
   .table { border-radius: 8px; }
   .table td, .table th { padding: 8px; font-size: 12px; }
 }
 
-/* ========================================
-   RESPONSIVE - TABLET (768px a 1024px)
-   ======================================== */
 @media (min-width: 769px) and (max-width: 1024px) {
   .stats-grid { grid-template-columns: repeat(3, 1fr); }
   .tecnico-stats { grid-template-columns: repeat(3, 1fr); }
   .charts-grid { grid-template-columns: 1fr; }
 }
 `;
-// Añadir estilos del Modo TV al STYLES
 const STYLES_TV = `
 .tv-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0a0a0f; color: white; z-index: 1000; overflow-y: auto; padding: 30px; }
 .tv-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 30px; border-bottom: 2px solid #ff5252; }
@@ -455,7 +401,7 @@ function App() {
           fechaLicencia: excelDateToJSDate(p.fechaLicencia),
           nombreArquitecto: mapearArquitecto(p.nombreArquitecto),
           nombreIngeniero: mapearIngeniero(p.nombreIngeniero),
-         estrategico: String(p.estrategicoExcel || '').toUpperCase().trim() === 'SI' || estrategicos.includes(String(p.radicado))
+          estrategico: String(p.estrategicoExcel || '').toUpperCase().trim() === 'SI' || estrategicos.includes(String(p.radicado))
         }));
         setProyectos(proyectosProcesados);
       } else {
@@ -503,11 +449,9 @@ function App() {
     localStorage.setItem('notasPersonales', JSON.stringify(nuevas));
   };
 
-  // Obtener estado flujo del proyecto (local o del Excel)
   const getEstadoFlujo = (p) => {
     const local = estadosFlujo[p.radicado];
     if (local) return local.estado;
-    // Inferir del Excel según ESTADO ACTUAL DEL PROYECTO
     const estado = String(p.estadoActual || '').toUpperCase().trim();
     if (estado === 'EXPEDIDO' || estado === 'EN EXPEDICION') return 'EXPEDIDO';
     if (estado === 'DESISTIDO') return 'DESISTIDO';
@@ -520,12 +464,10 @@ function App() {
     if (estado === 'REVISIÓN ARQ 2' || estado === 'REVISION ARQ 2') return 'REV_ARQ_2';
     if (estado === 'REVISION ESTRUC 2' || estado === 'REVISIÓN ESTRUC 2') return 'REV_ESTR_2';
     if (estado === 'REVISIÓN' || estado === 'REVISION') {
-      // Si dice REVISIÓN general, inferir cuál según las fechas
       if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
       if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
       return 'REV_ARQ_1';
     }
-    // Fallback: inferir por fechas
     if (p.actaObservaciones) return 'ACTA_OBS';
     if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
     if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
@@ -545,18 +487,15 @@ function App() {
   const desistidos = proyectos.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
   const tasaAprobacion = totalProyectos > 0 ? Math.round((aprobados / totalProyectos) * 100) : 0;
 
-  // Vencidos INTELIGENTES - solo los que NO están en revisión/acta/expedido/desistido y pasaron plazo legal
   const hoy = new Date();
   const vencidos = proyectos.filter(p => {
     const estado = getEstadoFlujo(p);
-    // No están vencidos si están en revisión activa, acta, expedido o desistido
     if (['ACTA_OBS', 'EXPEDIDO', 'DESISTIDO', 'PENDIENTE'].includes(estado)) return false;
     const fecha = excelDateToDate(p.maximaLegal);
     if (!fecha) return false;
     return fecha < hoy;
   });
 
-  // Calcular fecha límite de etapa interna (9 días hábiles)
   const getFechaLimiteEtapa = (p) => {
     const estado = getEstadoFlujo(p);
     if (estado === 'REV_ARQ_1' || estado === 'REV_ARQ_2') {
@@ -572,7 +511,6 @@ function App() {
     return null;
   };
 
-  // Últimos movimientos
   const ultimosMovimientos = () => {
     const movs = [];
     proyectos.forEach(p => {
@@ -778,28 +716,23 @@ function App() {
   // VISTA PERSONAL DEL TÉCNICO
   // ==============================
   if (tecnicoActivo) {
-    // Filtrar proyectos según el rol del técnico
     const misProyectos = proyectos.filter(p => 
       p.nombreArquitecto === tecnicoActivo.nombre || p.nombreIngeniero === tecnicoActivo.nombre
     );
 
-    // Clasificar proyectos según su estado y rol del técnico
     const clasificarProyecto = (p) => {
       const estado = getEstadoFlujo(p);
       const esArq = p.nombreArquitecto === tecnicoActivo.nombre;
       const esIng = p.nombreIngeniero === tecnicoActivo.nombre;
       
-      // ENTREGADOS - ya no está con él
       if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE'].includes(estado)) return 'entregados';
       
-      // Para Arquitectos
       if (esArq) {
         if (['REV_ARQ_1', 'REV_ARQ_2'].includes(estado)) return 'activos';
         if (['REV_ESTR_1', 'REV_ESTR_2', 'ACTA_OBS'].includes(estado)) return 'entregados';
         if (estado === 'PENDIENTE_LDF') return 'vienen';
       }
       
-      // Para Ingenieros
       if (esIng) {
         if (['REV_ESTR_1', 'REV_ESTR_2'].includes(estado)) return 'activos';
         if (['REV_ARQ_1', 'REV_ARQ_2', 'PENDIENTE_LDF'].includes(estado)) return 'vienen';
@@ -820,7 +753,6 @@ function App() {
     const proyectosMostrar = tabTecnico === 'vienen' ? proyectosVienen : 
                             tabTecnico === 'activos' ? proyectosActivos : proyectosEntregados;
     
-    // Ordenar: estratégicos primero, luego por urgencia
     const proyectosOrdenados = [...proyectosMostrar].sort((a, b) => {
       if (a.estrategico !== b.estrategico) return b.estrategico ? 1 : -1;
       const fechaA = getFechaLimiteEtapa(a) || excelDateToDate(a.maximaLegal);
@@ -893,13 +825,11 @@ function App() {
           const estadoActual = getEstadoFlujo(p);
           const estadoInfo = ESTADOS_FLUJO[estadoActual];
           
-          // Cálculos de tiempo
           const fechaLimiteEtapa = getFechaLimiteEtapa(p);
           const diasEtapa = fechaLimiteEtapa ? diasHabilesRestantes(fechaLimiteEtapa) : null;
           const fechaMaxLegal = excelDateToDate(p.maximaLegal);
           const diasLegal = diasEntreFechas(fechaMaxLegal);
           
-          // Semáforo etapa - solo si está en revisión activa
           let semaforoEtapa = 'verde';
           const estaEnRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estadoActual);
           if (diasEtapa !== null && estaEnRevision) {
@@ -1106,149 +1036,6 @@ function App() {
             </div>
           </>
         )}
-        {!loading && !error && vista === 'estadisticas' && (
-          <>
-            <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
-            
-            <div className="chart-card" style={{marginBottom:'20px'}}>
-              <h3>Radicados vs Expedidos por Mes</h3>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={(() => {
-                  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-                  const data = meses.map(m => ({ mes: m, radicados: 0, expedidos: 0 }));
-                  proyectos.forEach(p => {
-                    if (p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') {
-                        const mesIdx = parseInt(partes[1]) - 1;
-                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
-                      }
-                    }
-                    if (p.fechaLicencia) {
-                      const partes = p.fechaLicencia.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') {
-                        const mesIdx = parseInt(partes[1]) - 1;
-                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
-                      }
-                    }
-                  });
-                  return data;
-                })()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="radicados" fill="#c62828" name="Radicados" />
-                  <Bar dataKey="expedidos" fill="#388e3c" name="Expedidos" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="chart-card" style={{marginBottom:'20px'}}>
-              <h3>Resumen Detallado por Mes</h3>
-              <div className="table" style={{boxShadow:'none'}}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Mes</th>
-                      <th>Radicados</th>
-                      <th>Expedidos</th>
-                      <th>Desistidos</th>
-                      <th>En Observaciones</th>
-                      <th>% Aprobación Mes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-                      return meses.map((nombreMes, idx) => {
-                        const radicados = proyectos.filter(p => {
-                          if (!p.fechaRadicacion) return false;
-                          const partes = p.fechaRadicacion.split('/');
-                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
-                        });
-                        const expedidos = proyectos.filter(p => {
-                          if (!p.fechaLicencia) return false;
-                          const partes = p.fechaLicencia.split('/');
-                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
-                        }).length;
-                        const desistidos = radicados.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
-                        const observaciones = radicados.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
-                        const tasa = radicados.length > 0 ? Math.round((expedidos / radicados.length) * 100) : 0;
-                        
-                        if (radicados.length === 0 && expedidos === 0) return null;
-                        
-                        return (
-                          <tr key={nombreMes}>
-                            <td><strong>{nombreMes}</strong></td>
-                            <td><span className="badge blue">{radicados.length}</span></td>
-                            <td><span className="badge green">{expedidos}</span></td>
-                            <td><span className="badge gray">{desistidos}</span></td>
-                            <td><span className="badge orange">{observaciones}</span></td>
-                            <td><strong style={{color: tasa >= 50 ? '#388e3c' : tasa >= 30 ? '#f57c00' : '#c62828'}}>{tasa}%</strong></td>
-                          </tr>
-                        );
-                      });
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="stats-grid">
-              <div className="stat-card">
-                <h3>Promedio Radicados/Mes</h3>
-                <div className="value">{(() => {
-                  const mesesActivos = new Set();
-                  proyectos.forEach(p => {
-                    if (p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
-                    }
-                  });
-                  return mesesActivos.size > 0 ? Math.round(totalProyectos / mesesActivos.size) : 0;
-                })()}</div>
-              </div>
-              <div className="stat-card success">
-                <h3>Promedio Expedidos/Mes</h3>
-                <div className="value">{(() => {
-                  const mesesActivos = new Set();
-                  proyectos.forEach(p => {
-                    if (p.fechaLicencia) {
-                      const partes = p.fechaLicencia.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
-                    }
-                  });
-                  return mesesActivos.size > 0 ? Math.round(aprobados / mesesActivos.size) : 0;
-                })()}</div>
-              </div>
-              <div className="stat-card info">
-                <h3>Mes con Más Radicados</h3>
-                <div className="value" style={{fontSize:'22px'}}>{(() => {
-                  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-                  const conteos = new Array(12).fill(0);
-                  proyectos.forEach(p => {
-                    if (p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') {
-                        const idx = parseInt(partes[1]) - 1;
-                        if (idx >= 0 && idx < 12) conteos[idx]++;
-                      }
-                    }
-                  });
-                  const max = Math.max(...conteos);
-                  const idx = conteos.indexOf(max);
-                  return max > 0 ? `${meses[idx]} (${max})` : '-';
-                })()}</div>
-              </div>
-              <div className="stat-card success">
-                <h3>Tasa Aprobación Anual</h3>
-                <div className="value">{tasaAprobacion}%</div>
-              </div>
-            </div>
-          </>
-        )}
 
         {!loading && !error && vista === 'estrategicos' && (
           <>
@@ -1310,7 +1097,6 @@ function App() {
             </div>
           </>
         )}
-
         {!loading && !error && vista === 'proyectos' && (
           <>
             <div className="search-box">
@@ -1381,6 +1167,150 @@ function App() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </>
+        )}
+
+        {!loading && !error && vista === 'estadisticas' && (
+          <>
+            <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
+            
+            <div className="chart-card" style={{marginBottom:'20px'}}>
+              <h3>Radicados vs Expedidos por Mes</h3>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={(() => {
+                  const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                  const data = mesesCortos.map(m => ({ mes: m, radicados: 0, expedidos: 0 }));
+                  proyectos.forEach(p => {
+                    if (p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') {
+                        const mesIdx = parseInt(partes[1]) - 1;
+                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
+                      }
+                    }
+                    if (p.fechaLicencia) {
+                      const partes = p.fechaLicencia.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') {
+                        const mesIdx = parseInt(partes[1]) - 1;
+                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
+                      }
+                    }
+                  });
+                  return data;
+                })()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="radicados" fill="#c62828" name="Radicados" />
+                  <Bar dataKey="expedidos" fill="#388e3c" name="Expedidos" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="chart-card" style={{marginBottom:'20px'}}>
+              <h3>Resumen Detallado por Mes</h3>
+              <div className="table" style={{boxShadow:'none'}}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Mes</th>
+                      <th>Radicados</th>
+                      <th>Expedidos</th>
+                      <th>Desistidos</th>
+                      <th>En Observaciones</th>
+                      <th>% Aprobación Mes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const mesesLargos = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                      return mesesLargos.map((nombreMes, idx) => {
+                        const radicadosMes = proyectos.filter(p => {
+                          if (!p.fechaRadicacion) return false;
+                          const partes = p.fechaRadicacion.split('/');
+                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
+                        });
+                        const expedidosMes = proyectos.filter(p => {
+                          if (!p.fechaLicencia) return false;
+                          const partes = p.fechaLicencia.split('/');
+                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
+                        }).length;
+                        const desistidosMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
+                        const obsMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
+                        const tasaMes = radicadosMes.length > 0 ? Math.round((expedidosMes / radicadosMes.length) * 100) : 0;
+                        
+                        if (radicadosMes.length === 0 && expedidosMes === 0) return null;
+                        
+                        return (
+                          <tr key={nombreMes}>
+                            <td><strong>{nombreMes}</strong></td>
+                            <td><span className="badge blue">{radicadosMes.length}</span></td>
+                            <td><span className="badge green">{expedidosMes}</span></td>
+                            <td><span className="badge gray">{desistidosMes}</span></td>
+                            <td><span className="badge orange">{obsMes}</span></td>
+                            <td><strong style={{color: tasaMes >= 50 ? '#388e3c' : tasaMes >= 30 ? '#f57c00' : '#c62828'}}>{tasaMes}%</strong></td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h3>Promedio Radicados/Mes</h3>
+                <div className="value">{(() => {
+                  const mesesActivos = new Set();
+                  proyectos.forEach(p => {
+                    if (p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
+                    }
+                  });
+                  return mesesActivos.size > 0 ? Math.round(totalProyectos / mesesActivos.size) : 0;
+                })()}</div>
+              </div>
+              <div className="stat-card success">
+                <h3>Promedio Expedidos/Mes</h3>
+                <div className="value">{(() => {
+                  const mesesActivos = new Set();
+                  proyectos.forEach(p => {
+                    if (p.fechaLicencia) {
+                      const partes = p.fechaLicencia.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
+                    }
+                  });
+                  return mesesActivos.size > 0 ? Math.round(aprobados / mesesActivos.size) : 0;
+                })()}</div>
+              </div>
+              <div className="stat-card info">
+                <h3>Mes con Más Radicados</h3>
+                <div className="value" style={{fontSize:'22px'}}>{(() => {
+                  const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                  const conteos = new Array(12).fill(0);
+                  proyectos.forEach(p => {
+                    if (p.fechaRadicacion) {
+                      const partes = p.fechaRadicacion.split('/');
+                      if (partes.length === 3 && partes[2] === '2026') {
+                        const idx = parseInt(partes[1]) - 1;
+                        if (idx >= 0 && idx < 12) conteos[idx]++;
+                      }
+                    }
+                  });
+                  const max = Math.max(...conteos);
+                  const idx = conteos.indexOf(max);
+                  return max > 0 ? `${mesesCortos[idx]} (${max})` : '-';
+                })()}</div>
+              </div>
+              <div className="stat-card success">
+                <h3>Tasa Aprobación Anual</h3>
+                <div className="value">{tasaAprobacion}%</div>
+              </div>
             </div>
           </>
         )}

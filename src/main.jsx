@@ -39,8 +39,10 @@ const ESTADOS_FLUJO = {
   'ACTA_OBS': { label: 'Acta Observaciones', color: '#f9a825', bg: '#fffde7', icon: '🟡' },
   'REV_ARQ_2': { label: 'Rev. Arq. 2da vuelta', color: '#1976d2', bg: '#e3f2fd', icon: '🔄' },
   'REV_ESTR_2': { label: 'Rev. Estr. 2da vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔄' },
+  'PAGOS': { label: 'Pagos', color: '#00838f', bg: '#e0f7fa', icon: '💰' },
   'EXPEDIDO': { label: 'Expedido', color: '#388e3c', bg: '#e8f5e9', icon: '✅' },
   'PENDIENTE': { label: 'Pendiente', color: '#616161', bg: '#f5f5f5', icon: '⏸️' },
+  'NEGADO': { label: 'Negado', color: '#c62828', bg: '#ffebee', icon: '🚫' },
   'DESISTIDO': { label: 'Desistido', color: '#c62828', bg: '#ffebee', icon: '❌' }
 };
 
@@ -145,6 +147,12 @@ const diasHabilesRestantes = (fechaLimite) => {
   if (fechaLimite < hoy) return -contarDiasHabiles(fechaLimite, hoy);
   return contarDiasHabiles(hoy, fechaLimite);
 };
+
+const diasHabilesEntreFechas = (fechaInicio, fechaFin) => {
+  if (!fechaInicio || !fechaFin) return null;
+  if (fechaFin < fechaInicio) return null;
+  return contarDiasHabiles(fechaInicio, fechaFin);
+};
 // ============================================
 // ESTILOS
 // ============================================
@@ -177,6 +185,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .stat-card.success .value { color: #388e3c; }
 .stat-card.info { border-left-color: #1976d2; }
 .stat-card.info .value { color: #1976d2; }
+.stat-card.gold { border-left-color: #f9a825; }
+.stat-card.gold .value { color: #f9a825; }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
 .chart-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .chart-card h3 { margin-bottom: 20px; color: #333; font-size: 16px; }
@@ -201,6 +211,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-primary { background: #c62828; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .btn-primary:hover { background: #b71c1c; }
 .btn-star { background: none; border: none; cursor: pointer; padding: 4px; }
+.filter-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: 2px solid #f9a825; background: white; color: #f9a825; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; margin-bottom: 20px; }
+.filter-btn:hover { background: #fffde7; }
+.filter-btn.active { background: #f9a825; color: white; }
 .tecnico-selector { min-height: 100vh; background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%); color: white; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .tecnico-selector h1 { font-size: 48px; font-weight: 700; margin-bottom: 10px; text-align: center; }
 .tecnico-selector .subtitle { color: #ffc107; font-size: 20px; margin-bottom: 40px; text-align: center; }
@@ -252,6 +265,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .semaforo-mini.verde { background: #e8f5e9; color: #388e3c; }
 .semaforo-mini.amarillo { background: #fff3e0; color: #f57c00; }
 .semaforo-mini.rojo { background: #ffebee; color: #c62828; }
+.info-panel { background: #fffde7; border: 1px solid #fdd835; border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; color: #f57f17; }
 
 @media (max-width: 768px) {
   .header { padding: 12px 15px; flex-wrap: wrap; }
@@ -365,6 +379,7 @@ function App() {
   const [tecnicoActivo, setTecnicoActivo] = useState(null);
   const [tabTecnico, setTabTecnico] = useState('activos');
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [filtroEstrategicosTecnicos, setFiltroEstrategicosTecnicos] = useState(false);
   
   const [estrategicos, setEstrategicos] = useState(() => {
     const saved = localStorage.getItem('estrategicos');
@@ -455,14 +470,18 @@ function App() {
     const estado = String(p.estadoActual || '').toUpperCase().trim();
     if (estado === 'EXPEDIDO' || estado === 'EN EXPEDICION') return 'EXPEDIDO';
     if (estado === 'DESISTIDO') return 'DESISTIDO';
-    if (estado === 'NEGADO') return 'DESISTIDO';
+    if (estado === 'NEGADO') return 'NEGADO';
     if (estado === 'NO L.D.F' || !p.fechaLegal) return 'PENDIENTE_LDF';
     if (estado === 'ACTA DE OBSERVACIONES') return 'ACTA_OBS';
-    if (estado === 'SUSPENSIÓN DE TÉRMINOS' || estado === 'PAGOS') return 'ACTA_OBS';
+    if (estado === 'SUSPENSIÓN DE TÉRMINOS') return 'ACTA_OBS';
+    if (estado === 'PAGOS') return 'PAGOS';
+    if (estado === 'PENDIENTES' || estado === 'PENDIENTE') return 'PENDIENTE';
     if (estado === 'REVISION ARQ 1' || estado === 'REVISIÓN ARQ 1') return 'REV_ARQ_1';
     if (estado === 'REVISION ESTRUC 1' || estado === 'REVISIÓN ESTRUC 1') return 'REV_ESTR_1';
     if (estado === 'REVISIÓN ARQ 2' || estado === 'REVISION ARQ 2') return 'REV_ARQ_2';
     if (estado === 'REVISION ESTRUC 2' || estado === 'REVISIÓN ESTRUC 2') return 'REV_ESTR_2';
+    if (estado === 'REVISION ARQ 3' || estado === 'REVISIÓN ARQ 3') return 'REV_ARQ_2';
+    if (estado === 'REVISION ESTRUC 3' || estado === 'REVISIÓN ESTRUC 3') return 'REV_ESTR_2';
     if (estado === 'REVISIÓN' || estado === 'REVISION') {
       if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
       if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
@@ -485,12 +504,15 @@ function App() {
   const observaciones = proyectos.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
   const sinLDF = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE_LDF').length;
   const desistidos = proyectos.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
+  const negados = proyectos.filter(p => getEstadoFlujo(p) === 'NEGADO').length;
+  const pendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE').length;
+  const enPagos = proyectos.filter(p => getEstadoFlujo(p) === 'PAGOS').length;
   const tasaAprobacion = totalProyectos > 0 ? Math.round((aprobados / totalProyectos) * 100) : 0;
 
   const hoy = new Date();
   const vencidos = proyectos.filter(p => {
     const estado = getEstadoFlujo(p);
-    if (['ACTA_OBS', 'EXPEDIDO', 'DESISTIDO', 'PENDIENTE'].includes(estado)) return false;
+    if (['ACTA_OBS', 'EXPEDIDO', 'DESISTIDO', 'PENDIENTE', 'NEGADO', 'PAGOS'].includes(estado)) return false;
     const fecha = excelDateToDate(p.maximaLegal);
     if (!fecha) return false;
     return fecha < hoy;
@@ -536,22 +558,67 @@ function App() {
     return movs.sort((a, b) => b.fecha - a.fecha).slice(0, 15);
   };
 
-  const productividadEquipo = () => {
+  const productividadEquipo = (soloEstrategicos = false) => {
     const stats = {};
-    TECNICOS.forEach(t => { stats[t.nombre] = { aprobados: 0, revision: 0, acta: 0, total: 0 }; });
-    proyectos.forEach(p => {
+    TECNICOS.forEach(t => { stats[t.nombre] = { aprobados: 0, revision: 0, acta: 0, desistidos: 0, vencidos: 0, total: 0 }; });
+    const proyectosBase = soloEstrategicos ? proyectos.filter(p => p.estrategico) : proyectos;
+    proyectosBase.forEach(p => {
       const estado = getEstadoFlujo(p);
       const nombres = [p.nombreArquitecto, p.nombreIngeniero].filter(Boolean);
+      const esVencido = vencidos.some(v => v.radicado === p.radicado);
       nombres.forEach(n => {
         if (stats[n]) {
           stats[n].total++;
           if (estado === 'EXPEDIDO') stats[n].aprobados++;
           else if (['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estado)) stats[n].revision++;
           if (estado === 'ACTA_OBS') stats[n].acta++;
+          if (estado === 'DESISTIDO') stats[n].desistidos++;
+          if (esVencido) stats[n].vencidos++;
         }
       });
     });
     return stats;
+  };
+
+  const calcularEficiencia = (nombreTecnico, soloEstrategicos = false) => {
+    const proyectosBase = soloEstrategicos ? proyectos.filter(p => p.estrategico) : proyectos;
+    const misProyectos = proyectosBase.filter(p => 
+      p.nombreArquitecto === nombreTecnico || p.nombreIngeniero === nombreTecnico
+    );
+    
+    let tiemposExpedicion = [];
+    let tiemposActa = [];
+    let tiemposRespuesta = [];
+    
+    misProyectos.forEach(p => {
+      const fRad = excelDateToDate(p.fechaRadicacion);
+      const fExp = excelDateToDate(p.fechaLicencia);
+      const fActa = excelDateToDate(p.actaObservaciones);
+      const fFin = excelDateToDate(p.fechaFinalizacion);
+      
+      if (fRad && fExp) {
+        const dias = diasHabilesEntreFechas(fRad, fExp);
+        if (dias !== null) tiemposExpedicion.push(dias);
+      }
+      if (fRad && fActa) {
+        const dias = diasHabilesEntreFechas(fRad, fActa);
+        if (dias !== null) tiemposActa.push(dias);
+      }
+      if (fActa && fFin) {
+        const dias = diasHabilesEntreFechas(fActa, fFin);
+        if (dias !== null) tiemposRespuesta.push(dias);
+      }
+    });
+    
+    const promedio = (arr) => arr.length > 0 ? Math.round(arr.reduce((a,b) => a+b, 0) / arr.length) : null;
+    
+    return {
+      expedicion: promedio(tiemposExpedicion),
+      acta: promedio(tiemposActa),
+      respuesta: promedio(tiemposRespuesta),
+      totalExpediciones: tiemposExpedicion.length,
+      totalActas: tiemposActa.length
+    };
   };
 
   // ==============================
@@ -725,7 +792,7 @@ function App() {
       const esArq = p.nombreArquitecto === tecnicoActivo.nombre;
       const esIng = p.nombreIngeniero === tecnicoActivo.nombre;
       
-      if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE'].includes(estado)) return 'entregados';
+      if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE', 'NEGADO', 'PAGOS'].includes(estado)) return 'entregados';
       
       if (esArq) {
         if (['REV_ARQ_1', 'REV_ARQ_2'].includes(estado)) return 'activos';
@@ -807,7 +874,7 @@ function App() {
         )}
 
         {tabTecnico === 'activos' && misEstrategicos.filter(p => clasificarProyecto(p) === 'activos').length > 0 && (
-          <div style={{background: '#fffde7', border: '1px solid #fdd835', borderRadius: '8px', padding: '15px 20px', marginBottom: '20px', color: '#f57f17'}}>
+          <div className="info-panel">
             ⭐ <strong>Tienes {misEstrategicos.filter(p => clasificarProyecto(p) === 'activos').length} proyectos estratégicos activos</strong><br/>
             <span style={{fontSize:'13px'}}>Estos aparecen primero. Tienen prioridad de revisión.</span>
           </div>
@@ -865,7 +932,7 @@ function App() {
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
                   <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
-                    {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE'].includes(estadoActual) && (
+                    {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
                       diasLegal < 0 
                         ? <span style={{color:'#c62828'}}> (Vencido {Math.abs(diasLegal)}d)</span>
                         : <span style={{color:'#388e3c'}}> ({diasLegal}d restantes)</span>
@@ -982,6 +1049,15 @@ function App() {
         <button className={`nav-btn ${vista === 'estadisticas' ? 'active' : ''}`} onClick={() => setVista('estadisticas')}>
           <TrendingUp size={16} /> Estadísticas
         </button>
+        <button className={`nav-btn ${vista === 'estadisticasEstrategicas' ? 'active' : ''}`} onClick={() => setVista('estadisticasEstrategicas')}>
+          <Star size={16} /> Estadísticas Estratégicas
+        </button>
+        <button className={`nav-btn ${vista === 'pendientes' ? 'active' : ''}`} onClick={() => setVista('pendientes')}>
+          <StickyNote size={16} /> Pendientes
+        </button>
+        <button className={`nav-btn ${vista === 'pagos' ? 'active' : ''}`} onClick={() => setVista('pagos')}>
+          <FileText size={16} /> Pagos
+        </button>
       </div>
 
       <div className="content">
@@ -999,6 +1075,10 @@ function App() {
               <div className="stat-card warning"><h3>Sin L.D.F</h3><div className="value">{sinLDF}</div></div>
               <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencidos.length}</div></div>
               <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaAprobacion}%</div></div>
+              <div className="stat-card"><h3>⏸️ Pendientes</h3><div className="value">{pendientes}</div></div>
+              <div className="stat-card info"><h3>💰 En Pagos</h3><div className="value">{enPagos}</div></div>
+              <div className="stat-card warning"><h3>🚫 Negados</h3><div className="value">{negados}</div></div>
+              <div className="stat-card"><h3>❌ Desistidos</h3><div className="value">{desistidos}</div></div>
             </div>
             <div className="charts-grid">
               <div className="chart-card">
@@ -1010,10 +1090,13 @@ function App() {
                       {name:'En Revisión',value:enEstudio,color:'#1976d2'},
                       {name:'Observaciones',value:observaciones,color:'#f57c00'},
                       {name:'Sin L.D.F',value:sinLDF,color:'#f9a825'},
+                      {name:'Pendientes',value:pendientes,color:'#616161'},
+                      {name:'Pagos',value:enPagos,color:'#00838f'},
+                      {name:'Negados',value:negados,color:'#c62828'},
                       {name:'Desistidos',value:desistidos,color:'#757575'},
                       {name:'Vencidos',value:vencidos.length,color:'#c62828'}
                     ].filter(d=>d.value>0)} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={(e)=>`${e.name}: ${e.value}`}>
-                      {[{color:'#388e3c'},{color:'#1976d2'},{color:'#f57c00'},{color:'#f9a825'},{color:'#757575'},{color:'#c62828'}].map((e,i)=><Cell key={i} fill={e.color} />)}
+                      {[{color:'#388e3c'},{color:'#1976d2'},{color:'#f57c00'},{color:'#f9a825'},{color:'#616161'},{color:'#00838f'},{color:'#c62828'},{color:'#757575'},{color:'#c62828'}].map((e,i)=><Cell key={i} fill={e.color} />)}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -1078,7 +1161,7 @@ function App() {
                     const estado = getEstadoFlujo(p);
                     const info = ESTADOS_FLUJO[estado];
                     let badge='green', texto=`${dias} días`;
-                    if (['EXPEDIDO','DESISTIDO','PENDIENTE','ACTA_OBS'].includes(estado)) { badge='gray'; texto='—'; }
+                    if (['EXPEDIDO','DESISTIDO','PENDIENTE','ACTA_OBS','NEGADO','PAGOS'].includes(estado)) { badge='gray'; texto='—'; }
                     else if (dias < 0) { badge='red'; texto=`Vencido ${Math.abs(dias)}d`; }
                     else if (dias <= 5) badge='red';
                     else if (dias <= 15) badge='orange';
@@ -1097,6 +1180,7 @@ function App() {
             </div>
           </>
         )}
+
         {!loading && !error && vista === 'proyectos' && (
           <>
             <div className="search-box">
@@ -1126,13 +1210,29 @@ function App() {
             </div>
           </>
         )}
-
         {!loading && !error && vista === 'tecnicos' && (
           <>
-            <h2 style={{marginBottom:'20px'}}>Productividad del Equipo</h2>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', flexWrap:'wrap', gap:'15px'}}>
+              <h2>Productividad del Equipo {filtroEstrategicosTecnicos && '⭐ (Solo Estratégicos)'}</h2>
+              <button 
+                className={`filter-btn ${filtroEstrategicosTecnicos ? 'active' : ''}`}
+                onClick={() => setFiltroEstrategicosTecnicos(!filtroEstrategicosTecnicos)}
+              >
+                <Star size={16} fill={filtroEstrategicosTecnicos ? 'white' : '#f9a825'} /> 
+                {filtroEstrategicosTecnicos ? 'Ver Todos' : 'Solo Estratégicos'}
+              </button>
+            </div>
+            
+            {filtroEstrategicosTecnicos && (
+              <div className="info-panel">
+                ⭐ <strong>Mostrando solo proyectos estratégicos</strong><br/>
+                <span style={{fontSize:'13px'}}>Las estadísticas de cada técnico reflejan únicamente sus proyectos marcados como estratégicos.</span>
+              </div>
+            )}
+            
             <div className="stats-grid">
               {TECNICOS.map(t=>{
-                const s = productividadEquipo()[t.nombre]||{aprobados:0,revision:0,acta:0,total:0};
+                const s = productividadEquipo(filtroEstrategicosTecnicos)[t.nombre]||{aprobados:0,revision:0,acta:0,desistidos:0,vencidos:0,total:0};
                 return (
                   <div key={t.nombre} className="stat-card">
                     <h3>{t.nombre}</h3>
@@ -1140,6 +1240,8 @@ function App() {
                       <div>✓ Aprobados: <strong style={{color:'#388e3c'}}>{s.aprobados}</strong></div>
                       <div>🔵 En Revisión: <strong style={{color:'#1976d2'}}>{s.revision}</strong></div>
                       <div>📝 En Acta: <strong style={{color:'#f57c00'}}>{s.acta}</strong></div>
+                      <div>❌ Desistidos: <strong style={{color:'#c62828'}}>{s.desistidos}</strong></div>
+                      <div>⚠ Vencidos: <strong style={{color:'#c62828'}}>{s.vencidos}</strong></div>
                       <div style={{marginTop:'8px', paddingTop:'8px', borderTop:'1px solid #f0f0f0'}}>Total: <strong>{s.total}</strong></div>
                     </div>
                   </div>
@@ -1310,6 +1412,246 @@ function App() {
             </div>
           </>
         )}
+
+        {!loading && !error && vista === 'estadisticasEstrategicas' && (() => {
+          const proyEstrat = proyectos.filter(p => p.estrategico);
+          const totalEstrat = proyEstrat.length;
+          const expedEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
+          const revEstrat = proyEstrat.filter(p => ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(getEstadoFlujo(p))).length;
+          const actaEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
+          const desistEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
+          const vencEstrat = vencidos.filter(p => p.estrategico).length;
+          const tasaEstrat = totalEstrat > 0 ? Math.round((expedEstrat / totalEstrat) * 100) : 0;
+          
+          const prodEstrategica = productividadEquipo(true);
+          
+          return (
+            <>
+              <h2 style={{marginBottom:'20px'}}>⭐ Estadísticas de Proyectos Estratégicos</h2>
+              
+              <div className="info-panel" style={{marginBottom:'25px'}}>
+                ⭐ <strong>Análisis exclusivo de {totalEstrat} proyectos estratégicos</strong><br/>
+                <span style={{fontSize:'13px'}}>Todos los indicadores mostrados reflejan únicamente los proyectos marcados como estratégicos.</span>
+              </div>
+              
+              <h3 style={{marginBottom:'15px', color:'#333'}}>📊 Resumen General</h3>
+              <div className="stats-grid">
+                <div className="stat-card gold"><h3>Total Estratégicos</h3><div className="value">{totalEstrat}</div></div>
+                <div className="stat-card success"><h3>Expedidos</h3><div className="value">{expedEstrat}</div></div>
+                <div className="stat-card info"><h3>En Revisión</h3><div className="value">{revEstrat}</div></div>
+                <div className="stat-card warning"><h3>En Observaciones</h3><div className="value">{actaEstrat}</div></div>
+                <div className="stat-card"><h3>Desistidos</h3><div className="value">{desistEstrat}</div></div>
+                <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencEstrat}</div></div>
+                <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaEstrat}%</div></div>
+              </div>
+
+              <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>🏆 Productividad por Técnico</h3>
+              <div className="stats-grid">
+                {TECNICOS.map(t => {
+                  const s = prodEstrategica[t.nombre] || {aprobados:0, revision:0, acta:0, desistidos:0, vencidos:0, total:0};
+                  const tasaTec = s.total > 0 ? Math.round((s.aprobados / s.total) * 100) : 0;
+                  return (
+                    <div key={t.nombre} className="stat-card">
+                      <h3>{t.nombre}</h3>
+                      <div style={{marginTop:'10px', fontSize:'14px', color:'#666'}}>
+                        <div>⭐ Total Estratégicos: <strong style={{color:'#f9a825'}}>{s.total}</strong></div>
+                        <div>✓ Expedidos: <strong style={{color:'#388e3c'}}>{s.aprobados}</strong></div>
+                        <div>🔵 En Revisión: <strong style={{color:'#1976d2'}}>{s.revision}</strong></div>
+                        <div>📝 En Acta: <strong style={{color:'#f57c00'}}>{s.acta}</strong></div>
+                        <div>❌ Desistidos: <strong style={{color:'#c62828'}}>{s.desistidos}</strong></div>
+                        <div>⚠ Vencidos: <strong style={{color:'#c62828'}}>{s.vencidos}</strong></div>
+                        <div style={{marginTop:'8px', paddingTop:'8px', borderTop:'1px solid #f0f0f0'}}>
+                          % Aprobación: <strong style={{color: tasaTec >= 50 ? '#388e3c' : tasaTec >= 30 ? '#f57c00' : '#c62828'}}>{tasaTec}%</strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>⏱ Eficiencia por Técnico (Estratégicos vs General)</h3>
+              <div className="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Técnico</th>
+                      <th>Tiempo prom. Radicación → Expedición</th>
+                      <th>Tiempo prom. hasta 1ra Acta</th>
+                      <th>Tiempo prom. respuesta a Acta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TECNICOS.map(t => {
+                      const efE = calcularEficiencia(t.nombre, true);
+                      const efG = calcularEficiencia(t.nombre, false);
+                      const compExp = efE.expedicion !== null && efG.expedicion !== null 
+                        ? (efE.expedicion - efG.expedicion) : null;
+                      return (
+                        <tr key={t.nombre}>
+                          <td><strong>{t.nombre}</strong></td>
+                          <td>
+                            {efE.expedicion !== null ? (
+                              <>
+                                <strong>{efE.expedicion}d</strong> hábiles
+                                <span style={{color:'#999', fontSize:'11px', marginLeft:'6px'}}>({efE.totalExpediciones} exped.)</span>
+                                {compExp !== null && compExp !== 0 && (
+                                  <div style={{fontSize:'11px', marginTop:'4px', color: compExp < 0 ? '#388e3c' : '#c62828'}}>
+                                    {compExp < 0 ? '↓' : '↑'} {Math.abs(compExp)}d vs general ({efG.expedicion}d)
+                                  </div>
+                                )}
+                              </>
+                            ) : <span style={{color:'#999'}}>Sin datos</span>}
+                          </td>
+                          <td>
+                            {efE.acta !== null ? (
+                              <>
+                                <strong>{efE.acta}d</strong> hábiles
+                                <span style={{color:'#999', fontSize:'11px', marginLeft:'6px'}}>({efE.totalActas} actas)</span>
+                              </>
+                            ) : <span style={{color:'#999'}}>Sin datos</span>}
+                          </td>
+                          <td>
+                            {efE.respuesta !== null ? (
+                              <><strong>{efE.respuesta}d</strong> hábiles</>
+                            ) : <span style={{color:'#999'}}>Sin datos</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>📈 Radicados vs Expedidos Estratégicos por Mes</h3>
+              <div className="chart-card">
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={(() => {
+                    const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                    const data = mesesCortos.map(m => ({ mes: m, radicados: 0, expedidos: 0 }));
+                    proyEstrat.forEach(p => {
+                      if (p.fechaRadicacion) {
+                        const partes = p.fechaRadicacion.split('/');
+                        if (partes.length === 3 && partes[2] === '2026') {
+                          const mesIdx = parseInt(partes[1]) - 1;
+                          if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
+                        }
+                      }
+                      if (getEstadoFlujo(p) === 'EXPEDIDO' && p.fechaRadicacion) {
+                        const partes = p.fechaRadicacion.split('/');
+                        if (partes.length === 3 && partes[2] === '2026') {
+                          const mesIdx = parseInt(partes[1]) - 1;
+                          if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
+                        }
+                      }
+                    });
+                    return data;
+                  })()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="radicados" fill="#f9a825" name="Radicados Estratégicos" />
+                    <Bar dataKey="expedidos" fill="#388e3c" name="Expedidos Estratégicos" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          );
+        })()}
+        {!loading && !error && vista === 'pendientes' && (() => {
+          const proyectosPendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE');
+          const pendientesEstrat = proyectosPendientes.filter(p => p.estrategico).length;
+          return (
+            <>
+              <h2 style={{marginBottom:'20px'}}>⏸️ Proyectos Pendientes ({proyectosPendientes.length})</h2>
+              <div className="info-panel" style={{marginBottom:'20px', background:'#f5f5f5', border:'1px solid #bdbdbd', color:'#424242'}}>
+                ⏸️ <strong>Proyectos en estado de pendiente</strong><br/>
+                <span style={{fontSize:'13px'}}>Estos proyectos están pausados a la espera de acciones adicionales. {pendientesEstrat > 0 && `(${pendientesEstrat} son estratégicos ⭐)`}</span>
+              </div>
+              <div className="stats-grid" style={{marginBottom:'20px'}}>
+                <div className="stat-card"><h3>Total Pendientes</h3><div className="value">{proyectosPendientes.length}</div></div>
+                <div className="stat-card gold"><h3>⭐ Estratégicos</h3><div className="value">{pendientesEstrat}</div></div>
+              </div>
+              <div className="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>⭐</th>
+                      <th>Radicado</th>
+                      <th>Fecha Rad.</th>
+                      <th>Arquitecto</th>
+                      <th>Ingeniero</th>
+                      <th>Máx. Legal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proyectosPendientes.length === 0 && (
+                      <tr><td colSpan="6" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos pendientes actualmente</td></tr>
+                    )}
+                    {proyectosPendientes.map(p => (
+                      <tr key={p.radicado}>
+                        <td>{p.estrategico && <Star size={16} fill="#f9a825" color="#f9a825" />}</td>
+                        <td><strong>{p.radicado}</strong></td>
+                        <td>{p.fechaRadicacion}</td>
+                        <td>{p.nombreArquitecto || '-'}</td>
+                        <td>{p.nombreIngeniero || '-'}</td>
+                        <td>{p.maximaLegal || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()}
+
+        {!loading && !error && vista === 'pagos' && (() => {
+          const proyectosPagos = proyectos.filter(p => getEstadoFlujo(p) === 'PAGOS');
+          const pagosEstrat = proyectosPagos.filter(p => p.estrategico).length;
+          return (
+            <>
+              <h2 style={{marginBottom:'20px'}}>💰 Proyectos en Pagos ({proyectosPagos.length})</h2>
+              <div className="info-panel" style={{marginBottom:'20px', background:'#e0f7fa', border:'1px solid #4dd0e1', color:'#00838f'}}>
+                💰 <strong>Proyectos en fase de pagos</strong><br/>
+                <span style={{fontSize:'13px'}}>Estos proyectos están pendientes del pago de derechos de expedición. {pagosEstrat > 0 && `(${pagosEstrat} son estratégicos ⭐)`}</span>
+              </div>
+              <div className="stats-grid" style={{marginBottom:'20px'}}>
+                <div className="stat-card info"><h3>Total en Pagos</h3><div className="value">{proyectosPagos.length}</div></div>
+                <div className="stat-card gold"><h3>⭐ Estratégicos</h3><div className="value">{pagosEstrat}</div></div>
+              </div>
+              <div className="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>⭐</th>
+                      <th>Radicado</th>
+                      <th>Fecha Rad.</th>
+                      <th>Arquitecto</th>
+                      <th>Ingeniero</th>
+                      <th>Máx. Legal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proyectosPagos.length === 0 && (
+                      <tr><td colSpan="6" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos en pagos actualmente</td></tr>
+                    )}
+                    {proyectosPagos.map(p => (
+                      <tr key={p.radicado}>
+                        <td>{p.estrategico && <Star size={16} fill="#f9a825" color="#f9a825" />}</td>
+                        <td><strong>{p.radicado}</strong></td>
+                        <td>{p.fechaRadicacion}</td>
+                        <td>{p.nombreArquitecto || '-'}</td>
+                        <td>{p.nombreIngeniero || '-'}</td>
+                        <td>{p.maximaLegal || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );

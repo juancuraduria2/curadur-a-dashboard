@@ -311,6 +311,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   .charts-grid { grid-template-columns: 1fr; }
 }
 `;
+
 const STYLES_TV = `
 .tv-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0a0a0f; color: white; z-index: 1000; overflow-y: auto; padding: 30px; }
 .tv-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 30px; border-bottom: 2px solid #ff5252; }
@@ -363,7 +364,6 @@ const STYLES_TV = `
 .tv-mov-tecnico { color: white; flex: 1; }
 .tv-mov-fecha { color: #666; font-size: 11px; }
 `;
-
 // ============================================
 // COMPONENTE APP
 // ============================================
@@ -412,6 +412,7 @@ function App() {
           fechaPrimeraRevArq: excelDateToJSDate(p.fechaPrimeraRevArq),
           fechaPrimeraRevIng: excelDateToJSDate(p.fechaPrimeraRevIng),
           actaObservaciones: excelDateToJSDate(p.actaObservaciones),
+          fechaRespuestaActa: excelDateToJSDate(p.fechaRespuestaActa),
           fechaFinalizacion: excelDateToJSDate(p.fechaFinalizacion),
           fechaLicencia: excelDateToJSDate(p.fechaLicencia),
           nombreArquitecto: mapearArquitecto(p.nombreArquitecto),
@@ -493,6 +494,43 @@ function App() {
     if (p.fechaLegal) return 'REV_ARQ_1';
     return 'PENDIENTE_LDF';
   };
+
+  // ============================================
+  // LÓGICA DE VENCIMIENTO POR ETAPA (nueva)
+  // ============================================
+  // Regla:
+  //  - REV_ARQ_1  -> Fecha LDF + 9 días hábiles
+  //  - REV_ESTR_1 -> Fecha LDF + 18 días hábiles (9 arq + 9 estr)
+  //  - REV_ARQ_2  -> Fecha respuesta acta (col AN) + 9 días hábiles
+  //  - REV_ESTR_2 -> Fecha respuesta acta (col AN) + 18 días hábiles
+  //  - Otros estados NO aplican vencimiento
+  //  - Si el proyecto está en 2da vuelta pero NO hay fecha de respuesta al acta,
+  //    tampoco aplica vencimiento (no se puede calcular).
+  const getFechaLimiteEtapa = (p) => {
+    const estado = getEstadoFlujo(p);
+    if (estado === 'REV_ARQ_1') {
+      const fechaInicio = excelDateToDate(p.fechaLegal);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ);
+    }
+    if (estado === 'REV_ESTR_1') {
+      const fechaInicio = excelDateToDate(p.fechaLegal);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ + DIAS_ETAPA.REV_ESTR);
+    }
+    if (estado === 'REV_ARQ_2') {
+      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ);
+    }
+    if (estado === 'REV_ESTR_2') {
+      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ + DIAS_ETAPA.REV_ESTR);
+    }
+    return null;
+  };
+
   // Cálculos generales
   const totalProyectos = proyectos.length;
   const proyectosEstrategicos = proyectos.filter(p => p.estrategico).length;
@@ -509,30 +547,16 @@ function App() {
   const enPagos = proyectos.filter(p => getEstadoFlujo(p) === 'PAGOS').length;
   const tasaAprobacion = totalProyectos > 0 ? Math.round((aprobados / totalProyectos) * 100) : 0;
 
+  // Vencidos: se calcula por la fecha límite de la ETAPA actual (no por maximaLegal)
   const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
   const vencidos = proyectos.filter(p => {
     const estado = getEstadoFlujo(p);
-    if (['ACTA_OBS', 'EXPEDIDO', 'DESISTIDO', 'PENDIENTE', 'NEGADO', 'PAGOS'].includes(estado)) return false;
-    const fecha = excelDateToDate(p.maximaLegal);
-    if (!fecha) return false;
-    return fecha < hoy;
+    if (!['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2'].includes(estado)) return false;
+    const fechaLimite = getFechaLimiteEtapa(p);
+    if (!fechaLimite) return false;
+    return fechaLimite < hoy;
   });
-
-  const getFechaLimiteEtapa = (p) => {
-    const estado = getEstadoFlujo(p);
-    if (estado === 'REV_ARQ_1' || estado === 'REV_ARQ_2') {
-      const fechaInicio = excelDateToDate(p.fechaLegal) || excelDateToDate(p.fechaAsignacionArq);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ);
-    }
-    if (estado === 'REV_ESTR_1' || estado === 'REV_ESTR_2') {
-      const fechaInicio = excelDateToDate(p.fechaPrimeraRevArq);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ESTR);
-    }
-    return null;
-  };
-
   const ultimosMovimientos = () => {
     const movs = [];
     proyectos.forEach(p => {
@@ -707,8 +731,8 @@ function App() {
           <div className="tv-panel">
             <div className="tv-panel-title">🚦 SEMÁFORO DE TÉRMINOS</div>
             {vencidos.slice(0, 5).map(p => {
-              const fecha = excelDateToDate(p.maximaLegal);
-              const diasVenc = Math.abs(diasEntreFechas(fecha));
+              const fechaLimite = getFechaLimiteEtapa(p);
+              const diasVenc = fechaLimite ? Math.abs(diasHabilesRestantes(fechaLimite)) : 0;
               return (
                 <div key={p.radicado} className="tv-semaforo-item">
                   <div className="tv-semaforo-info">
@@ -922,6 +946,11 @@ function App() {
                       {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d etapa`}
                     </span>
                   )}
+                  {['REV_ARQ_2','REV_ESTR_2'].includes(estadoActual) && !p.fechaRespuestaActa && (
+                    <span className="semaforo-mini" style={{background:'#eceff1', color:'#546e7a'}}>
+                      <Clock size={12} /> Sin fecha respuesta acta
+                    </span>
+                  )}
                 </div>
                 
                 <div className="proyecto-info-row">
@@ -931,6 +960,9 @@ function App() {
                 
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
+                  {['REV_ARQ_2','REV_ESTR_2'].includes(estadoActual) && (
+                    <div className="info-item"><strong>Respuesta Acta:</strong> {formatoFechaLarga(p.fechaRespuestaActa) || 'Sin fecha'}</div>
+                  )}
                   <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
                     {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
                       diasLegal < 0 
@@ -1149,27 +1181,48 @@ function App() {
 
         {!loading && !error && vista === 'terminos' && (
           <>
-            <h2 style={{marginBottom:'20px'}}>⏰ Términos Legales (45 días)</h2>
+            <h2 style={{marginBottom:'20px'}}>⏰ Términos por Etapa</h2>
+            <div className="info-panel" style={{marginBottom:'20px'}}>
+              ⏰ <strong>Cálculo de vencimiento por etapa</strong><br/>
+              <span style={{fontSize:'13px'}}>
+                Rev. Arquitectónica 1ra vuelta: 9 días hábiles desde LDF · 
+                Rev. Estructural 1ra vuelta: 18 días hábiles desde LDF · 
+                Rev. Arquitectónica 2da vuelta: 9 días hábiles desde respuesta al acta · 
+                Rev. Estructural 2da vuelta: 18 días hábiles desde respuesta al acta.
+              </span>
+            </div>
             <div className="table">
               <table>
-                <thead><tr><th>Radicado</th><th>Fecha Rad.</th><th>Fecha Máx. Legal</th><th>Estado</th><th>Días</th></tr></thead>
+                <thead><tr><th>Radicado</th><th>Fecha Rad.</th><th>Fecha Límite Etapa</th><th>Estado</th><th>Días Hábiles</th></tr></thead>
                 <tbody>
-                  {proyectos.filter(p=>p.maximaLegal).map(p=>{
-                    const fecha = excelDateToDate(p.maximaLegal);
-                    const dias = diasEntreFechas(fecha);
-                    if (dias === null) return null;
+                  {proyectos.map(p=>{
                     const estado = getEstadoFlujo(p);
                     const info = ESTADOS_FLUJO[estado];
+                    const enRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estado);
+                    if (!enRevision) return null;
+                    const fechaLimite = getFechaLimiteEtapa(p);
+                    if (!fechaLimite) {
+                      return (
+                        <tr key={p.radicado}>
+                          <td><strong>{p.radicado}</strong></td>
+                          <td>{p.fechaRadicacion}</td>
+                          <td>—</td>
+                          <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
+                          <td><span className="badge gray">Sin fecha base</span></td>
+                        </tr>
+                      );
+                    }
+                    const dias = diasHabilesRestantes(fechaLimite);
+                    const fechaLimiteStr = `${String(fechaLimite.getDate()).padStart(2,'0')}/${String(fechaLimite.getMonth()+1).padStart(2,'0')}/${fechaLimite.getFullYear()}`;
                     let badge='green', texto=`${dias} días`;
-                    if (['EXPEDIDO','DESISTIDO','PENDIENTE','ACTA_OBS','NEGADO','PAGOS'].includes(estado)) { badge='gray'; texto='—'; }
-                    else if (dias < 0) { badge='red'; texto=`Vencido ${Math.abs(dias)}d`; }
-                    else if (dias <= 5) badge='red';
-                    else if (dias <= 15) badge='orange';
+                    if (dias < 0) { badge='red'; texto=`Vencido ${Math.abs(dias)}d`; }
+                    else if (dias <= 2) badge='red';
+                    else if (dias <= 5) badge='orange';
                     return (
                       <tr key={p.radicado}>
                         <td><strong>{p.radicado}</strong></td>
                         <td>{p.fechaRadicacion}</td>
-                        <td>{p.maximaLegal}</td>
+                        <td>{fechaLimiteStr}</td>
                         <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
                         <td><span className={`badge ${badge}`}>{texto}</span></td>
                       </tr>
@@ -1210,6 +1263,7 @@ function App() {
             </div>
           </>
         )}
+
         {!loading && !error && vista === 'tecnicos' && (
           <>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', flexWrap:'wrap', gap:'15px'}}>
@@ -1272,7 +1326,6 @@ function App() {
             </div>
           </>
         )}
-
         {!loading && !error && vista === 'estadisticas' && (
           <>
             <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
@@ -1559,6 +1612,7 @@ function App() {
             </>
           );
         })()}
+
         {!loading && !error && vista === 'pendientes' && (() => {
           const proyectosPendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE');
           const pendientesEstrat = proyectosPendientes.filter(p => p.estrategico).length;

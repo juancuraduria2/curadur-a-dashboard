@@ -34,20 +34,21 @@ export default async (req, res) => {
 
     const rows = rangeData.values || [];
 
-    // Índices actualizados con columna S agregada (PROYECTO ESTRATEGICO)
+    // Índices actualizados con columna S (PROYECTO ESTRATEGICO) y AN (FECHA RESPUESTA ACTA)
     const COLUMN_MAP = {
       'RADICADO': 0,                                          // A
       'FECHA RADICACIÓN': 1,                                  // B
       'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,                // F
       'FECHA DE LEGAL Y DEBIDA FORMA': 7,                    // H
       'ESTADO ACTUAL DEL PROYECTO': 14,                      // O
-      'PROYECTO ESTRATEGICO': 18,                            // S (nueva)
+      'PROYECTO ESTRATEGICO': 18,                            // S
       'NOMBRE PROFESIONAL ARQUITECTURA': 23,                 // X
       'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 24,          // Y
       'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 25,           // Z
       'NOMBRE PROFESIONAL INGENIERÍA': 28,                   // AC
       'FECHA PRIMERA REVISIÓN INGENIERÍA': 30,               // AE
       'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 35,        // AJ
+      'ACTA DE OBSERVACIONES FECHA ENTREGA': 39,             // AN (nueva - respuesta del cliente al acta)
       'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 42,     // AQ
       'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 53    // BB
     };
@@ -68,6 +69,7 @@ export default async (req, res) => {
         nombreIngeniero: row[COLUMN_MAP['NOMBRE PROFESIONAL INGENIERÍA']] || '',
         fechaPrimeraRevIng: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN INGENIERÍA']] || '',
         actaObservaciones: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN']] || '',
+        fechaRespuestaActa: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA ENTREGA']] || '',
         fechaFinalizacion: row[COLUMN_MAP['FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN']] || '',
         fechaLicencia: row[COLUMN_MAP['LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN']] || ''
       };

@@ -39,6 +39,8 @@ const ESTADOS_FLUJO = {
   'ACTA_OBS': { label: 'Acta Observaciones', color: '#f9a825', bg: '#fffde7', icon: '🟡' },
   'REV_ARQ_2': { label: 'Rev. Arq. 2da vuelta', color: '#1976d2', bg: '#e3f2fd', icon: '🔄' },
   'REV_ESTR_2': { label: 'Rev. Estr. 2da vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔄' },
+  'REV_ARQ_3': { label: 'Rev. Arq. 3ra vuelta', color: '#1976d2', bg: '#e3f2fd', icon: '🔁' },
+  'REV_ESTR_3': { label: 'Rev. Estr. 3ra vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔁' },
   'PAGOS': { label: 'Pagos', color: '#00838f', bg: '#e0f7fa', icon: '💰' },
   'EXPEDIDO': { label: 'Expedido', color: '#388e3c', bg: '#e8f5e9', icon: '✅' },
   'PENDIENTE': { label: 'Pendiente', color: '#616161', bg: '#f5f5f5', icon: '⏸️' },
@@ -481,8 +483,8 @@ function App() {
     if (estado === 'REVISION ESTRUC 1' || estado === 'REVISIÓN ESTRUC 1') return 'REV_ESTR_1';
     if (estado === 'REVISIÓN ARQ 2' || estado === 'REVISION ARQ 2') return 'REV_ARQ_2';
     if (estado === 'REVISION ESTRUC 2' || estado === 'REVISIÓN ESTRUC 2') return 'REV_ESTR_2';
-    if (estado === 'REVISION ARQ 3' || estado === 'REVISIÓN ARQ 3') return 'REV_ARQ_2';
-    if (estado === 'REVISION ESTRUC 3' || estado === 'REVISIÓN ESTRUC 3') return 'REV_ESTR_2';
+    if (estado === 'REVISION ARQ 3' || estado === 'REVISIÓN ARQ 3') return 'REV_ARQ_3';
+    if (estado === 'REVISION ESTRUC 3' || estado === 'REVISIÓN ESTRUC 3') return 'REV_ESTR_3';
     if (estado === 'REVISIÓN' || estado === 'REVISION') {
       if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
       if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
@@ -496,15 +498,17 @@ function App() {
   };
 
   // ============================================
-  // LÓGICA DE VENCIMIENTO POR ETAPA (nueva)
+  // LÓGICA DE VENCIMIENTO POR ETAPA
   // ============================================
   // Regla:
   //  - REV_ARQ_1  -> Fecha LDF + 9 días hábiles
   //  - REV_ESTR_1 -> Fecha LDF + 18 días hábiles (9 arq + 9 estr)
   //  - REV_ARQ_2  -> Fecha respuesta acta (col AN) + 9 días hábiles
   //  - REV_ESTR_2 -> Fecha respuesta acta (col AN) + 18 días hábiles
+  //  - REV_ARQ_3  -> Fecha respuesta acta (col AN) + 18 días hábiles (9 de 2da + 9 de 3ra)
+  //  - REV_ESTR_3 -> Fecha respuesta acta (col AN) + 27 días hábiles (18 arq + 9 estr de 3ra)
   //  - Otros estados NO aplican vencimiento
-  //  - Si el proyecto está en 2da vuelta pero NO hay fecha de respuesta al acta,
+  //  - Si el proyecto está en 2da o 3ra vuelta pero NO hay fecha de respuesta al acta,
   //    tampoco aplica vencimiento (no se puede calcular).
   const getFechaLimiteEtapa = (p) => {
     const estado = getEstadoFlujo(p);
@@ -528,6 +532,16 @@ function App() {
       if (!fechaInicio) return null;
       return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ + DIAS_ETAPA.REV_ESTR);
     }
+    if (estado === 'REV_ARQ_3') {
+      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ * 2);
+    }
+    if (estado === 'REV_ESTR_3') {
+      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
+      if (!fechaInicio) return null;
+      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ * 2 + DIAS_ETAPA.REV_ESTR);
+    }
     return null;
   };
 
@@ -536,7 +550,7 @@ function App() {
   const proyectosEstrategicos = proyectos.filter(p => p.estrategico).length;
   const enEstudio = proyectos.filter(p => {
     const e = getEstadoFlujo(p);
-    return ['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2'].includes(e);
+    return ['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2', 'REV_ARQ_3', 'REV_ESTR_3'].includes(e);
   }).length;
   const aprobados = proyectos.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
   const observaciones = proyectos.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
@@ -552,12 +566,12 @@ function App() {
   hoy.setHours(0, 0, 0, 0);
   const vencidos = proyectos.filter(p => {
     const estado = getEstadoFlujo(p);
-    if (!['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2'].includes(estado)) return false;
+    if (!['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2', 'REV_ARQ_3', 'REV_ESTR_3'].includes(estado)) return false;
     const fechaLimite = getFechaLimiteEtapa(p);
     if (!fechaLimite) return false;
     return fechaLimite < hoy;
   });
-  const ultimosMovimientos = () => {
+    const ultimosMovimientos = () => {
     const movs = [];
     proyectos.forEach(p => {
       const eventos = [
@@ -594,7 +608,7 @@ function App() {
         if (stats[n]) {
           stats[n].total++;
           if (estado === 'EXPEDIDO') stats[n].aprobados++;
-          else if (['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estado)) stats[n].revision++;
+          else if (['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estado)) stats[n].revision++;
           if (estado === 'ACTA_OBS') stats[n].acta++;
           if (estado === 'DESISTIDO') stats[n].desistidos++;
           if (esVencido) stats[n].vencidos++;
@@ -772,7 +786,7 @@ function App() {
       </div>
     );
   }
-  // ==============================
+    // ==============================
   // SELECTOR DE TÉCNICO
   // ==============================
   if (vista === 'ingreso' && !tecnicoActivo) {
@@ -819,14 +833,14 @@ function App() {
       if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE', 'NEGADO', 'PAGOS'].includes(estado)) return 'entregados';
       
       if (esArq) {
-        if (['REV_ARQ_1', 'REV_ARQ_2'].includes(estado)) return 'activos';
-        if (['REV_ESTR_1', 'REV_ESTR_2', 'ACTA_OBS'].includes(estado)) return 'entregados';
+        if (['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3'].includes(estado)) return 'activos';
+        if (['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3', 'ACTA_OBS'].includes(estado)) return 'entregados';
         if (estado === 'PENDIENTE_LDF') return 'vienen';
       }
       
       if (esIng) {
-        if (['REV_ESTR_1', 'REV_ESTR_2'].includes(estado)) return 'activos';
-        if (['REV_ARQ_1', 'REV_ARQ_2', 'PENDIENTE_LDF'].includes(estado)) return 'vienen';
+        if (['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3'].includes(estado)) return 'activos';
+        if (['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3', 'PENDIENTE_LDF'].includes(estado)) return 'vienen';
         if (estado === 'ACTA_OBS') return 'entregados';
       }
       
@@ -922,7 +936,7 @@ function App() {
           const diasLegal = diasEntreFechas(fechaMaxLegal);
           
           let semaforoEtapa = 'verde';
-          const estaEnRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estadoActual);
+          const estaEnRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual);
           if (diasEtapa !== null && estaEnRevision) {
             if (diasEtapa < 0) semaforoEtapa = 'rojo';
             else if (diasEtapa <= 2) semaforoEtapa = 'amarillo';
@@ -946,7 +960,7 @@ function App() {
                       {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d etapa`}
                     </span>
                   )}
-                  {['REV_ARQ_2','REV_ESTR_2'].includes(estadoActual) && !p.fechaRespuestaActa && (
+                  {['REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && !p.fechaRespuestaActa && (
                     <span className="semaforo-mini" style={{background:'#eceff1', color:'#546e7a'}}>
                       <Clock size={12} /> Sin fecha respuesta acta
                     </span>
@@ -960,16 +974,16 @@ function App() {
                 
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
-                  {['REV_ARQ_2','REV_ESTR_2'].includes(estadoActual) && (
+                  {['REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && (
                     <div className="info-item"><strong>Respuesta Acta:</strong> {formatoFechaLarga(p.fechaRespuestaActa) || 'Sin fecha'}</div>
                   )}
                   <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
-                    {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
+                    {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
                       diasLegal < 0 
                         ? <span style={{color:'#c62828'}}> (Vencido {Math.abs(diasLegal)}d)</span>
                         : <span style={{color:'#388e3c'}}> ({diasLegal}d restantes)</span>
                     )}
-                    {diasLegal !== null && ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estadoActual) && (
+                    {diasLegal !== null && ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && (
                       <span style={{color:'#388e3c'}}> ✓ En revisión</span>
                     )}
                     {['ACTA_OBS'].includes(estadoActual) && (
@@ -1015,7 +1029,7 @@ function App() {
       </div>
     );
   }
-  // ==============================
+    // ==============================
   // DASHBOARD PRINCIPAL
   // ==============================
   const proyectosFiltrados = proyectos.filter(p => {
@@ -1188,7 +1202,9 @@ function App() {
                 Rev. Arquitectónica 1ra vuelta: 9 días hábiles desde LDF · 
                 Rev. Estructural 1ra vuelta: 18 días hábiles desde LDF · 
                 Rev. Arquitectónica 2da vuelta: 9 días hábiles desde respuesta al acta · 
-                Rev. Estructural 2da vuelta: 18 días hábiles desde respuesta al acta.
+                Rev. Estructural 2da vuelta: 18 días hábiles desde respuesta al acta · 
+                Rev. Arquitectónica 3ra vuelta: 18 días hábiles desde respuesta al acta · 
+                Rev. Estructural 3ra vuelta: 27 días hábiles desde respuesta al acta.
               </span>
             </div>
             <div className="table">
@@ -1198,7 +1214,7 @@ function App() {
                   {proyectos.map(p=>{
                     const estado = getEstadoFlujo(p);
                     const info = ESTADOS_FLUJO[estado];
-                    const enRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(estado);
+                    const enRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estado);
                     if (!enRevision) return null;
                     const fechaLimite = getFechaLimiteEtapa(p);
                     if (!fechaLimite) {
@@ -1326,7 +1342,7 @@ function App() {
             </div>
           </>
         )}
-        {!loading && !error && vista === 'estadisticas' && (
+                {!loading && !error && vista === 'estadisticas' && (
           <>
             <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
             
@@ -1470,7 +1486,7 @@ function App() {
           const proyEstrat = proyectos.filter(p => p.estrategico);
           const totalEstrat = proyEstrat.length;
           const expedEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
-          const revEstrat = proyEstrat.filter(p => ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2'].includes(getEstadoFlujo(p))).length;
+          const revEstrat = proyEstrat.filter(p => ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(getEstadoFlujo(p))).length;
           const actaEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
           const desistEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
           const vencEstrat = vencidos.filter(p => p.estrategico).length;
@@ -1612,8 +1628,7 @@ function App() {
             </>
           );
         })()}
-
-        {!loading && !error && vista === 'pendientes' && (() => {
+                {!loading && !error && vista === 'pendientes' && (() => {
           const proyectosPendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE');
           const pendientesEstrat = proyectosPendientes.filter(p => p.estrategico).length;
           return (

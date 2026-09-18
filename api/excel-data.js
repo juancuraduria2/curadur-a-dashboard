@@ -1,6 +1,52 @@
-export default async (req, res) => {
+import jwt from 'jsonwebtoken';
+
+// ============================================
+// VERIFICACIÓN DE TOKEN (middleware inline)
+// ============================================
+
+function verificarToken(req) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : null;
+
+  if (!token) {
+    return { ok: false, status: 401, error: 'Token no proporcionado' };
+  }
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    return { ok: false, status: 500, error: 'Error de configuración del servidor' };
+  }
+
   try {
-    // Obtener token
+    const decoded = jwt.verify(token, secret);
+    return { ok: true, usuario: decoded };
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return { ok: false, status: 401, error: 'Sesión expirada', reason: 'expired' };
+    }
+    return { ok: false, status: 401, error: 'Token inválido', reason: 'invalid' };
+  }
+}
+
+// ============================================
+// ENDPOINT DE DATOS DEL EXCEL (protegido)
+// ============================================
+
+export default async (req, res) => {
+  // Verificar autenticación antes de cualquier otra cosa
+  const auth = verificarToken(req);
+  if (!auth.ok) {
+    return res.status(auth.status).json({
+      success: false,
+      error: auth.error,
+      reason: auth.reason
+    });
+  }
+
+  try {
+    // Obtener token de Azure
     const tokenResponse = await fetch(
       `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
       {
@@ -48,7 +94,7 @@ export default async (req, res) => {
       'NOMBRE PROFESIONAL INGENIERÍA': 28,                   // AC
       'FECHA PRIMERA REVISIÓN INGENIERÍA': 30,               // AE
       'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 35,        // AJ
-      'ACTA DE OBSERVACIONES FECHA ENTREGA': 39,             // AN (nueva - respuesta del cliente al acta)
+      'ACTA DE OBSERVACIONES FECHA ENTREGA': 39,             // AN (respuesta del cliente al acta)
       'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 42,     // AQ
       'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 53    // BB
     };

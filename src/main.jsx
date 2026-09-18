@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Home, Star, Clock, FileText, Users, User, History, TrendingUp, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send } from 'lucide-react';
+import { Home, Star, Clock, FileText, Users, User, History, TrendingUp, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, LogOut, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send, Eye, EyeOff, Lock, X, Building2, Shield } from 'lucide-react';
 
 // ============================================
 // CONFIGURACIÓN
@@ -60,6 +60,24 @@ const FESTIVOS_2026 = [
   '2026-07-20', '2026-08-07', '2026-08-17', '2026-10-12', '2026-11-02',
   '2026-11-16', '2026-12-08', '2026-12-25'
 ];
+
+// ============================================
+// ROLES Y PERMISOS
+// ============================================
+
+// Vistas que están restringidas para roles no admin
+const VISTAS_RESTRINGIDAS = ['estadisticas', 'estadisticasEstrategicas', 'pagos'];
+
+// Devuelve true si el rol puede ver la vista
+const puedeVer = (rol, vista) => {
+  if (rol === 'admin') return true;
+  return !VISTAS_RESTRINGIDAS.includes(vista);
+};
+
+// Devuelve true si el usuario puede ver la vista de otro técnico
+const puedeVerOtrosTecnicos = (rol) => {
+  return rol === 'admin' || rol === 'control';
+};
 
 // ============================================
 // HELPERS DE FECHAS
@@ -165,9 +183,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .app { min-height: 100vh; }
 .header { background: #c62828; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
 .header h1 { font-size: 22px; font-weight: 600; }
-.header-buttons { display: flex; gap: 10px; }
+.header-buttons { display: flex; gap: 10px; align-items: center; }
 .header-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
 .header-btn:hover { background: rgba(255,255,255,0.3); }
+.header-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 13px; }
+.header-user-avatar { width: 32px; height: 32px; border-radius: 50%; background: white; color: #c62828; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+.header-user-info { display: flex; flex-direction: column; line-height: 1.2; }
+.header-user-name { font-weight: 600; }
+.header-user-role { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
 .menu-toggle { display: none; background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 6px; cursor: pointer; }
 .menu-mobile { display: none; }
 .nav { background: white; padding: 0 30px; display: flex; gap: 5px; border-bottom: 1px solid #e0e0e0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -277,6 +300,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   .menu-mobile { display: none; background: #b71c1c; padding: 15px; flex-direction: column; gap: 10px; width: 100%; }
   .menu-mobile.open { display: flex; }
   .menu-mobile .header-btn { justify-content: center; width: 100%; padding: 12px; font-size: 15px; }
+  .menu-mobile .header-user { justify-content: center; width: 100%; }
   .nav { padding: 0 10px; }
   .nav-btn { padding: 12px 14px; font-size: 13px; }
   .content { padding: 15px; }
@@ -366,13 +390,580 @@ const STYLES_TV = `
 .tv-mov-tecnico { color: white; flex: 1; }
 .tv-mov-fecha { color: #666; font-size: 11px; }
 `;
+
 // ============================================
-// COMPONENTE APP
+// ESTILOS DEL LOGIN PREMIUM
+// ============================================
+
+const STYLES_LOGIN = `
+.login-page { min-height: 100vh; display: flex; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+/* Área visual izquierda - institucional */
+.login-visual { flex: 1.2; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 60px; color: white; }
+.login-visual-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.15; }
+.login-visual-svg path, .login-visual-svg line, .login-visual-svg rect, .login-visual-svg circle { stroke: #c62828; fill: none; stroke-width: 1.5; }
+.login-visual-svg .line-thin { stroke-width: 0.8; opacity: 0.6; }
+.login-visual-svg .line-dashed { stroke-dasharray: 4 4; opacity: 0.5; }
+.login-visual-svg .anim-draw { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawLine 4s ease-out forwards; }
+.login-visual-svg .anim-draw-slow { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawLine 6s ease-out forwards; }
+@keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+.login-visual-accent { position: absolute; top: -100px; right: -100px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(198,40,40,0.25) 0%, transparent 70%); pointer-events: none; }
+.login-visual-accent-2 { position: absolute; bottom: -150px; left: -150px; width: 600px; height: 600px; background: radial-gradient(circle, rgba(198,40,40,0.15) 0%, transparent 70%); pointer-events: none; }
+
+.login-visual-top { position: relative; z-index: 2; display: flex; align-items: center; gap: 16px; }
+.login-visual-top-badge { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 10px 18px; border-radius: 30px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+
+.login-visual-center { position: relative; z-index: 2; }
+.login-visual-title { font-size: 68px; font-weight: 800; line-height: 1.05; letter-spacing: -2px; margin-bottom: 20px; }
+.login-visual-title .highlight { color: #ff5252; }
+.login-visual-subtitle { font-size: 20px; color: rgba(255,255,255,0.7); font-weight: 300; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 40px; }
+.login-visual-desc { font-size: 15px; color: rgba(255,255,255,0.6); max-width: 480px; line-height: 1.7; font-weight: 300; }
+
+.login-visual-bottom { position: relative; z-index: 2; display: flex; gap: 40px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+.login-visual-feature { display: flex; flex-direction: column; gap: 6px; }
+.login-visual-feature-num { font-size: 28px; font-weight: 700; color: #ff5252; }
+.login-visual-feature-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+
+/* Área derecha - formulario */
+.login-form-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; background: #ffffff; position: relative; }
+
+.login-form-container { width: 100%; max-width: 440px; }
+.login-form-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 48px; justify-content: center; }
+.login-form-logo-mark { display: flex; align-items: center; }
+.login-form-logo-text { display: flex; flex-direction: column; line-height: 1; }
+.login-form-logo-text-main { font-size: 24px; font-weight: 800; color: #1a1a1a; letter-spacing: -0.5px; }
+.login-form-logo-text-sub { font-size: 11px; font-weight: 500; letter-spacing: 4px; color: #666; margin-top: 4px; }
+
+.login-form-title { font-size: 32px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; letter-spacing: -0.5px; }
+.login-form-subtitle { font-size: 15px; color: #666; margin-bottom: 36px; }
+
+.login-field { margin-bottom: 20px; }
+.login-field-label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; letter-spacing: 0.3px; }
+.login-field-wrapper { position: relative; }
+.login-field-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; pointer-events: none; }
+.login-field-input { width: 100%; padding: 14px 16px 14px 46px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 15px; color: #1a1a1a; background: #fafafa; transition: all 0.2s; font-family: inherit; }
+.login-field-input:hover { border-color: #ccc; background: #fff; }
+.login-field-input:focus { outline: none; border-color: #c62828; background: #fff; box-shadow: 0 0 0 4px rgba(198,40,40,0.08); }
+.login-field-input.error { border-color: #c62828; background: #fff5f5; }
+.login-field-input.error:focus { box-shadow: 0 0 0 4px rgba(198,40,40,0.12); }
+
+.login-field-toggle { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #999; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: color 0.2s; }
+.login-field-toggle:hover { color: #c62828; }
+
+.login-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; margin-top: 4px; }
+.login-checkbox { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.login-checkbox input { width: 18px; height: 18px; accent-color: #c62828; cursor: pointer; }
+.login-checkbox-label { font-size: 14px; color: #555; }
+.login-forgot { background: none; border: none; color: #c62828; font-size: 14px; font-weight: 500; cursor: pointer; padding: 0; text-decoration: none; transition: color 0.2s; font-family: inherit; }
+.login-forgot:hover { color: #b71c1c; text-decoration: underline; }
+
+.login-submit { width: 100%; padding: 15px; background: #c62828; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; letter-spacing: 0.3px; font-family: inherit; }
+.login-submit:hover:not(:disabled) { background: #b71c1c; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(198,40,40,0.3); }
+.login-submit:active:not(:disabled) { transform: translateY(0); }
+.login-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+.login-submit-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spinLogin 0.7s linear infinite; }
+@keyframes spinLogin { to { transform: rotate(360deg); } }
+
+.login-error { background: #fff5f5; border: 1px solid #ffcdd2; color: #c62828; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; display: flex; align-items: center; gap: 10px; animation: shakeLogin 0.4s; }
+@keyframes shakeLogin { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+.login-footer { position: absolute; bottom: 30px; left: 60px; right: 60px; text-align: center; font-size: 12px; color: #999; }
+.login-footer-line { display: block; margin-bottom: 4px; }
+
+/* Modal de "olvidaste tu contraseña" */
+.login-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeInLogin 0.2s; }
+@keyframes fadeInLogin { from { opacity: 0; } to { opacity: 1; } }
+.login-modal { background: white; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUpLogin 0.3s; }
+@keyframes slideUpLogin { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.login-modal-close { position: absolute; top: 20px; right: 20px; background: #f5f5f5; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; }
+.login-modal-close:hover { background: #e0e0e0; color: #333; }
+.login-modal-icon { width: 60px; height: 60px; background: #fff5f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #c62828; }
+.login-modal-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 12px; }
+.login-modal-text { font-size: 15px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+.login-modal-contact { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; font-size: 14px; color: #333; }
+.login-modal-contact strong { color: #c62828; }
+
+@media (max-width: 900px) {
+  .login-page { flex-direction: column; }
+  .login-visual { flex: none; min-height: 380px; padding: 40px; }
+  .login-visual-title { font-size: 42px; }
+  .login-visual-subtitle { font-size: 14px; margin-bottom: 24px; }
+  .login-visual-desc { font-size: 13px; }
+  .login-visual-bottom { gap: 24px; }
+  .login-visual-feature-num { font-size: 22px; }
+  .login-form-area { padding: 40px 24px; }
+  .login-form-title { font-size: 26px; }
+  .login-footer { position: static; margin-top: 40px; left: auto; right: auto; }
+}
+
+@media (max-width: 480px) {
+  .login-visual { padding: 30px; min-height: 320px; }
+  .login-visual-title { font-size: 34px; }
+  .login-visual-top-badge { font-size: 10px; padding: 8px 14px; }
+  .login-form-logo-text-main { font-size: 20px; }
+  .login-form-title { font-size: 24px; }
+  .login-form-subtitle { font-size: 14px; margin-bottom: 28px; }
+}
+`;
+// ============================================
+// COMPONENTE: LOGO INSTITUCIONAL SVG
+// ============================================
+// Reconstrucción del logo real de Curaduría 2 Pereira en SVG puro.
+// El símbolo rojo con líneas geométricas + tipografía CURADURÍA 2 PEREIRA.
+
+const LogoInstitucional = ({ size = 'md', variant = 'dark' }) => {
+  const sizes = {
+    sm: { mark: 32, text: 16, sub: 8 },
+    md: { mark: 44, text: 22, sub: 10 },
+    lg: { mark: 60, text: 30, sub: 12 }
+  };
+  const s = sizes[size] || sizes.md;
+  const textColor = variant === 'light' ? '#ffffff' : '#1a1a1a';
+  const subColor = variant === 'light' ? 'rgba(255,255,255,0.7)' : '#666';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* Marca / símbolo rojo */}
+      <svg width={s.mark} height={s.mark} viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+        {/* Forma principal: dos triángulos rojos superpuestos formando un origami geométrico */}
+        <polygon points="8,10 30,10 30,32 22,50 8,50" fill="#c62828" />
+        <polygon points="30,10 52,10 52,50 38,50 30,32" fill="#1a1a1a" />
+        <polygon points="30,10 52,10 30,32" fill="#c62828" />
+      </svg>
+      {/* Tipografía */}
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <div style={{ fontSize: s.text, fontWeight: 800, color: textColor, letterSpacing: '-0.5px' }}>
+          CURADURÍA 2
+        </div>
+        <div style={{ fontSize: s.sub, fontWeight: 500, letterSpacing: '4px', color: subColor, marginTop: 4 }}>
+          PEREIRA
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// COMPONENTE: PANTALLA DE LOGIN
+// ============================================
+
+function LoginPage({ onLoginSuccess }) {
+  const [usuario, setUsuario] = useState('');
+  const [password, setPassword] = useState('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [recordarme, setRecordarme] = useState(true);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState('');
+  const [modalOlvido, setModalOlvido] = useState(false);
+
+  const manejarSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!usuario.trim() || !password) {
+      setError('Por favor ingresa usuario y contraseña');
+      return;
+    }
+    setCargando(true);
+    try {
+      const response = await fetch('/api/auth-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: usuario.trim(),
+          password,
+          recordarme
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Guardar token según preferencia
+        if (recordarme) {
+          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('authUser', JSON.stringify(data.usuario));
+          sessionStorage.removeItem('authToken');
+          sessionStorage.removeItem('authUser');
+        } else {
+          sessionStorage.setItem('authToken', data.token);
+          sessionStorage.setItem('authUser', JSON.stringify(data.usuario));
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+        }
+        onLoginSuccess(data.usuario, data.token);
+      } else {
+        setError(data.error || 'Error al iniciar sesión');
+        setCargando(false);
+      }
+    } catch (err) {
+      setError('Error de conexión. Verifica tu internet e intenta de nuevo.');
+      setCargando(false);
+    }
+  };
+
+  return (
+    <div className="login-page">
+      <style>{STYLES_LOGIN}</style>
+
+      {/* ==================== ÁREA VISUAL IZQUIERDA ==================== */}
+      <div className="login-visual">
+        {/* Composición SVG de plano arquitectónico animado */}
+        <svg className="login-visual-svg" viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          {/* Grid base */}
+          <g className="line-thin">
+            {Array.from({length: 20}).map((_, i) => (
+              <line key={`h${i}`} x1="0" y1={i * 45} x2="800" y2={i * 45} />
+            ))}
+            {Array.from({length: 20}).map((_, i) => (
+              <line key={`v${i}`} x1={i * 40} y1="0" x2={i * 40} y2="900" />
+            ))}
+          </g>
+
+          {/* Edificios estilizados en isométrico */}
+          <g className="anim-draw">
+            {/* Edificio 1 - alto */}
+            <rect x="120" y="300" width="120" height="380" />
+            <line x1="120" y1="340" x2="240" y2="340" />
+            <line x1="120" y1="380" x2="240" y2="380" />
+            <line x1="120" y1="420" x2="240" y2="420" />
+            <line x1="120" y1="460" x2="240" y2="460" />
+            <line x1="120" y1="500" x2="240" y2="500" />
+            <line x1="120" y1="540" x2="240" y2="540" />
+            <line x1="120" y1="580" x2="240" y2="580" />
+            <line x1="120" y1="620" x2="240" y2="620" />
+            <line x1="160" y1="300" x2="160" y2="680" />
+            <line x1="200" y1="300" x2="200" y2="680" />
+
+            {/* Edificio 2 - medio */}
+            <rect x="280" y="400" width="140" height="280" />
+            <line x1="280" y1="440" x2="420" y2="440" />
+            <line x1="280" y1="480" x2="420" y2="480" />
+            <line x1="280" y1="520" x2="420" y2="520" />
+            <line x1="280" y1="560" x2="420" y2="560" />
+            <line x1="280" y1="600" x2="420" y2="600" />
+            <line x1="320" y1="400" x2="320" y2="680" />
+            <line x1="360" y1="400" x2="360" y2="680" />
+            <line x1="400" y1="400" x2="400" y2="680" />
+
+            {/* Edificio 3 - alto */}
+            <rect x="460" y="250" width="120" height="430" />
+            <line x1="460" y1="290" x2="580" y2="290" />
+            <line x1="460" y1="330" x2="580" y2="330" />
+            <line x1="460" y1="370" x2="580" y2="370" />
+            <line x1="460" y1="410" x2="580" y2="410" />
+            <line x1="460" y1="450" x2="580" y2="450" />
+            <line x1="460" y1="490" x2="580" y2="490" />
+            <line x1="460" y1="530" x2="580" y2="530" />
+            <line x1="460" y1="570" x2="580" y2="570" />
+            <line x1="460" y1="610" x2="580" y2="610" />
+            <line x1="500" y1="250" x2="500" y2="680" />
+            <line x1="540" y1="250" x2="540" y2="680" />
+
+            {/* Edificio 4 - bajo */}
+            <rect x="620" y="480" width="100" height="200" />
+            <line x1="620" y1="520" x2="720" y2="520" />
+            <line x1="620" y1="560" x2="720" y2="560" />
+            <line x1="620" y1="600" x2="720" y2="600" />
+            <line x1="660" y1="480" x2="660" y2="680" />
+            <line x1="700" y1="480" x2="700" y2="680" />
+
+            {/* Suelo / linea base */}
+            <line x1="60" y1="680" x2="760" y2="680" strokeWidth="2" />
+          </g>
+
+          {/* Elementos técnicos de plano */}
+          <g className="anim-draw-slow line-dashed">
+            {/* Ejes cruzados */}
+            <line x1="60" y1="750" x2="760" y2="750" />
+            <line x1="60" y1="780" x2="760" y2="780" />
+            {/* Marcadores de cotas */}
+            <line x1="120" y1="740" x2="120" y2="760" />
+            <line x1="240" y1="740" x2="240" y2="760" />
+            <line x1="360" y1="740" x2="360" y2="760" />
+            <line x1="480" y1="740" x2="480" y2="760" />
+            <line x1="600" y1="740" x2="600" y2="760" />
+            <line x1="720" y1="740" x2="720" y2="760" />
+          </g>
+
+          {/* Círculos técnicos decorativos */}
+          <g className="anim-draw">
+            <circle cx="150" cy="180" r="40" />
+            <circle cx="150" cy="180" r="25" />
+            <circle cx="150" cy="180" r="8" />
+            <line x1="90" y1="180" x2="210" y2="180" className="line-thin" />
+            <line x1="150" y1="120" x2="150" y2="240" className="line-thin" />
+          </g>
+
+          {/* Líneas guía diagonales */}
+          <g className="anim-draw-slow line-thin">
+            <line x1="0" y1="850" x2="800" y2="50" strokeDasharray="8 6" />
+            <line x1="0" y1="50" x2="800" y2="850" strokeDasharray="8 6" />
+          </g>
+        </svg>
+
+        {/* Gradientes decorativos */}
+        <div className="login-visual-accent"></div>
+        <div className="login-visual-accent-2"></div>
+
+        {/* Contenido superior: badge institucional */}
+        <div className="login-visual-top">
+          <div className="login-visual-top-badge">
+            <Shield size={14} />
+            SISTEMA INSTITUCIONAL
+          </div>
+        </div>
+
+        {/* Contenido central: título grande */}
+        <div className="login-visual-center">
+          <div className="login-visual-title">
+            CURADURÍA<br/>URBANA <span className="highlight">N.° 2</span>
+          </div>
+          <div className="login-visual-subtitle">PEREIRA · RISARALDA</div>
+          <div className="login-visual-desc">
+            Plataforma de gestión y seguimiento de proyectos urbanísticos, licencias de construcción y control de términos legales para el equipo técnico de la curaduría.
+          </div>
+        </div>
+
+        {/* Contenido inferior: features */}
+        <div className="login-visual-bottom">
+          <div className="login-visual-feature">
+            <div className="login-visual-feature-num">100%</div>
+            <div className="login-visual-feature-label">Digital</div>
+          </div>
+          <div className="login-visual-feature">
+            <div className="login-visual-feature-num">24/7</div>
+            <div className="login-visual-feature-label">Disponible</div>
+          </div>
+          <div className="login-visual-feature">
+            <div className="login-visual-feature-num">2026</div>
+            <div className="login-visual-feature-label">Versión</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ==================== ÁREA DEL FORMULARIO DERECHA ==================== */}
+      <div className="login-form-area">
+        <div className="login-form-container">
+          {/* Logo institucional */}
+          <div className="login-form-logo">
+            <LogoInstitucional size="md" variant="dark" />
+          </div>
+
+          {/* Encabezado */}
+          <h1 className="login-form-title">Bienvenido</h1>
+          <p className="login-form-subtitle">Ingresa a tu cuenta para continuar</p>
+
+          {/* Error */}
+          {error && (
+            <div className="login-error">
+              <AlertTriangle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Formulario */}
+          <div>
+            <div className="login-field">
+              <label className="login-field-label">Usuario</label>
+              <div className="login-field-wrapper">
+                <div className="login-field-icon">
+                  <User size={18} />
+                </div>
+                <input
+                  type="text"
+                  className={`login-field-input ${error ? 'error' : ''}`}
+                  placeholder="Ingresa tu usuario"
+                  value={usuario}
+                  onChange={(e) => setUsuario(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && manejarSubmit(e)}
+                  autoComplete="username"
+                  autoFocus
+                  disabled={cargando}
+                />
+              </div>
+            </div>
+
+            <div className="login-field">
+              <label className="login-field-label">Contraseña</label>
+              <div className="login-field-wrapper">
+                <div className="login-field-icon">
+                  <Lock size={18} />
+                </div>
+                <input
+                  type={mostrarPassword ? 'text' : 'password'}
+                  className={`login-field-input ${error ? 'error' : ''}`}
+                  placeholder="Ingresa tu contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && manejarSubmit(e)}
+                  autoComplete="current-password"
+                  disabled={cargando}
+                />
+                <button
+                  type="button"
+                  className="login-field-toggle"
+                  onClick={() => setMostrarPassword(!mostrarPassword)}
+                  tabIndex={-1}
+                  aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="login-options">
+              <label className="login-checkbox">
+                <input
+                  type="checkbox"
+                  checked={recordarme}
+                  onChange={(e) => setRecordarme(e.target.checked)}
+                  disabled={cargando}
+                />
+                <span className="login-checkbox-label">Recordarme</span>
+              </label>
+              <button
+                type="button"
+                className="login-forgot"
+                onClick={() => setModalOlvido(true)}
+                disabled={cargando}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="login-submit"
+              onClick={manejarSubmit}
+              disabled={cargando}
+            >
+              {cargando ? (
+                <>
+                  <span className="login-submit-spinner"></span>
+                  Iniciando sesión...
+                </>
+              ) : (
+                <>
+                  <LogIn size={18} />
+                  Iniciar sesión
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer institucional */}
+        <div className="login-footer">
+          <span className="login-footer-line">© 2026 Curaduría Urbana N.° 2 de Pereira</span>
+          <span className="login-footer-line">Todos los derechos reservados · Uso institucional</span>
+        </div>
+      </div>
+
+      {/* ==================== MODAL "OLVIDASTE CONTRASEÑA" ==================== */}
+      {modalOlvido && (
+        <div className="login-modal-overlay" onClick={() => setModalOlvido(false)}>
+          <div className="login-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="login-modal-close" onClick={() => setModalOlvido(false)} aria-label="Cerrar">
+              <X size={16} />
+            </button>
+            <div className="login-modal-icon">
+              <Lock size={28} />
+            </div>
+            <h3 className="login-modal-title">Recuperación de contraseña</h3>
+            <p className="login-modal-text">
+              Por seguridad, la recuperación de contraseñas se gestiona directamente con el administrador del sistema. 
+              Comunícate para restablecer tu acceso.
+            </p>
+            <div className="login-modal-contact">
+              📧 <strong>director@curaduria2pereira.com.co</strong><br/>
+              <span style={{fontSize:'13px', color:'#666', marginTop:'6px', display:'block'}}>
+                Menciona tu nombre de usuario y el motivo de la solicitud.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+// ============================================
+// COMPONENTE APP PRINCIPAL
 // ============================================
 
 function App() {
+  // ==============================
+  // AUTENTICACIÓN
+  // ==============================
+  const [usuarioActual, setUsuarioActual] = useState(null);
+  const [token, setToken] = useState(null);
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
+
+  // Al cargar la app: verificar si ya hay una sesión guardada
+  useEffect(() => {
+    const verificarSesion = async () => {
+      // Buscar token en localStorage primero, luego sessionStorage
+      const tokenGuardado = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      const usuarioGuardado = localStorage.getItem('authUser') || sessionStorage.getItem('authUser');
+
+      if (!tokenGuardado || !usuarioGuardado) {
+        setVerificandoSesion(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth-me', {
+          headers: { 'Authorization': `Bearer ${tokenGuardado}` }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setUsuarioActual(data.usuario);
+          setToken(tokenGuardado);
+        } else {
+          // Token inválido o expirado: limpiar
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+          sessionStorage.removeItem('authToken');
+          sessionStorage.removeItem('authUser');
+        }
+      } catch (err) {
+        // Error de red: mantener sesión local temporalmente
+        try {
+          const userParsed = JSON.parse(usuarioGuardado);
+          setUsuarioActual(userParsed);
+          setToken(tokenGuardado);
+        } catch (e) {
+          // ignorar
+        }
+      } finally {
+        setVerificandoSesion(false);
+      }
+    };
+    verificarSesion();
+  }, []);
+
+  const manejarLoginExitoso = (usuario, tokenNuevo) => {
+    setUsuarioActual(usuario);
+    setToken(tokenNuevo);
+  };
+
+  const cerrarSesion = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('authUser');
+    setUsuarioActual(null);
+    setToken(null);
+    // Limpiar estados de UI
+    setVista('dashboard');
+    setTecnicoActivo(null);
+    setModoTV(false);
+    setMenuAbierto(false);
+  };
+
+  // ==============================
+  // ESTADOS GENERALES
+  // ==============================
   const [proyectos, setProyectos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [vista, setVista] = useState('dashboard');
   const [busqueda, setBusqueda] = useState('');
@@ -382,27 +973,38 @@ function App() {
   const [tabTecnico, setTabTecnico] = useState('activos');
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [filtroEstrategicosTecnicos, setFiltroEstrategicosTecnicos] = useState(false);
-  
+
   const [estrategicos, setEstrategicos] = useState(() => {
     const saved = localStorage.getItem('estrategicos');
     return saved ? JSON.parse(saved) : [];
   });
-  
+
   const [notasPersonales, setNotasPersonales] = useState(() => {
     const saved = localStorage.getItem('notasPersonales');
     return saved ? JSON.parse(saved) : {};
   });
-  
+
   const [estadosFlujo, setEstadosFlujo] = useState(() => {
     const saved = localStorage.getItem('estadosFlujo');
     return saved ? JSON.parse(saved) : {};
   });
 
+  // ==============================
+  // CARGA DE DATOS DEL EXCEL
+  // ==============================
   const cargarDatos = async () => {
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/excel-data');
+      const response = await fetch('/api/excel-data', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.status === 401) {
+        // Sesión expirada
+        cerrarSesion();
+        return;
+      }
       const data = await response.json();
       if (data.success) {
         const proyectosProcesados = data.proyectos.map(p => ({
@@ -432,7 +1034,32 @@ function App() {
     }
   };
 
-  useEffect(() => { cargarDatos(); }, []);
+  // Cargar datos cuando el usuario esté autenticado
+  useEffect(() => {
+    if (usuarioActual && token) {
+      cargarDatos();
+    }
+  }, [usuarioActual, token]);
+
+  // ==============================
+  // LÓGICA DE VISTA INICIAL SEGÚN ROL
+  // ==============================
+  // Cuando el usuario acaba de loguearse:
+  //  - Si es TÉCNICO: entra directo a su vista personal (no puede ver a otros)
+  //  - Si es ADMIN o CONTROL: entra al dashboard general
+  useEffect(() => {
+    if (usuarioActual && !tecnicoActivo) {
+      if (usuarioActual.rol === 'tecnico' && usuarioActual.tecnicoNombre) {
+        const miPerfil = TECNICOS.find(t => t.nombre === usuarioActual.tecnicoNombre);
+        if (miPerfil) {
+          setTecnicoActivo(miPerfil);
+          setTabTecnico('activos');
+        }
+      }
+    }
+  }, [usuarioActual]);
+
+  // Reloj del modo TV
   useEffect(() => {
     if (modoTV) {
       const timer = setInterval(() => setHoraTV(new Date()), 1000);
@@ -440,6 +1067,9 @@ function App() {
     }
   }, [modoTV]);
 
+  // ==============================
+  // HELPERS DE INTERACCIÓN
+  // ==============================
   const toggleEstrategico = (radicado) => {
     const radStr = String(radicado);
     const nuevos = estrategicos.includes(radStr) ? estrategicos.filter(r => r !== radStr) : [...estrategicos, radStr];
@@ -500,16 +1130,6 @@ function App() {
   // ============================================
   // LÓGICA DE VENCIMIENTO POR ETAPA
   // ============================================
-  // Regla:
-  //  - REV_ARQ_1  -> Fecha LDF + 9 días hábiles
-  //  - REV_ESTR_1 -> Fecha LDF + 18 días hábiles (9 arq + 9 estr)
-  //  - REV_ARQ_2  -> Fecha respuesta acta (col AN) + 9 días hábiles
-  //  - REV_ESTR_2 -> Fecha respuesta acta (col AN) + 18 días hábiles
-  //  - REV_ARQ_3  -> Fecha respuesta acta (col AN) + 18 días hábiles (9 de 2da + 9 de 3ra)
-  //  - REV_ESTR_3 -> Fecha respuesta acta (col AN) + 27 días hábiles (18 arq + 9 estr de 3ra)
-  //  - Otros estados NO aplican vencimiento
-  //  - Si el proyecto está en 2da o 3ra vuelta pero NO hay fecha de respuesta al acta,
-  //    tampoco aplica vencimiento (no se puede calcular).
   const getFechaLimiteEtapa = (p) => {
     const estado = getEstadoFlujo(p);
     if (estado === 'REV_ARQ_1') {
@@ -543,6 +1163,58 @@ function App() {
       return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ * 2 + DIAS_ETAPA.REV_ESTR);
     }
     return null;
+  };
+
+  // ==============================
+  // GATE DE AUTENTICACIÓN
+  // ==============================
+  // Mientras verificamos si hay sesión activa
+  if (verificandoSesion) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f5f5f5',
+        fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 40,
+            height: 40,
+            border: '4px solid #e0e0e0',
+            borderTopColor: '#c62828',
+            borderRadius: '50%',
+            animation: 'spinInit 0.7s linear infinite',
+            margin: '0 auto 16px'
+          }}></div>
+          <div style={{ color: '#666', fontSize: 14 }}>Verificando sesión...</div>
+          <style>{`@keyframes spinInit { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  // Si NO hay sesión activa → mostrar login
+  if (!usuarioActual || !token) {
+    return <LoginPage onLoginSuccess={manejarLoginExitoso} />;
+  }
+
+  // Función auxiliar: iniciales del usuario para el avatar del header
+  const inicialesUsuario = (nombre) => {
+    if (!nombre) return 'U';
+    const partes = nombre.trim().split(' ');
+    if (partes.length === 1) return partes[0].charAt(0).toUpperCase();
+    return (partes[0].charAt(0) + partes[partes.length - 1].charAt(0)).toUpperCase();
+  };
+
+  // Label del rol para mostrar en el header
+  const labelRol = (rol) => {
+    if (rol === 'admin') return 'Administrador';
+    if (rol === 'control') return 'Control de términos';
+    if (rol === 'tecnico') return 'Técnico';
+    return 'Usuario';
   };
 
   // Cálculos generales
@@ -620,20 +1292,20 @@ function App() {
 
   const calcularEficiencia = (nombreTecnico, soloEstrategicos = false) => {
     const proyectosBase = soloEstrategicos ? proyectos.filter(p => p.estrategico) : proyectos;
-    const misProyectos = proyectosBase.filter(p => 
+    const misProyectos = proyectosBase.filter(p =>
       p.nombreArquitecto === nombreTecnico || p.nombreIngeniero === nombreTecnico
     );
-    
+
     let tiemposExpedicion = [];
     let tiemposActa = [];
     let tiemposRespuesta = [];
-    
+
     misProyectos.forEach(p => {
       const fRad = excelDateToDate(p.fechaRadicacion);
       const fExp = excelDateToDate(p.fechaLicencia);
       const fActa = excelDateToDate(p.actaObservaciones);
       const fFin = excelDateToDate(p.fechaFinalizacion);
-      
+
       if (fRad && fExp) {
         const dias = diasHabilesEntreFechas(fRad, fExp);
         if (dias !== null) tiemposExpedicion.push(dias);
@@ -647,9 +1319,9 @@ function App() {
         if (dias !== null) tiemposRespuesta.push(dias);
       }
     });
-    
+
     const promedio = (arr) => arr.length > 0 ? Math.round(arr.reduce((a,b) => a+b, 0) / arr.length) : null;
-    
+
     return {
       expedicion: promedio(tiemposExpedicion),
       acta: promedio(tiemposActa),
@@ -668,7 +1340,7 @@ function App() {
     const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const diasSem = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     const fechaHoy = `${diasSem[horaTV.getDay()]}, ${horaTV.getDate()} de ${meses[horaTV.getMonth()]}`;
-    
+
     return (
       <div className="tv-mode">
         <style>{STYLES + STYLES_TV}</style>
@@ -786,16 +1458,17 @@ function App() {
       </div>
     );
   }
-    // ==============================
-  // SELECTOR DE TÉCNICO
+
   // ==============================
-  if (vista === 'ingreso' && !tecnicoActivo) {
+  // SELECTOR DE TÉCNICO (solo admins y control)
+  // ==============================
+  if (vista === 'ingreso' && !tecnicoActivo && puedeVerOtrosTecnicos(usuarioActual.rol)) {
     return (
       <div className="tecnico-selector">
         <style>{STYLES}</style>
         <h1>Curaduría 2 Pereira</h1>
         <div className="subtitle">Proyectos Estratégicos 2026</div>
-        <div className="hint">Selecciona tu nombre para ver tu panorama de proyectos</div>
+        <div className="hint">Selecciona un técnico para ver su panorama de proyectos</div>
         <div className="tecnico-list">
           {TECNICOS.map(t => (
             <div key={t.nombre} className="tecnico-card" onClick={() => { setTecnicoActivo(t); setTabTecnico('activos'); }}>
@@ -821,7 +1494,20 @@ function App() {
   // VISTA PERSONAL DEL TÉCNICO
   // ==============================
   if (tecnicoActivo) {
-    const misProyectos = proyectos.filter(p => 
+    // Seguridad: si un técnico intenta ver a otro técnico, lo redirigimos a su propia vista
+    const esAdminOControl = puedeVerOtrosTecnicos(usuarioActual.rol);
+    const puedeVerEsteTecnico = esAdminOControl || tecnicoActivo.nombre === usuarioActual.tecnicoNombre;
+    if (!puedeVerEsteTecnico) {
+      const miPerfil = TECNICOS.find(t => t.nombre === usuarioActual.tecnicoNombre);
+      if (miPerfil) {
+        setTimeout(() => setTecnicoActivo(miPerfil), 0);
+      } else {
+        setTimeout(() => setTecnicoActivo(null), 0);
+      }
+      return null;
+    }
+
+    const misProyectos = proyectos.filter(p =>
       p.nombreArquitecto === tecnicoActivo.nombre || p.nombreIngeniero === tecnicoActivo.nombre
     );
 
@@ -829,35 +1515,35 @@ function App() {
       const estado = getEstadoFlujo(p);
       const esArq = p.nombreArquitecto === tecnicoActivo.nombre;
       const esIng = p.nombreIngeniero === tecnicoActivo.nombre;
-      
+
       if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE', 'NEGADO', 'PAGOS'].includes(estado)) return 'entregados';
-      
+
       if (esArq) {
         if (['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3'].includes(estado)) return 'activos';
         if (['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3', 'ACTA_OBS'].includes(estado)) return 'entregados';
         if (estado === 'PENDIENTE_LDF') return 'vienen';
       }
-      
+
       if (esIng) {
         if (['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3'].includes(estado)) return 'activos';
         if (['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3', 'PENDIENTE_LDF'].includes(estado)) return 'vienen';
         if (estado === 'ACTA_OBS') return 'entregados';
       }
-      
+
       return 'vienen';
     };
 
     const proyectosVienen = misProyectos.filter(p => clasificarProyecto(p) === 'vienen');
     const proyectosActivos = misProyectos.filter(p => clasificarProyecto(p) === 'activos');
     const proyectosEntregados = misProyectos.filter(p => clasificarProyecto(p) === 'entregados');
-    
+
     const misEstrategicos = misProyectos.filter(p => p.estrategico);
     const misAprobados = misProyectos.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
     const miTasa = misProyectos.length > 0 ? Math.round((misAprobados / misProyectos.length) * 100) : 0;
 
-    const proyectosMostrar = tabTecnico === 'vienen' ? proyectosVienen : 
+    const proyectosMostrar = tabTecnico === 'vienen' ? proyectosVienen :
                             tabTecnico === 'activos' ? proyectosActivos : proyectosEntregados;
-    
+
     const proyectosOrdenados = [...proyectosMostrar].sort((a, b) => {
       if (a.estrategico !== b.estrategico) return b.estrategico ? 1 : -1;
       const fechaA = getFechaLimiteEtapa(a) || excelDateToDate(a.maximaLegal);
@@ -875,9 +1561,16 @@ function App() {
             <h2>🏛 Curaduría Urbana N.° 2</h2>
             <p>Pereira · Vista Técnico</p>
           </div>
-          <button className="btn-primary" onClick={() => setTecnicoActivo(null)}>
-            ← Cambiar usuario
-          </button>
+          <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
+            {esAdminOControl && (
+              <button className="btn-primary" onClick={() => setTecnicoActivo(null)}>
+                ← Cambiar técnico
+              </button>
+            )}
+            <button className="btn-primary" style={{background:'#616161'}} onClick={cerrarSesion}>
+              <LogOut size={14} style={{display:'inline', marginRight:'4px'}} /> Cerrar sesión
+            </button>
+          </div>
         </div>
 
         <h2 style={{fontSize:'26px', marginBottom:'5px'}}>Mis Proyectos — {tecnicoActivo.nombre}</h2>
@@ -923,28 +1616,28 @@ function App() {
             No hay proyectos en esta sección
           </div>
         )}
-        
+
         {proyectosOrdenados.map(p => {
           const key = `${tecnicoActivo.nombre}_${p.radicado}`;
           const nota = notasPersonales[key] || '';
           const estadoActual = getEstadoFlujo(p);
           const estadoInfo = ESTADOS_FLUJO[estadoActual];
-          
+
           const fechaLimiteEtapa = getFechaLimiteEtapa(p);
           const diasEtapa = fechaLimiteEtapa ? diasHabilesRestantes(fechaLimiteEtapa) : null;
           const fechaMaxLegal = excelDateToDate(p.maximaLegal);
           const diasLegal = diasEntreFechas(fechaMaxLegal);
-          
+
           let semaforoEtapa = 'verde';
           const estaEnRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual);
           if (diasEtapa !== null && estaEnRevision) {
             if (diasEtapa < 0) semaforoEtapa = 'rojo';
             else if (diasEtapa <= 2) semaforoEtapa = 'amarillo';
           }
-          
-          const urgencia = estaEnRevision && diasEtapa !== null && diasEtapa < 0 ? 'urgente' : 
+
+          const urgencia = estaEnRevision && diasEtapa !== null && diasEtapa < 0 ? 'urgente' :
                           estaEnRevision && diasEtapa !== null && diasEtapa <= 2 ? 'pronto' : 'ok';
-          
+
           return (
             <div key={p.radicado} className={`proyecto-tecnico ${urgencia}`}>
               <div className="proyecto-tecnico-info">
@@ -956,7 +1649,7 @@ function App() {
                   </span>
                   {diasEtapa !== null && estaEnRevision && (
                     <span className={`semaforo-mini ${semaforoEtapa}`}>
-                      <Clock size={12} /> 
+                      <Clock size={12} />
                       {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d etapa`}
                     </span>
                   )}
@@ -966,12 +1659,12 @@ function App() {
                     </span>
                   )}
                 </div>
-                
+
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Arquitecto:</strong> {p.nombreArquitecto || '-'}</div>
                   <div className="info-item"><strong>Ingeniero:</strong> {p.nombreIngeniero || '-'}</div>
                 </div>
-                
+
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
                   {['REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && (
@@ -979,7 +1672,7 @@ function App() {
                   )}
                   <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
                     {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
-                      diasLegal < 0 
+                      diasLegal < 0
                         ? <span style={{color:'#c62828'}}> (Vencido {Math.abs(diasLegal)}d)</span>
                         : <span style={{color:'#388e3c'}}> ({diasLegal}d restantes)</span>
                     )}
@@ -991,18 +1684,18 @@ function App() {
                     )}
                   </div>
                 </div>
-                
+
                 {nota && (
                   <div className="nota-personal">
                     <strong>📝 Mi nota:</strong> {nota}
                   </div>
                 )}
               </div>
-              
+
               <div className="proyecto-tecnico-actions">
                 <label style={{fontSize:'12px', color:'#666', marginBottom:'2px'}}>Cambiar estado:</label>
-                <select 
-                  className="estado-selector" 
+                <select
+                  className="estado-selector"
                   value={estadoActual}
                   onChange={(e) => cambiarEstadoFlujo(p.radicado, e.target.value)}
                 >
@@ -1011,15 +1704,15 @@ function App() {
                   ))}
                   <option value="AUTO">🔄 Restaurar automático</option>
                 </select>
-                
-                <button 
+
+                <button
                   className="btn-nota"
                   onClick={() => {
                     const nueva = prompt('Escribe tu nota personal:', nota);
                     if (nueva !== null) guardarNota(p.radicado, tecnicoActivo.nombre, nueva);
                   }}
                 >
-                  <StickyNote size={14} style={{display:'inline', marginRight:'4px'}} /> 
+                  <StickyNote size={14} style={{display:'inline', marginRight:'4px'}} />
                   {nota ? 'Editar nota' : 'Agregar nota'}
                 </button>
               </div>
@@ -1041,20 +1734,33 @@ function App() {
            (ESTADOS_FLUJO[getEstadoFlujo(p)]?.label || '').toLowerCase().includes(b);
   });
 
+  // Si la vista actual está restringida para el rol, forzar dashboard
+  const vistaEfectiva = puedeVer(usuarioActual.rol, vista) ? vista : 'dashboard';
+
   return (
     <div className="app">
       <style>{STYLES + STYLES_TV}</style>
       <div className="header">
         <h1>Dashboard Curaduría 2 Pereira</h1>
         <div className="header-buttons">
+          <div className="header-user">
+            <div className="header-user-avatar">{inicialesUsuario(usuarioActual.nombre)}</div>
+            <div className="header-user-info">
+              <div className="header-user-name">{usuarioActual.nombre}</div>
+              <div className="header-user-role">{labelRol(usuarioActual.rol)}</div>
+            </div>
+          </div>
           <button className="header-btn" onClick={cargarDatos}>
             <RefreshCw size={16} /> Actualizar
           </button>
           <button className="header-btn" onClick={() => setVista('ingreso')}>
-            <LogIn size={16} /> Ingreso de Técnico
+            <LogIn size={16} /> {usuarioActual.rol === 'tecnico' ? 'Mi Panel' : 'Ingreso de Técnico'}
           </button>
           <button className="header-btn" onClick={() => setModoTV(true)}>
             <Tv size={16} /> Modo TV
+          </button>
+          <button className="header-btn" onClick={cerrarSesion} style={{background:'rgba(255,255,255,0.15)'}}>
+            <LogOut size={16} /> Salir
           </button>
         </div>
         <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>
@@ -1062,55 +1768,71 @@ function App() {
         </button>
       </div>
       <div className={`menu-mobile ${menuAbierto ? 'open' : ''}`}>
+        <div className="header-user">
+          <div className="header-user-avatar">{inicialesUsuario(usuarioActual.nombre)}</div>
+          <div className="header-user-info">
+            <div className="header-user-name">{usuarioActual.nombre}</div>
+            <div className="header-user-role">{labelRol(usuarioActual.rol)}</div>
+          </div>
+        </div>
         <button className="header-btn" onClick={() => { cargarDatos(); setMenuAbierto(false); }}>
           <RefreshCw size={16} /> Actualizar
         </button>
         <button className="header-btn" onClick={() => { setVista('ingreso'); setMenuAbierto(false); }}>
-          <LogIn size={16} /> Ingreso de Técnico
+          <LogIn size={16} /> {usuarioActual.rol === 'tecnico' ? 'Mi Panel' : 'Ingreso de Técnico'}
         </button>
         <button className="header-btn" onClick={() => { setModoTV(true); setMenuAbierto(false); }}>
           <Tv size={16} /> Modo TV
         </button>
+        <button className="header-btn" onClick={() => { cerrarSesion(); setMenuAbierto(false); }}>
+          <LogOut size={16} /> Cerrar sesión
+        </button>
       </div>
-      
+
       <div className="nav">
-        <button className={`nav-btn ${vista === 'dashboard' ? 'active' : ''}`} onClick={() => setVista('dashboard')}>
+        <button className={`nav-btn ${vistaEfectiva === 'dashboard' ? 'active' : ''}`} onClick={() => setVista('dashboard')}>
           <Home size={16} /> Dashboard
         </button>
-        <button className={`nav-btn ${vista === 'estrategicos' ? 'active' : ''}`} onClick={() => setVista('estrategicos')}>
+        <button className={`nav-btn ${vistaEfectiva === 'estrategicos' ? 'active' : ''}`} onClick={() => setVista('estrategicos')}>
           <Star size={16} /> Estratégicos
         </button>
-        <button className={`nav-btn ${vista === 'terminos' ? 'active' : ''}`} onClick={() => setVista('terminos')}>
+        <button className={`nav-btn ${vistaEfectiva === 'terminos' ? 'active' : ''}`} onClick={() => setVista('terminos')}>
           <Clock size={16} /> Términos
         </button>
-        <button className={`nav-btn ${vista === 'proyectos' ? 'active' : ''}`} onClick={() => setVista('proyectos')}>
+        <button className={`nav-btn ${vistaEfectiva === 'proyectos' ? 'active' : ''}`} onClick={() => setVista('proyectos')}>
           <FileText size={16} /> Proyectos
         </button>
-        <button className={`nav-btn ${vista === 'tecnicos' ? 'active' : ''}`} onClick={() => setVista('tecnicos')}>
+        <button className={`nav-btn ${vistaEfectiva === 'tecnicos' ? 'active' : ''}`} onClick={() => setVista('tecnicos')}>
           <Users size={16} /> Técnicos
         </button>
-        <button className={`nav-btn ${vista === 'historial' ? 'active' : ''}`} onClick={() => setVista('historial')}>
+        <button className={`nav-btn ${vistaEfectiva === 'historial' ? 'active' : ''}`} onClick={() => setVista('historial')}>
           <History size={16} /> Historial
         </button>
-        <button className={`nav-btn ${vista === 'estadisticas' ? 'active' : ''}`} onClick={() => setVista('estadisticas')}>
-          <TrendingUp size={16} /> Estadísticas
-        </button>
-        <button className={`nav-btn ${vista === 'estadisticasEstrategicas' ? 'active' : ''}`} onClick={() => setVista('estadisticasEstrategicas')}>
-          <Star size={16} /> Estadísticas Estratégicas
-        </button>
-        <button className={`nav-btn ${vista === 'pendientes' ? 'active' : ''}`} onClick={() => setVista('pendientes')}>
+        {puedeVer(usuarioActual.rol, 'estadisticas') && (
+          <button className={`nav-btn ${vistaEfectiva === 'estadisticas' ? 'active' : ''}`} onClick={() => setVista('estadisticas')}>
+            <TrendingUp size={16} /> Estadísticas
+          </button>
+        )}
+        {puedeVer(usuarioActual.rol, 'estadisticasEstrategicas') && (
+          <button className={`nav-btn ${vistaEfectiva === 'estadisticasEstrategicas' ? 'active' : ''}`} onClick={() => setVista('estadisticasEstrategicas')}>
+            <Star size={16} /> Estadísticas Estratégicas
+          </button>
+        )}
+        <button className={`nav-btn ${vistaEfectiva === 'pendientes' ? 'active' : ''}`} onClick={() => setVista('pendientes')}>
           <StickyNote size={16} /> Pendientes
         </button>
-        <button className={`nav-btn ${vista === 'pagos' ? 'active' : ''}`} onClick={() => setVista('pagos')}>
-          <FileText size={16} /> Pagos
-        </button>
+        {puedeVer(usuarioActual.rol, 'pagos') && (
+          <button className={`nav-btn ${vistaEfectiva === 'pagos' ? 'active' : ''}`} onClick={() => setVista('pagos')}>
+            <FileText size={16} /> Pagos
+          </button>
+        )}
       </div>
 
       <div className="content">
         {loading && <div className="loading">Cargando datos del Excel...</div>}
         {error && <div className="error-msg">Error: {error}</div>}
-        
-        {!loading && !error && vista === 'dashboard' && (
+
+        {!loading && !error && vistaEfectiva === 'dashboard' && (
           <>
             <div className="stats-grid">
               <div className="stat-card"><h3>Total Radicados 2026</h3><div className="value">{totalProyectos}</div></div>
@@ -1122,7 +1844,9 @@ function App() {
               <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencidos.length}</div></div>
               <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaAprobacion}%</div></div>
               <div className="stat-card"><h3>⏸️ Pendientes</h3><div className="value">{pendientes}</div></div>
-              <div className="stat-card info"><h3>💰 En Pagos</h3><div className="value">{enPagos}</div></div>
+              {puedeVer(usuarioActual.rol, 'pagos') && (
+                <div className="stat-card info"><h3>💰 En Pagos</h3><div className="value">{enPagos}</div></div>
+              )}
               <div className="stat-card warning"><h3>🚫 Negados</h3><div className="value">{negados}</div></div>
               <div className="stat-card"><h3>❌ Desistidos</h3><div className="value">{desistidos}</div></div>
             </div>
@@ -1166,7 +1890,7 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vista === 'estrategicos' && (
+        {!loading && !error && vistaEfectiva === 'estrategicos' && (
           <>
             <h2 style={{marginBottom:'20px'}}>⭐ Proyectos Estratégicos ({proyectosEstrategicos})</h2>
             <div className="table">
@@ -1193,17 +1917,17 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vista === 'terminos' && (
+        {!loading && !error && vistaEfectiva === 'terminos' && (
           <>
             <h2 style={{marginBottom:'20px'}}>⏰ Términos por Etapa</h2>
             <div className="info-panel" style={{marginBottom:'20px'}}>
               ⏰ <strong>Cálculo de vencimiento por etapa</strong><br/>
               <span style={{fontSize:'13px'}}>
-                Rev. Arquitectónica 1ra vuelta: 9 días hábiles desde LDF · 
-                Rev. Estructural 1ra vuelta: 18 días hábiles desde LDF · 
-                Rev. Arquitectónica 2da vuelta: 9 días hábiles desde respuesta al acta · 
-                Rev. Estructural 2da vuelta: 18 días hábiles desde respuesta al acta · 
-                Rev. Arquitectónica 3ra vuelta: 18 días hábiles desde respuesta al acta · 
+                Rev. Arquitectónica 1ra vuelta: 9 días hábiles desde LDF ·
+                Rev. Estructural 1ra vuelta: 18 días hábiles desde LDF ·
+                Rev. Arquitectónica 2da vuelta: 9 días hábiles desde respuesta al acta ·
+                Rev. Estructural 2da vuelta: 18 días hábiles desde respuesta al acta ·
+                Rev. Arquitectónica 3ra vuelta: 18 días hábiles desde respuesta al acta ·
                 Rev. Estructural 3ra vuelta: 27 días hábiles desde respuesta al acta.
               </span>
             </div>
@@ -1250,7 +1974,7 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vista === 'proyectos' && (
+        {!loading && !error && vistaEfectiva === 'proyectos' && (
           <>
             <div className="search-box">
               <input type="text" className="search-input" placeholder="Buscar por radicado, técnico, estado..." value={busqueda} onChange={(e)=>setBusqueda(e.target.value)} />
@@ -1280,26 +2004,26 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vista === 'tecnicos' && (
+        {!loading && !error && vistaEfectiva === 'tecnicos' && (
           <>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', flexWrap:'wrap', gap:'15px'}}>
               <h2>Productividad del Equipo {filtroEstrategicosTecnicos && '⭐ (Solo Estratégicos)'}</h2>
-              <button 
+              <button
                 className={`filter-btn ${filtroEstrategicosTecnicos ? 'active' : ''}`}
                 onClick={() => setFiltroEstrategicosTecnicos(!filtroEstrategicosTecnicos)}
               >
-                <Star size={16} fill={filtroEstrategicosTecnicos ? 'white' : '#f9a825'} /> 
+                <Star size={16} fill={filtroEstrategicosTecnicos ? 'white' : '#f9a825'} />
                 {filtroEstrategicosTecnicos ? 'Ver Todos' : 'Solo Estratégicos'}
               </button>
             </div>
-            
+
             {filtroEstrategicosTecnicos && (
               <div className="info-panel">
                 ⭐ <strong>Mostrando solo proyectos estratégicos</strong><br/>
                 <span style={{fontSize:'13px'}}>Las estadísticas de cada técnico reflejan únicamente sus proyectos marcados como estratégicos.</span>
               </div>
             )}
-            
+
             <div className="stats-grid">
               {TECNICOS.map(t=>{
                 const s = productividadEquipo(filtroEstrategicosTecnicos)[t.nombre]||{aprobados:0,revision:0,acta:0,desistidos:0,vencidos:0,total:0};
@@ -1321,7 +2045,7 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vista === 'historial' && (
+        {!loading && !error && vistaEfectiva === 'historial' && (
           <>
             <h2 style={{marginBottom:'20px'}}>📜 Historial Completo de Movimientos</h2>
             <div className="table">
@@ -1342,10 +2066,11 @@ function App() {
             </div>
           </>
         )}
-                {!loading && !error && vista === 'estadisticas' && (
+
+        {!loading && !error && vistaEfectiva === 'estadisticas' && puedeVer(usuarioActual.rol, 'estadisticas') && (
           <>
             <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
-            
+
             <div className="chart-card" style={{marginBottom:'20px'}}>
               <h3>Radicados vs Expedidos por Mes</h3>
               <ResponsiveContainer width="100%" height={350}>
@@ -1408,9 +2133,7 @@ function App() {
                         const desistidosMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
                         const obsMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
                         const tasaMes = radicadosMes.length > 0 ? Math.round((expedidosMes / radicadosMes.length) * 100) : 0;
-                        
                         if (radicadosMes.length === 0 && expedidosMes === 0) return null;
-                        
                         return (
                           <tr key={nombreMes}>
                             <td><strong>{nombreMes}</strong></td>
@@ -1482,7 +2205,7 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vista === 'estadisticasEstrategicas' && (() => {
+        {!loading && !error && vistaEfectiva === 'estadisticasEstrategicas' && puedeVer(usuarioActual.rol, 'estadisticasEstrategicas') && (() => {
           const proyEstrat = proyectos.filter(p => p.estrategico);
           const totalEstrat = proyEstrat.length;
           const expedEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
@@ -1491,18 +2214,14 @@ function App() {
           const desistEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
           const vencEstrat = vencidos.filter(p => p.estrategico).length;
           const tasaEstrat = totalEstrat > 0 ? Math.round((expedEstrat / totalEstrat) * 100) : 0;
-          
           const prodEstrategica = productividadEquipo(true);
-          
           return (
             <>
               <h2 style={{marginBottom:'20px'}}>⭐ Estadísticas de Proyectos Estratégicos</h2>
-              
               <div className="info-panel" style={{marginBottom:'25px'}}>
                 ⭐ <strong>Análisis exclusivo de {totalEstrat} proyectos estratégicos</strong><br/>
                 <span style={{fontSize:'13px'}}>Todos los indicadores mostrados reflejan únicamente los proyectos marcados como estratégicos.</span>
               </div>
-              
               <h3 style={{marginBottom:'15px', color:'#333'}}>📊 Resumen General</h3>
               <div className="stats-grid">
                 <div className="stat-card gold"><h3>Total Estratégicos</h3><div className="value">{totalEstrat}</div></div>
@@ -1513,7 +2232,6 @@ function App() {
                 <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencEstrat}</div></div>
                 <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaEstrat}%</div></div>
               </div>
-
               <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>🏆 Productividad por Técnico</h3>
               <div className="stats-grid">
                 {TECNICOS.map(t => {
@@ -1537,7 +2255,6 @@ function App() {
                   );
                 })}
               </div>
-
               <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>⏱ Eficiencia por Técnico (Estratégicos vs General)</h3>
               <div className="table">
                 <table>
@@ -1553,7 +2270,7 @@ function App() {
                     {TECNICOS.map(t => {
                       const efE = calcularEficiencia(t.nombre, true);
                       const efG = calcularEficiencia(t.nombre, false);
-                      const compExp = efE.expedicion !== null && efG.expedicion !== null 
+                      const compExp = efE.expedicion !== null && efG.expedicion !== null
                         ? (efE.expedicion - efG.expedicion) : null;
                       return (
                         <tr key={t.nombre}>
@@ -1590,7 +2307,6 @@ function App() {
                   </tbody>
                 </table>
               </div>
-
               <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>📈 Radicados vs Expedidos Estratégicos por Mes</h3>
               <div className="chart-card">
                 <ResponsiveContainer width="100%" height={350}>
@@ -1628,7 +2344,8 @@ function App() {
             </>
           );
         })()}
-                {!loading && !error && vista === 'pendientes' && (() => {
+
+        {!loading && !error && vistaEfectiva === 'pendientes' && (() => {
           const proyectosPendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE');
           const pendientesEstrat = proyectosPendientes.filter(p => p.estrategico).length;
           return (
@@ -1646,12 +2363,7 @@ function App() {
                 <table>
                   <thead>
                     <tr>
-                      <th>⭐</th>
-                      <th>Radicado</th>
-                      <th>Fecha Rad.</th>
-                      <th>Arquitecto</th>
-                      <th>Ingeniero</th>
-                      <th>Máx. Legal</th>
+                      <th>⭐</th><th>Radicado</th><th>Fecha Rad.</th><th>Arquitecto</th><th>Ingeniero</th><th>Máx. Legal</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1675,7 +2387,7 @@ function App() {
           );
         })()}
 
-        {!loading && !error && vista === 'pagos' && (() => {
+        {!loading && !error && vistaEfectiva === 'pagos' && puedeVer(usuarioActual.rol, 'pagos') && (() => {
           const proyectosPagos = proyectos.filter(p => getEstadoFlujo(p) === 'PAGOS');
           const pagosEstrat = proyectosPagos.filter(p => p.estrategico).length;
           return (
@@ -1693,12 +2405,7 @@ function App() {
                 <table>
                   <thead>
                     <tr>
-                      <th>⭐</th>
-                      <th>Radicado</th>
-                      <th>Fecha Rad.</th>
-                      <th>Arquitecto</th>
-                      <th>Ingeniero</th>
-                      <th>Máx. Legal</th>
+                      <th>⭐</th><th>Radicado</th><th>Fecha Rad.</th><th>Arquitecto</th><th>Ingeniero</th><th>Máx. Legal</th>
                     </tr>
                   </thead>
                   <tbody>

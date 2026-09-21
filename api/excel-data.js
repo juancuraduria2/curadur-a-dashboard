@@ -81,8 +81,9 @@ const CAMPOS = {
   fechaLimitePago:        { incluye: ['FECHA LIMITE PAGO'], fallback: 54 },                             // BC
   fechaAportePagos:       { incluye: ['APORTE PAGOS'], fallback: 55 },                                  // BD
 
-  // Licencia
-  fechaLicencia:          { incluye: ['LICENCIA', 'EXPEDICION'], fallback: 63 }                         // BL (por confirmar)
+  // Licencia: fecha REAL de expedición.
+  // Se excluye BE ("FECHA LIMITE EXPEDICION LICENCIA"), que es la fecha límite, no la real.
+  fechaLicencia:          { incluye: ['LICENCIA', 'EXPEDICION'], excluye: ['LIMITE', 'FINALIZACION'], fallback: 63 } // BL (por confirmar)
 };
 
 const normalizar = (texto) => String(texto || '')

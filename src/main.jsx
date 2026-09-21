@@ -41,6 +41,8 @@ const ESTADOS_FLUJO = {
   'REV_ESTR_2': { label: 'Rev. Estr. 2da vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔄' },
   'REV_ARQ_3': { label: 'Rev. Arq. 3ra vuelta', color: '#1976d2', bg: '#e3f2fd', icon: '🔁' },
   'REV_ESTR_3': { label: 'Rev. Estr. 3ra vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔁' },
+  'REV_ARQ_4': { label: 'Rev. Arq. 4ta vuelta', color: '#1976d2', bg: '#e3f2fd', icon: '🔂' },
+  'REV_ESTR_4': { label: 'Rev. Estr. 4ta vuelta', color: '#7b1fa2', bg: '#f3e5f5', icon: '🔂' },
   'PAGOS': { label: 'Pagos', color: '#00838f', bg: '#e0f7fa', icon: '💰' },
   'EXPEDIDO': { label: 'Expedido', color: '#388e3c', bg: '#e8f5e9', icon: '✅' },
   'PENDIENTE': { label: 'Pendiente', color: '#616161', bg: '#f5f5f5', icon: '⏸️' },
@@ -48,11 +50,52 @@ const ESTADOS_FLUJO = {
   'DESISTIDO': { label: 'Desistido', color: '#c62828', bg: '#ffebee', icon: '❌' }
 };
 
-const DIAS_ETAPA = {
-  REV_ARQ: 9,
-  REV_ESTR: 9,
-  ACTA_OBS: 30
+// Todos los estados que cuentan como "en revisión" (se usa en todo el código)
+const ESTADOS_REVISION = [
+  'REV_ARQ_1', 'REV_ESTR_1',
+  'REV_ARQ_2', 'REV_ESTR_2',
+  'REV_ARQ_3', 'REV_ESTR_3',
+  'REV_ARQ_4', 'REV_ESTR_4'
+];
+
+const ESTADOS_REVISION_ARQ = ['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3', 'REV_ARQ_4'];
+const ESTADOS_REVISION_ESTR = ['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3', 'REV_ESTR_4'];
+const ESTADOS_VUELTA_POSTERIOR = ['REV_ARQ_2', 'REV_ESTR_2', 'REV_ARQ_3', 'REV_ESTR_3', 'REV_ARQ_4', 'REV_ESTR_4'];
+
+// ============================================
+// VUELTAS DE REVISIÓN
+// ============================================
+// Cada estado de revisión define:
+//  - campoInicio: columna del Excel desde donde se cuentan los días hábiles
+//  - dias: días hábiles que tiene el profesional para esa revisión
+//  - campoEntrega: fecha en que el cliente entregó la información para esa vuelta
+//
+// 1ra vuelta: arquitectura 9 días desde LDF; estructural 18 días desde LDF (9 arq + 9 estr)
+// 2da vuelta: cliente responde el acta (AV) → arq inicia AA / estr inicia AJ
+// 3ra vuelta: cliente entrega persistentes (AW) → arq inicia AB / estr inicia AK
+// 4ta vuelta: cliente entrega persistentes (AX) → arq inicia AC / estr inicia AL
+
+const VUELTAS = {
+  'REV_ARQ_1':  { vuelta: 1, area: 'arq',  campoInicio: 'fechaLegal',          dias: 9,  etiquetaInicio: 'Fecha LDF',                campoEntrega: null },
+  'REV_ESTR_1': { vuelta: 1, area: 'estr', campoInicio: 'fechaLegal',          dias: 18, etiquetaInicio: 'Fecha LDF',                campoEntrega: null },
+  'REV_ARQ_2':  { vuelta: 2, area: 'arq',  campoInicio: 'fechaAsigArqActa',    dias: 9,  etiquetaInicio: 'Inicio 2da revisión',      campoEntrega: 'fechaRespuestaActa', etiquetaEntrega: 'Respuesta al acta' },
+  'REV_ESTR_2': { vuelta: 2, area: 'estr', campoInicio: 'fechaAsigEstrActa',   dias: 9,  etiquetaInicio: 'Inicio 2da revisión',      campoEntrega: 'fechaRespuestaActa', etiquetaEntrega: 'Respuesta al acta' },
+  'REV_ARQ_3':  { vuelta: 3, area: 'arq',  campoInicio: 'fechaSegundaRevArq',  dias: 9,  etiquetaInicio: 'Inicio 3ra revisión',      campoEntrega: 'fechaPersistentes3', etiquetaEntrega: 'Entrega persistentes' },
+  'REV_ESTR_3': { vuelta: 3, area: 'estr', campoInicio: 'fechaSegundaRevEstr', dias: 9,  etiquetaInicio: 'Inicio 3ra revisión',      campoEntrega: 'fechaPersistentes3', etiquetaEntrega: 'Entrega persistentes' },
+  'REV_ARQ_4':  { vuelta: 4, area: 'arq',  campoInicio: 'fechaTerceraRevArq',  dias: 9,  etiquetaInicio: 'Inicio 4ta revisión',      campoEntrega: 'fechaPersistentes4', etiquetaEntrega: 'Entrega persistentes' },
+  'REV_ESTR_4': { vuelta: 4, area: 'estr', campoInicio: 'fechaTerceraRevEstr', dias: 9,  etiquetaInicio: 'Inicio 4ta revisión',      campoEntrega: 'fechaPersistentes4', etiquetaEntrega: 'Entrega persistentes' }
 };
+
+// Campos de fecha que llegan del Excel y hay que convertir de número serial a dd/mm/aaaa
+const CAMPOS_FECHA = [
+  'fechaRadicacion', 'maximaLegal', 'fechaLegal',
+  'fechaAsignacionArq', 'fechaPrimeraRevArq', 'fechaAsigArqActa', 'fechaSegundaRevArq', 'fechaTerceraRevArq', 'fechaRevFinalArq',
+  'fechaIngresoIng', 'fechaPrimeraRevIng', 'fechaAsigEstrActa', 'fechaSegundaRevEstr', 'fechaTerceraRevEstr',
+  'actaObservaciones', 'actaFechaLimite', 'actaSolicitudAmpliacion', 'actaFechaAmpliacion', 'fechaRespuestaActa',
+  'fechaPersistentes3', 'fechaPersistentes4',
+  'suspensionSolicitud', 'suspensionLimite',
+  'fechaFinalizacion', 'fechaLimitePago', 'fechaAportePagos', 'fechaLicencia'
+];
 
 const FESTIVOS_2026 = [
   '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03',
@@ -84,7 +127,8 @@ const excelDateToJSDate = (serial) => {
   if (!serial || serial === '') return '';
   if (typeof serial === 'string' && serial.includes('/')) return serial;
   const num = Number(serial);
-  if (isNaN(num) || num < 1) return String(serial);
+  // Valores menores a 367 son fórmulas vacías del Excel (ej. 06/01/1900), no fechas reales
+  if (isNaN(num) || num < 367) return '';
   const utcDays = num - 25569;
   const date = new Date(utcDays * 86400 * 1000);
   return `${String(date.getUTCDate()).padStart(2,'0')}/${String(date.getUTCMonth()+1).padStart(2,'0')}/${date.getUTCFullYear()}`;
@@ -98,7 +142,7 @@ const excelDateToDate = (serial) => {
     return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
   }
   const num = Number(serial);
-  if (isNaN(num) || num < 1) return null;
+  if (isNaN(num) || num < 367) return null;
   return new Date((num - 25569) * 86400 * 1000);
 };
 
@@ -146,6 +190,11 @@ const formatoFechaLarga = (fechaStr) => {
   if (p.length !== 3) return fechaStr;
   const meses = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'];
   return `${parseInt(p[0])} de ${meses[parseInt(p[1])-1]} de ${p[2]}`;
+};
+
+const formatoFechaCorta = (fecha) => {
+  if (!fecha) return '';
+  return `${String(fecha.getDate()).padStart(2,'0')}/${String(fecha.getMonth()+1).padStart(2,'0')}/${fecha.getFullYear()}`;
 };
 
 const diasEntreFechas = (fecha) => {
@@ -209,6 +258,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .stat-card.info .value { color: #1976d2; }
 .stat-card.gold { border-left-color: #f9a825; }
 .stat-card.gold .value { color: #f9a825; }
+.stat-card.gray { border-left-color: #78909c; }
+.stat-card.gray .value { color: #546e7a; }
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
 .chart-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .chart-card h3 { margin-bottom: 20px; color: #333; font-size: 16px; }
@@ -225,7 +276,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .badge.orange { background: #fff3e0; color: #f57c00; }
 .badge.blue { background: #e3f2fd; color: #1976d2; }
 .badge.purple { background: #f3e5f5; color: #7b1fa2; }
-.badge.gray { background: #f5f5f5; color: #666; }
+.badge.gray { background: #eceff1; color: #546e7a; }
 .badge.yellow { background: #fffde7; color: #f9a825; }
 .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
 .search-input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
@@ -272,6 +323,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .proyecto-tecnico.urgente { border-left: 4px solid #c62828; }
 .proyecto-tecnico.pronto { border-left: 4px solid #f57c00; }
 .proyecto-tecnico.ok { border-left: 4px solid #388e3c; }
+.proyecto-tecnico.sinfecha { border-left: 4px solid #90a4ae; }
 .proyecto-tecnico-info { flex: 1; }
 .proyecto-tecnico-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .proyecto-tecnico-radicado { font-size: 18px; font-weight: 700; color: #f9a825; }
@@ -287,6 +339,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .semaforo-mini.verde { background: #e8f5e9; color: #388e3c; }
 .semaforo-mini.amarillo { background: #fff3e0; color: #f57c00; }
 .semaforo-mini.rojo { background: #ffebee; color: #c62828; }
+.semaforo-mini.gris { background: #eceff1; color: #546e7a; }
+.vuelta-info { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: #f5f7fa; border: 1px solid #e3e8ef; border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 13px; color: #455a64; }
+.vuelta-info strong { color: #263238; }
+.vuelta-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; background: #263238; color: white; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
 .info-panel { background: #fffde7; border: 1px solid #fdd835; border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; color: #f57f17; }
 
 @media (max-width: 768px) {
@@ -324,6 +380,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   .proyecto-tecnico-actions { min-width: 100%; align-items: stretch; }
   .proyecto-info-row { flex-direction: column; gap: 8px; }
   .proyecto-tecnico-radicado { font-size: 20px; }
+  .vuelta-info { flex-direction: column; align-items: flex-start; gap: 6px; }
   .table { border-radius: 8px; }
   .table td, .table th { padding: 8px; font-size: 12px; }
 }
@@ -998,22 +1055,25 @@ function App() {
       }
       const data = await response.json();
       if (data.success) {
-        const proyectosProcesados = data.proyectos.map(p => ({
-          ...p,
-          fechaRadicacion: excelDateToJSDate(p.fechaRadicacion),
-          maximaLegal: excelDateToJSDate(p.maximaLegal),
-          fechaLegal: excelDateToJSDate(p.fechaLegal),
-          fechaAsignacionArq: excelDateToJSDate(p.fechaAsignacionArq),
-          fechaPrimeraRevArq: excelDateToJSDate(p.fechaPrimeraRevArq),
-          fechaPrimeraRevIng: excelDateToJSDate(p.fechaPrimeraRevIng),
-          actaObservaciones: excelDateToJSDate(p.actaObservaciones),
-          fechaRespuestaActa: excelDateToJSDate(p.fechaRespuestaActa),
-          fechaFinalizacion: excelDateToJSDate(p.fechaFinalizacion),
-          fechaLicencia: excelDateToJSDate(p.fechaLicencia),
-          nombreArquitecto: mapearArquitecto(p.nombreArquitecto),
-          nombreIngeniero: mapearIngeniero(p.nombreIngeniero),
-          estrategico: String(p.estrategicoExcel || '').toUpperCase().trim() === 'SI' || estrategicos.includes(String(p.radicado))
-        }));
+        const proyectosProcesados = data.proyectos.map(p => {
+          const convertido = { ...p };
+
+          // Convertir todas las columnas de fecha (incluidas las nuevas)
+          CAMPOS_FECHA.forEach(campo => {
+            let valor = excelDateToJSDate(p[campo]);
+            // Fechas de fórmulas vacías del Excel (año 1900) se tratan como vacías
+            if (typeof valor === 'string' && valor.endsWith('/1900')) valor = '';
+            convertido[campo] = valor;
+          });
+
+          convertido.nombreArquitecto = mapearArquitecto(String(p.nombreArquitecto || '').trim());
+          convertido.nombreIngeniero = mapearIngeniero(String(p.nombreIngeniero || '').trim());
+          convertido.estrategico =
+            String(p.estrategicoExcel || '').toUpperCase().trim() === 'SI' ||
+            estrategicos.includes(String(p.radicado));
+
+          return convertido;
+        });
         setProyectos(proyectosProcesados);
       } else {
         setError(data.error || 'Error al cargar datos');
@@ -1032,8 +1092,8 @@ function App() {
   }, [usuarioActual, token]);
 
   // Nota: TODOS los usuarios (admins, control y técnicos) entran al Dashboard general.
-  // Los técnicos pueden navegar libremente por el menú restringido, y cuando entren
-  // a "Mi Panel" van directo a su vista personal (sin poder elegir otros técnicos).
+  // Los técnicos navegan por el menú restringido y al entrar a "Mi Panel"
+  // van directo a su vista personal (sin poder elegir otros técnicos).
 
   // Reloj del modo TV
   useEffect(() => {
@@ -1087,10 +1147,12 @@ function App() {
     if (estado === 'PENDIENTES' || estado === 'PENDIENTE') return 'PENDIENTE';
     if (estado === 'REVISION ARQ 1' || estado === 'REVISIÓN ARQ 1') return 'REV_ARQ_1';
     if (estado === 'REVISION ESTRUC 1' || estado === 'REVISIÓN ESTRUC 1') return 'REV_ESTR_1';
-    if (estado === 'REVISIÓN ARQ 2' || estado === 'REVISION ARQ 2') return 'REV_ARQ_2';
+    if (estado === 'REVISION ARQ 2' || estado === 'REVISIÓN ARQ 2') return 'REV_ARQ_2';
     if (estado === 'REVISION ESTRUC 2' || estado === 'REVISIÓN ESTRUC 2') return 'REV_ESTR_2';
     if (estado === 'REVISION ARQ 3' || estado === 'REVISIÓN ARQ 3') return 'REV_ARQ_3';
     if (estado === 'REVISION ESTRUC 3' || estado === 'REVISIÓN ESTRUC 3') return 'REV_ESTR_3';
+    if (estado === 'REVISION ARQ 4' || estado === 'REVISIÓN ARQ 4') return 'REV_ARQ_4';
+    if (estado === 'REVISION ESTRUC 4' || estado === 'REVISIÓN ESTRUC 4') return 'REV_ESTR_4';
     if (estado === 'REVISIÓN' || estado === 'REVISION') {
       if (p.fechaPrimeraRevIng) return 'REV_ESTR_1';
       if (p.fechaPrimeraRevArq) return 'REV_ARQ_1';
@@ -1104,41 +1166,34 @@ function App() {
   };
 
   // ============================================
-  // LÓGICA DE VENCIMIENTO POR ETAPA
+  // LÓGICA DE VENCIMIENTO POR VUELTA
   // ============================================
+  // Usa la tabla VUELTAS (parte 1): cada revisión cuenta sus días hábiles
+  // desde su propia fecha de inicio. Si esa fecha está vacía, devuelve null
+  // y el proyecto NO se marca como vencido (se muestra "Sin fecha de inicio").
+
   const getFechaLimiteEtapa = (p) => {
+    const info = VUELTAS[getEstadoFlujo(p)];
+    if (!info) return null;
+    const fechaInicio = excelDateToDate(p[info.campoInicio]);
+    if (!fechaInicio) return null;
+    return sumarDiasHabiles(fechaInicio, info.dias);
+  };
+
+  // Información completa de la vuelta actual para mostrar en pantalla
+  const getInfoVuelta = (p) => {
     const estado = getEstadoFlujo(p);
-    if (estado === 'REV_ARQ_1') {
-      const fechaInicio = excelDateToDate(p.fechaLegal);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ);
-    }
-    if (estado === 'REV_ESTR_1') {
-      const fechaInicio = excelDateToDate(p.fechaLegal);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ + DIAS_ETAPA.REV_ESTR);
-    }
-    if (estado === 'REV_ARQ_2') {
-      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ);
-    }
-    if (estado === 'REV_ESTR_2') {
-      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ + DIAS_ETAPA.REV_ESTR);
-    }
-    if (estado === 'REV_ARQ_3') {
-      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ * 2);
-    }
-    if (estado === 'REV_ESTR_3') {
-      const fechaInicio = excelDateToDate(p.fechaRespuestaActa);
-      if (!fechaInicio) return null;
-      return sumarDiasHabiles(fechaInicio, DIAS_ETAPA.REV_ARQ * 2 + DIAS_ETAPA.REV_ESTR);
-    }
-    return null;
+    const info = VUELTAS[estado];
+    if (!info) return null;
+    const fechaLimite = getFechaLimiteEtapa(p);
+    return {
+      ...info,
+      fechaInicio: p[info.campoInicio] || '',
+      fechaEntrega: info.campoEntrega ? (p[info.campoEntrega] || '') : '',
+      fechaLimite,
+      diasRestantes: fechaLimite ? diasHabilesRestantes(fechaLimite) : null,
+      sinFechaInicio: !p[info.campoInicio]
+    };
   };
 
   // ==============================
@@ -1189,13 +1244,12 @@ function App() {
     return 'Usuario';
   };
 
-  // Cálculos generales
+  // ==============================
+  // CÁLCULOS GENERALES
+  // ==============================
   const totalProyectos = proyectos.length;
   const proyectosEstrategicos = proyectos.filter(p => p.estrategico).length;
-  const enEstudio = proyectos.filter(p => {
-    const e = getEstadoFlujo(p);
-    return ['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2', 'REV_ARQ_3', 'REV_ESTR_3'].includes(e);
-  }).length;
+  const enEstudio = proyectos.filter(p => ESTADOS_REVISION.includes(getEstadoFlujo(p))).length;
   const aprobados = proyectos.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
   const observaciones = proyectos.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
   const sinLDF = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE_LDF').length;
@@ -1207,27 +1261,46 @@ function App() {
 
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
+
+  // Vencidos: en revisión, con fecha de inicio registrada y fecha límite ya pasada
   const vencidos = proyectos.filter(p => {
-    const estado = getEstadoFlujo(p);
-    if (!['REV_ARQ_1', 'REV_ESTR_1', 'REV_ARQ_2', 'REV_ESTR_2', 'REV_ARQ_3', 'REV_ESTR_3'].includes(estado)) return false;
+    if (!ESTADOS_REVISION.includes(getEstadoFlujo(p))) return false;
     const fechaLimite = getFechaLimiteEtapa(p);
     if (!fechaLimite) return false;
     return fechaLimite < hoy;
   });
-    const ultimosMovimientos = () => {
+
+  // En revisión pero sin fecha de inicio registrada en el Excel
+  const sinFechaInicio = proyectos.filter(p => {
+    if (!ESTADOS_REVISION.includes(getEstadoFlujo(p))) return false;
+    return !getFechaLimiteEtapa(p);
+  });
+    const ORDINAL_VUELTA = { 1: '1ra', 2: '2da', 3: '3ra', 4: '4ta' };
+
+  const ultimosMovimientos = () => {
     const movs = [];
     proyectos.forEach(p => {
+      const arq = p.nombreArquitecto;
+      const ing = p.nombreIngeniero;
+      const cualquiera = arq || ing;
       const eventos = [
-        { fecha: p.fechaPrimeraRevArq, tipo: 'REV ARQ', tecnico: p.nombreArquitecto },
-        { fecha: p.fechaPrimeraRevIng, tipo: 'REV ESTRUC', tecnico: p.nombreIngeniero },
-        { fecha: p.actaObservaciones, tipo: 'ACTA OBS', tecnico: p.nombreArquitecto || p.nombreIngeniero },
-        { fecha: p.fechaFinalizacion, tipo: 'FINALIZADO', tecnico: p.nombreArquitecto || p.nombreIngeniero },
-        { fecha: p.fechaLicencia, tipo: 'EXPEDIDO', tecnico: p.nombreArquitecto || p.nombreIngeniero }
+        { fecha: p.fechaPrimeraRevArq, tipo: 'REV ARQ', tecnico: arq },
+        { fecha: p.fechaPrimeraRevIng, tipo: 'REV ESTRUC', tecnico: ing },
+        { fecha: p.actaObservaciones, tipo: 'ACTA OBS', tecnico: cualquiera },
+        { fecha: p.fechaAsigArqActa, tipo: 'REV ARQ 2', tecnico: arq },
+        { fecha: p.fechaAsigEstrActa, tipo: 'REV ESTRUC 2', tecnico: ing },
+        { fecha: p.fechaSegundaRevArq, tipo: 'REV ARQ 3', tecnico: arq },
+        { fecha: p.fechaSegundaRevEstr, tipo: 'REV ESTRUC 3', tecnico: ing },
+        { fecha: p.fechaTerceraRevArq, tipo: 'REV ARQ 4', tecnico: arq },
+        { fecha: p.fechaTerceraRevEstr, tipo: 'REV ESTRUC 4', tecnico: ing },
+        { fecha: p.fechaFinalizacion, tipo: 'FINALIZADO', tecnico: cualquiera },
+        { fecha: p.fechaLicencia, tipo: 'EXPEDIDO', tecnico: cualquiera }
       ];
       eventos.forEach(e => {
         if (e.fecha && e.tecnico) {
           const fechaObj = excelDateToDate(e.fecha);
-          if (fechaObj) {
+          // Solo movimientos reales (no fechas futuras)
+          if (fechaObj && fechaObj <= new Date()) {
             movs.push({
               radicado: p.radicado, tipo: e.tipo, tecnico: e.tecnico,
               fecha: fechaObj, fechaStr: formatoFechaLarga(e.fecha), estrategico: p.estrategico
@@ -1251,7 +1324,7 @@ function App() {
         if (stats[n]) {
           stats[n].total++;
           if (estado === 'EXPEDIDO') stats[n].aprobados++;
-          else if (['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estado)) stats[n].revision++;
+          else if (ESTADOS_REVISION.includes(estado)) stats[n].revision++;
           if (estado === 'ACTA_OBS') stats[n].acta++;
           if (estado === 'DESISTIDO') stats[n].desistidos++;
           if (esVencido) stats[n].vencidos++;
@@ -1388,8 +1461,8 @@ function App() {
           <div className="tv-panel">
             <div className="tv-panel-title">🚦 SEMÁFORO DE TÉRMINOS</div>
             {vencidos.slice(0, 5).map(p => {
-              const fechaLimite = getFechaLimiteEtapa(p);
-              const diasVenc = fechaLimite ? Math.abs(diasHabilesRestantes(fechaLimite)) : 0;
+              const infoV = getInfoVuelta(p);
+              const diasVenc = infoV && infoV.diasRestantes !== null ? Math.abs(infoV.diasRestantes) : 0;
               return (
                 <div key={p.radicado} className="tv-semaforo-item">
                   <div className="tv-semaforo-info">
@@ -1399,8 +1472,9 @@ function App() {
                     </div>
                     <div className="tv-semaforo-tipo">{ESTADOS_FLUJO[getEstadoFlujo(p)]?.label || 'SIN ESTADO'}</div>
                     <div className="tv-semaforo-detalles">
-                      Técnico: {p.nombreArquitecto || '-'}<br/>
-                      Revisor: {p.nombreIngeniero || '-'}
+                      Arquitecto: {p.nombreArquitecto || '-'}<br/>
+                      Ingeniero: {p.nombreIngeniero || '-'}
+                      {infoV && <><br/>Inició: {formatoFechaLarga(infoV.fechaInicio)}</>}
                     </div>
                   </div>
                   <div className="tv-semaforo-vencido">
@@ -1433,8 +1507,7 @@ function App() {
   // ==============================
   // SELECTOR DE TÉCNICO
   // ==============================
-  // Si es TÉCNICO común: cuando hace click en "Mi Panel" (vista=ingreso),
-  // lo mandamos directo a su vista personal sin mostrar el selector.
+  // Técnico común: al hacer click en "Mi Panel" va directo a su vista personal.
   if (vista === 'ingreso' && !tecnicoActivo && usuarioActual.rol === 'tecnico' && usuarioActual.tecnicoNombre) {
     const miPerfil = TECNICOS.find(t => t.nombre === usuarioActual.tecnicoNombre);
     if (miPerfil) {
@@ -1479,7 +1552,7 @@ function App() {
   // VISTA PERSONAL DEL TÉCNICO
   // ==============================
   if (tecnicoActivo) {
-    // Seguridad: si un técnico intenta ver a otro técnico, lo redirigimos a su propia vista
+    // Seguridad: un técnico solo puede ver su propia vista
     const esAdminOControl = puedeVerOtrosTecnicos(usuarioActual.rol);
     const puedeVerEsteTecnico = esAdminOControl || tecnicoActivo.nombre === usuarioActual.tecnicoNombre;
     if (!puedeVerEsteTecnico) {
@@ -1504,14 +1577,14 @@ function App() {
       if (['EXPEDIDO', 'DESISTIDO', 'PENDIENTE', 'NEGADO', 'PAGOS'].includes(estado)) return 'entregados';
 
       if (esArq) {
-        if (['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3'].includes(estado)) return 'activos';
-        if (['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3', 'ACTA_OBS'].includes(estado)) return 'entregados';
+        if (ESTADOS_REVISION_ARQ.includes(estado)) return 'activos';
+        if (ESTADOS_REVISION_ESTR.includes(estado) || estado === 'ACTA_OBS') return 'entregados';
         if (estado === 'PENDIENTE_LDF') return 'vienen';
       }
 
       if (esIng) {
-        if (['REV_ESTR_1', 'REV_ESTR_2', 'REV_ESTR_3'].includes(estado)) return 'activos';
-        if (['REV_ARQ_1', 'REV_ARQ_2', 'REV_ARQ_3', 'PENDIENTE_LDF'].includes(estado)) return 'vienen';
+        if (ESTADOS_REVISION_ESTR.includes(estado)) return 'activos';
+        if (ESTADOS_REVISION_ARQ.includes(estado) || estado === 'PENDIENTE_LDF') return 'vienen';
         if (estado === 'ACTA_OBS') return 'entregados';
       }
 
@@ -1525,6 +1598,7 @@ function App() {
     const misEstrategicos = misProyectos.filter(p => p.estrategico);
     const misAprobados = misProyectos.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
     const miTasa = misProyectos.length > 0 ? Math.round((misAprobados / misProyectos.length) * 100) : 0;
+    const misSinFecha = proyectosActivos.filter(p => !getFechaLimiteEtapa(p)).length;
 
     const proyectosMostrar = tabTecnico === 'vienen' ? proyectosVienen :
                             tabTecnico === 'activos' ? proyectosActivos : proyectosEntregados;
@@ -1594,6 +1668,13 @@ function App() {
           </div>
         )}
 
+        {tabTecnico === 'activos' && misSinFecha > 0 && (
+          <div style={{background: '#eceff1', border: '1px solid #b0bec5', borderRadius: '8px', padding: '15px 20px', marginBottom: '20px', color: '#37474f'}}>
+            🗓 <strong>{misSinFecha} {misSinFecha === 1 ? 'proyecto activo no tiene' : 'proyectos activos no tienen'} fecha de inicio de revisión en el Excel</strong><br/>
+            <span style={{fontSize:'13px'}}>Sin esa fecha no se puede calcular el vencimiento. Diligénciala en el Excel para que el semáforo funcione.</span>
+          </div>
+        )}
+
         {tabTecnico === 'activos' && misEstrategicos.filter(p => clasificarProyecto(p) === 'activos').length > 0 && (
           <div className="info-panel">
             ⭐ <strong>Tienes {misEstrategicos.filter(p => clasificarProyecto(p) === 'activos').length} proyectos estratégicos activos</strong><br/>
@@ -1612,21 +1693,25 @@ function App() {
           const nota = notasPersonales[key] || '';
           const estadoActual = getEstadoFlujo(p);
           const estadoInfo = ESTADOS_FLUJO[estadoActual];
+          const estaEnRevision = ESTADOS_REVISION.includes(estadoActual);
 
-          const fechaLimiteEtapa = getFechaLimiteEtapa(p);
-          const diasEtapa = fechaLimiteEtapa ? diasHabilesRestantes(fechaLimiteEtapa) : null;
+          const infoV = getInfoVuelta(p);
+          const diasEtapa = infoV ? infoV.diasRestantes : null;
           const fechaMaxLegal = excelDateToDate(p.maximaLegal);
           const diasLegal = diasEntreFechas(fechaMaxLegal);
 
           let semaforoEtapa = 'verde';
-          const estaEnRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual);
           if (diasEtapa !== null && estaEnRevision) {
             if (diasEtapa < 0) semaforoEtapa = 'rojo';
             else if (diasEtapa <= 2) semaforoEtapa = 'amarillo';
           }
 
-          const urgencia = estaEnRevision && diasEtapa !== null && diasEtapa < 0 ? 'urgente' :
-                          estaEnRevision && diasEtapa !== null && diasEtapa <= 2 ? 'pronto' : 'ok';
+          let urgencia = 'ok';
+          if (estaEnRevision && infoV && infoV.sinFechaInicio) urgencia = 'sinfecha';
+          else if (estaEnRevision && diasEtapa !== null && diasEtapa < 0) urgencia = 'urgente';
+          else if (estaEnRevision && diasEtapa !== null && diasEtapa <= 2) urgencia = 'pronto';
+
+          const limiteRespuestaActa = p.actaFechaAmpliacion || p.actaFechaLimite;
 
           return (
             <div key={p.radicado} className={`proyecto-tecnico ${urgencia}`}>
@@ -1637,15 +1722,15 @@ function App() {
                   <span className="estado-badge" style={{background: estadoInfo?.bg, color: estadoInfo?.color}}>
                     {estadoInfo?.icon} {estadoInfo?.label}
                   </span>
-                  {diasEtapa !== null && estaEnRevision && (
-                    <span className={`semaforo-mini ${semaforoEtapa}`}>
-                      <Clock size={12} />
-                      {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d etapa`}
+                  {estaEnRevision && infoV && infoV.sinFechaInicio && (
+                    <span className="semaforo-mini gris">
+                      <Clock size={12} /> Sin fecha de inicio
                     </span>
                   )}
-                  {['REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && !p.fechaRespuestaActa && (
-                    <span className="semaforo-mini" style={{background:'#eceff1', color:'#546e7a'}}>
-                      <Clock size={12} /> Sin fecha respuesta acta
+                  {estaEnRevision && diasEtapa !== null && (
+                    <span className={`semaforo-mini ${semaforoEtapa}`}>
+                      <Clock size={12} />
+                      {diasEtapa < 0 ? `${Math.abs(diasEtapa)}d vencido` : `${diasEtapa}d restantes`}
                     </span>
                   )}
                 </div>
@@ -1657,23 +1742,53 @@ function App() {
 
                 <div className="proyecto-info-row">
                   <div className="info-item"><strong>Fecha LDF:</strong> {formatoFechaLarga(p.fechaLegal) || 'Sin fecha'}</div>
-                  {['REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && (
-                    <div className="info-item"><strong>Respuesta Acta:</strong> {formatoFechaLarga(p.fechaRespuestaActa) || 'Sin fecha'}</div>
-                  )}
                   <div className="info-item"><strong>Plazo Legal:</strong> {p.maximaLegal || 'Sin fecha'}
-                    {diasLegal !== null && !['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3','ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
+                    {diasLegal !== null && !ESTADOS_REVISION.includes(estadoActual) && !['ACTA_OBS','EXPEDIDO','DESISTIDO','PENDIENTE','NEGADO','PAGOS'].includes(estadoActual) && (
                       diasLegal < 0
                         ? <span style={{color:'#c62828'}}> (Vencido {Math.abs(diasLegal)}d)</span>
                         : <span style={{color:'#388e3c'}}> ({diasLegal}d restantes)</span>
                     )}
-                    {diasLegal !== null && ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estadoActual) && (
+                    {diasLegal !== null && estaEnRevision && (
                       <span style={{color:'#388e3c'}}> ✓ En revisión</span>
                     )}
-                    {['ACTA_OBS'].includes(estadoActual) && (
+                    {estadoActual === 'ACTA_OBS' && (
                       <span style={{color:'#f57c00'}}> ⏸ Términos suspendidos</span>
                     )}
                   </div>
                 </div>
+
+                {estadoActual === 'ACTA_OBS' && (p.actaObservaciones || limiteRespuestaActa) && (
+                  <div className="proyecto-info-row">
+                    {p.actaObservaciones && (
+                      <div className="info-item"><strong>Acta notificada:</strong> {formatoFechaLarga(p.actaObservaciones)}</div>
+                    )}
+                    {limiteRespuestaActa && (
+                      <div className="info-item">
+                        <strong>Límite respuesta cliente:</strong> {formatoFechaLarga(limiteRespuestaActa)}
+                        {p.actaFechaAmpliacion && <span style={{color:'#7b1fa2'}}> (con ampliación)</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {estaEnRevision && infoV && (
+                  <div className="vuelta-info">
+                    <span className="vuelta-chip">{ORDINAL_VUELTA[infoV.vuelta]} vuelta</span>
+                    <span>
+                      <strong>{infoV.etiquetaInicio}:</strong>{' '}
+                      {infoV.fechaInicio ? formatoFechaLarga(infoV.fechaInicio) : <span style={{color:'#c62828'}}>Sin registrar en el Excel</span>}
+                    </span>
+                    {infoV.fechaLimite && (
+                      <span><strong>Vence:</strong> {formatoFechaLarga(formatoFechaCorta(infoV.fechaLimite))}</span>
+                    )}
+                    {infoV.campoEntrega && (
+                      <span>
+                        <strong>{infoV.etiquetaEntrega}:</strong>{' '}
+                        {infoV.fechaEntrega ? formatoFechaLarga(infoV.fechaEntrega) : 'Sin fecha'}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {nota && (
                   <div className="nota-personal">
@@ -1689,8 +1804,8 @@ function App() {
                   value={estadoActual}
                   onChange={(e) => cambiarEstadoFlujo(p.radicado, e.target.value)}
                 >
-                  {Object.entries(ESTADOS_FLUJO).map(([key, info]) => (
-                    <option key={key} value={key}>{info.icon} {info.label}</option>
+                  {Object.entries(ESTADOS_FLUJO).map(([k, info]) => (
+                    <option key={k} value={k}>{info.icon} {info.label}</option>
                   ))}
                   <option value="AUTO">🔄 Restaurar automático</option>
                 </select>
@@ -1832,6 +1947,7 @@ function App() {
               <div className="stat-card warning"><h3>Observaciones</h3><div className="value">{observaciones}</div></div>
               <div className="stat-card warning"><h3>Sin L.D.F</h3><div className="value">{sinLDF}</div></div>
               <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencidos.length}</div></div>
+              <div className="stat-card gray"><h3>🗓 Sin fecha de inicio</h3><div className="value">{sinFechaInicio.length}</div></div>
               <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaAprobacion}%</div></div>
               <div className="stat-card"><h3>⏸️ Pendientes</h3><div className="value">{pendientes}</div></div>
               {puedeVer(usuarioActual.rol, 'pagos') && (
@@ -1853,10 +1969,18 @@ function App() {
                       {name:'Pendientes',value:pendientes,color:'#616161'},
                       {name:'Pagos',value:enPagos,color:'#00838f'},
                       {name:'Negados',value:negados,color:'#c62828'},
-                      {name:'Desistidos',value:desistidos,color:'#757575'},
-                      {name:'Vencidos',value:vencidos.length,color:'#c62828'}
+                      {name:'Desistidos',value:desistidos,color:'#757575'}
                     ].filter(d=>d.value>0)} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={(e)=>`${e.name}: ${e.value}`}>
-                      {[{color:'#388e3c'},{color:'#1976d2'},{color:'#f57c00'},{color:'#f9a825'},{color:'#616161'},{color:'#00838f'},{color:'#c62828'},{color:'#757575'},{color:'#c62828'}].map((e,i)=><Cell key={i} fill={e.color} />)}
+                      {[
+                        {name:'Expedido',value:aprobados,color:'#388e3c'},
+                        {name:'En Revisión',value:enEstudio,color:'#1976d2'},
+                        {name:'Observaciones',value:observaciones,color:'#f57c00'},
+                        {name:'Sin L.D.F',value:sinLDF,color:'#f9a825'},
+                        {name:'Pendientes',value:pendientes,color:'#616161'},
+                        {name:'Pagos',value:enPagos,color:'#00838f'},
+                        {name:'Negados',value:negados,color:'#c62828'},
+                        {name:'Desistidos',value:desistidos,color:'#757575'}
+                      ].filter(d=>d.value>0).map((e,i)=><Cell key={i} fill={e.color} />)}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -1907,62 +2031,89 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vistaEfectiva === 'terminos' && (
-          <>
-            <h2 style={{marginBottom:'20px'}}>⏰ Términos por Etapa</h2>
-            <div className="info-panel" style={{marginBottom:'20px'}}>
-              ⏰ <strong>Cálculo de vencimiento por etapa</strong><br/>
-              <span style={{fontSize:'13px'}}>
-                Rev. Arquitectónica 1ra vuelta: 9 días hábiles desde LDF ·
-                Rev. Estructural 1ra vuelta: 18 días hábiles desde LDF ·
-                Rev. Arquitectónica 2da vuelta: 9 días hábiles desde respuesta al acta ·
-                Rev. Estructural 2da vuelta: 18 días hábiles desde respuesta al acta ·
-                Rev. Arquitectónica 3ra vuelta: 18 días hábiles desde respuesta al acta ·
-                Rev. Estructural 3ra vuelta: 27 días hábiles desde respuesta al acta.
-              </span>
-            </div>
-            <div className="table">
-              <table>
-                <thead><tr><th>Radicado</th><th>Fecha Rad.</th><th>Fecha Límite Etapa</th><th>Estado</th><th>Días Hábiles</th></tr></thead>
-                <tbody>
-                  {proyectos.map(p=>{
-                    const estado = getEstadoFlujo(p);
-                    const info = ESTADOS_FLUJO[estado];
-                    const enRevision = ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(estado);
-                    if (!enRevision) return null;
-                    const fechaLimite = getFechaLimiteEtapa(p);
-                    if (!fechaLimite) {
+        {!loading && !error && vistaEfectiva === 'terminos' && (() => {
+          // Proyectos en revisión, ordenados: vencidos primero, luego por fecha límite, y sin fecha al final
+          const enRevision = proyectos
+            .filter(p => ESTADOS_REVISION.includes(getEstadoFlujo(p)))
+            .map(p => ({ p, infoV: getInfoVuelta(p) }))
+            .sort((a, b) => {
+              const fa = a.infoV?.fechaLimite;
+              const fb = b.infoV?.fechaLimite;
+              if (!fa && !fb) return 0;
+              if (!fa) return 1;
+              if (!fb) return -1;
+              return fa - fb;
+            });
+
+          return (
+            <>
+              <h2 style={{marginBottom:'20px'}}>⏰ Términos por Vuelta de Revisión</h2>
+              <div className="info-panel" style={{marginBottom:'20px'}}>
+                ⏰ <strong>Cálculo de vencimiento</strong><br/>
+                <span style={{fontSize:'13px'}}>
+                  <strong>1ra vuelta:</strong> arquitectura 9 días hábiles desde LDF · estructural 18 días hábiles desde LDF.<br/>
+                  <strong>2da, 3ra y 4ta vuelta:</strong> 9 días hábiles desde la fecha en que el profesional inicia esa revisión
+                  (arquitectura: columnas AA / AB / AC · estructural: columnas AJ / AK / AL).<br/>
+                  Si la fecha de inicio no está registrada en el Excel, el proyecto aparece como <strong>"Sin fecha de inicio"</strong> y no se cuenta como vencido.
+                </span>
+              </div>
+              <div className="stats-grid" style={{marginBottom:'20px'}}>
+                <div className="stat-card info"><h3>En revisión</h3><div className="value">{enRevision.length}</div></div>
+                <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencidos.length}</div></div>
+                <div className="stat-card gray"><h3>🗓 Sin fecha de inicio</h3><div className="value">{sinFechaInicio.length}</div></div>
+              </div>
+              <div className="table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Radicado</th>
+                      <th>Estado</th>
+                      <th>Vuelta</th>
+                      <th>Inicio revisión</th>
+                      <th>Fecha límite</th>
+                      <th>Días hábiles</th>
+                      <th>Profesional</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enRevision.length === 0 && (
+                      <tr><td colSpan="7" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos en revisión</td></tr>
+                    )}
+                    {enRevision.map(({ p, infoV }) => {
+                      const estado = getEstadoFlujo(p);
+                      const info = ESTADOS_FLUJO[estado];
+                      const profesional = infoV?.area === 'estr' ? p.nombreIngeniero : p.nombreArquitecto;
+                      let badge = 'gray';
+                      let texto = 'Sin fecha de inicio';
+                      if (infoV && infoV.fechaLimite) {
+                        const dias = infoV.diasRestantes;
+                        texto = `${dias} días`;
+                        badge = 'green';
+                        if (dias < 0) { badge = 'red'; texto = `Vencido ${Math.abs(dias)}d`; }
+                        else if (dias <= 2) badge = 'red';
+                        else if (dias <= 5) badge = 'orange';
+                      }
                       return (
                         <tr key={p.radicado}>
-                          <td><strong>{p.radicado}</strong></td>
-                          <td>{p.fechaRadicacion}</td>
-                          <td>—</td>
+                          <td>
+                            {p.estrategico && <Star size={14} fill="#f9a825" color="#f9a825" style={{marginRight:'4px', verticalAlign:'middle'}} />}
+                            <strong>{p.radicado}</strong>
+                          </td>
                           <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
-                          <td><span className="badge gray">Sin fecha base</span></td>
+                          <td>{infoV ? `${ORDINAL_VUELTA[infoV.vuelta]}` : '-'}</td>
+                          <td>{infoV && infoV.fechaInicio ? infoV.fechaInicio : <span style={{color:'#c62828'}}>—</span>}</td>
+                          <td>{infoV && infoV.fechaLimite ? formatoFechaCorta(infoV.fechaLimite) : '—'}</td>
+                          <td><span className={`badge ${badge}`}>{texto}</span></td>
+                          <td>{profesional || '-'}</td>
                         </tr>
                       );
-                    }
-                    const dias = diasHabilesRestantes(fechaLimite);
-                    const fechaLimiteStr = `${String(fechaLimite.getDate()).padStart(2,'0')}/${String(fechaLimite.getMonth()+1).padStart(2,'0')}/${fechaLimite.getFullYear()}`;
-                    let badge='green', texto=`${dias} días`;
-                    if (dias < 0) { badge='red'; texto=`Vencido ${Math.abs(dias)}d`; }
-                    else if (dias <= 2) badge='red';
-                    else if (dias <= 5) badge='orange';
-                    return (
-                      <tr key={p.radicado}>
-                        <td><strong>{p.radicado}</strong></td>
-                        <td>{p.fechaRadicacion}</td>
-                        <td>{fechaLimiteStr}</td>
-                        <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
-                        <td><span className={`badge ${badge}`}>{texto}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()}
 
         {!loading && !error && vistaEfectiva === 'proyectos' && (
           <>
@@ -2014,22 +2165,25 @@ function App() {
             )}
 
             <div className="stats-grid">
-              {TECNICOS.map(t=>{
-                const s = productividadEquipo(filtroEstrategicosTecnicos)[t.nombre]||{aprobados:0,revision:0,acta:0,desistidos:0,vencidos:0,total:0};
-                return (
-                  <div key={t.nombre} className="stat-card">
-                    <h3>{t.nombre}</h3>
-                    <div style={{marginTop:'10px', fontSize:'14px', color:'#666'}}>
-                      <div>✓ Aprobados: <strong style={{color:'#388e3c'}}>{s.aprobados}</strong></div>
-                      <div>🔵 En Revisión: <strong style={{color:'#1976d2'}}>{s.revision}</strong></div>
-                      <div>📝 En Acta: <strong style={{color:'#f57c00'}}>{s.acta}</strong></div>
-                      <div>❌ Desistidos: <strong style={{color:'#c62828'}}>{s.desistidos}</strong></div>
-                      <div>⚠ Vencidos: <strong style={{color:'#c62828'}}>{s.vencidos}</strong></div>
-                      <div style={{marginTop:'8px', paddingTop:'8px', borderTop:'1px solid #f0f0f0'}}>Total: <strong>{s.total}</strong></div>
+              {(() => {
+                const prodTec = productividadEquipo(filtroEstrategicosTecnicos);
+                return TECNICOS.map(t=>{
+                  const s = prodTec[t.nombre]||{aprobados:0,revision:0,acta:0,desistidos:0,vencidos:0,total:0};
+                  return (
+                    <div key={t.nombre} className="stat-card">
+                      <h3>{t.nombre}</h3>
+                      <div style={{marginTop:'10px', fontSize:'14px', color:'#666'}}>
+                        <div>✓ Aprobados: <strong style={{color:'#388e3c'}}>{s.aprobados}</strong></div>
+                        <div>🔵 En Revisión: <strong style={{color:'#1976d2'}}>{s.revision}</strong></div>
+                        <div>📝 En Acta: <strong style={{color:'#f57c00'}}>{s.acta}</strong></div>
+                        <div>❌ Desistidos: <strong style={{color:'#c62828'}}>{s.desistidos}</strong></div>
+                        <div>⚠ Vencidos: <strong style={{color:'#c62828'}}>{s.vencidos}</strong></div>
+                        <div style={{marginTop:'8px', paddingTop:'8px', borderTop:'1px solid #f0f0f0'}}>Total: <strong>{s.total}</strong></div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </>
         )}
@@ -2039,7 +2193,7 @@ function App() {
             <h2 style={{marginBottom:'20px'}}>📜 Historial Completo de Movimientos</h2>
             <div className="table">
               <table>
-                <thead><tr><th></th><th>Radicado</th><th>Estado</th><th>Técnico</th><th>Fecha</th></tr></thead>
+                <thead><tr><th></th><th>Radicado</th><th>Movimiento</th><th>Técnico</th><th>Fecha</th></tr></thead>
                 <tbody>
                   {ultimosMovimientos().map((m,i)=>(
                     <tr key={i}>
@@ -2198,10 +2352,11 @@ function App() {
           const proyEstrat = proyectos.filter(p => p.estrategico);
           const totalEstrat = proyEstrat.length;
           const expedEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
-          const revEstrat = proyEstrat.filter(p => ['REV_ARQ_1','REV_ESTR_1','REV_ARQ_2','REV_ESTR_2','REV_ARQ_3','REV_ESTR_3'].includes(getEstadoFlujo(p))).length;
+          const revEstrat = proyEstrat.filter(p => ESTADOS_REVISION.includes(getEstadoFlujo(p))).length;
           const actaEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
           const desistEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
           const vencEstrat = vencidos.filter(p => p.estrategico).length;
+          const sinFechaEstrat = sinFechaInicio.filter(p => p.estrategico).length;
           const tasaEstrat = totalEstrat > 0 ? Math.round((expedEstrat / totalEstrat) * 100) : 0;
           const prodEstrategica = productividadEquipo(true);
           return (
@@ -2219,6 +2374,7 @@ function App() {
                 <div className="stat-card warning"><h3>En Observaciones</h3><div className="value">{actaEstrat}</div></div>
                 <div className="stat-card"><h3>Desistidos</h3><div className="value">{desistEstrat}</div></div>
                 <div className="stat-card warning"><h3>⚠ Vencidos</h3><div className="value">{vencEstrat}</div></div>
+                <div className="stat-card gray"><h3>🗓 Sin fecha de inicio</h3><div className="value">{sinFechaEstrat}</div></div>
                 <div className="stat-card success"><h3>% Aprobación</h3><div className="value">{tasaEstrat}%</div></div>
               </div>
               <h3 style={{marginBottom:'15px', color:'#333', marginTop:'30px'}}>🏆 Productividad por Técnico</h3>
@@ -2378,6 +2534,12 @@ function App() {
         {!loading && !error && vistaEfectiva === 'pagos' && puedeVer(usuarioActual.rol, 'pagos') && (() => {
           const proyectosPagos = proyectos.filter(p => getEstadoFlujo(p) === 'PAGOS');
           const pagosEstrat = proyectosPagos.filter(p => p.estrategico).length;
+          const pagosVencidos = proyectosPagos.filter(p => {
+            if (p.fechaAportePagos) return false;
+            const limite = excelDateToDate(p.fechaLimitePago);
+            return limite && limite < hoy;
+          }).length;
+          const pagosAportados = proyectosPagos.filter(p => p.fechaAportePagos).length;
           return (
             <>
               <h2 style={{marginBottom:'20px'}}>💰 Proyectos en Pagos ({proyectosPagos.length})</h2>
@@ -2388,28 +2550,40 @@ function App() {
               <div className="stats-grid" style={{marginBottom:'20px'}}>
                 <div className="stat-card info"><h3>Total en Pagos</h3><div className="value">{proyectosPagos.length}</div></div>
                 <div className="stat-card gold"><h3>⭐ Estratégicos</h3><div className="value">{pagosEstrat}</div></div>
+                <div className="stat-card success"><h3>✓ Pago aportado</h3><div className="value">{pagosAportados}</div></div>
+                <div className="stat-card warning"><h3>⚠ Plazo de pago vencido</h3><div className="value">{pagosVencidos}</div></div>
               </div>
               <div className="table">
                 <table>
                   <thead>
                     <tr>
-                      <th>⭐</th><th>Radicado</th><th>Fecha Rad.</th><th>Arquitecto</th><th>Ingeniero</th><th>Máx. Legal</th>
+                      <th>⭐</th><th>Radicado</th><th>Fecha Rad.</th><th>Arquitecto</th><th>Ingeniero</th><th>Límite de pago</th><th>Aporte de pago</th>
                     </tr>
                   </thead>
                   <tbody>
                     {proyectosPagos.length === 0 && (
-                      <tr><td colSpan="6" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos en pagos actualmente</td></tr>
+                      <tr><td colSpan="7" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos en pagos actualmente</td></tr>
                     )}
-                    {proyectosPagos.map(p => (
-                      <tr key={p.radicado}>
-                        <td>{p.estrategico && <Star size={16} fill="#f9a825" color="#f9a825" />}</td>
-                        <td><strong>{p.radicado}</strong></td>
-                        <td>{p.fechaRadicacion}</td>
-                        <td>{p.nombreArquitecto || '-'}</td>
-                        <td>{p.nombreIngeniero || '-'}</td>
-                        <td>{p.maximaLegal || '-'}</td>
-                      </tr>
-                    ))}
+                    {proyectosPagos.map(p => {
+                      const limite = excelDateToDate(p.fechaLimitePago);
+                      const diasLimite = limite ? diasEntreFechas(limite) : null;
+                      let badgeLimite = null;
+                      if (!p.fechaAportePagos && diasLimite !== null) {
+                        if (diasLimite < 0) badgeLimite = <span className="badge red" style={{marginLeft:'6px'}}>Vencido {Math.abs(diasLimite)}d</span>;
+                        else if (diasLimite <= 5) badgeLimite = <span className="badge orange" style={{marginLeft:'6px'}}>{diasLimite}d</span>;
+                      }
+                      return (
+                        <tr key={p.radicado}>
+                          <td>{p.estrategico && <Star size={16} fill="#f9a825" color="#f9a825" />}</td>
+                          <td><strong>{p.radicado}</strong></td>
+                          <td>{p.fechaRadicacion}</td>
+                          <td>{p.nombreArquitecto || '-'}</td>
+                          <td>{p.nombreIngeniero || '-'}</td>
+                          <td>{p.fechaLimitePago || '-'}{badgeLimite}</td>
+                          <td>{p.fechaAportePagos ? <span className="badge green">{p.fechaAportePagos}</span> : '-'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

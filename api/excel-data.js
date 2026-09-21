@@ -1,14 +1,12 @@
 import jwt from 'jsonwebtoken';
 
 // ============================================
-// VERIFICACIÓN DE TOKEN (middleware inline)
+// VERIFICACIÓN DE TOKEN
 // ============================================
 
 function verificarToken(req) {
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.substring(7)
-    : null;
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
   if (!token) {
     return { ok: false, status: 401, error: 'Token no proporcionado' };
@@ -31,11 +29,113 @@ function verificarToken(req) {
 }
 
 // ============================================
+// DETECCIÓN AUTOMÁTICA DE COLUMNAS
+// ============================================
+// El código lee la fila 1 del Excel y ubica cada columna por su nombre.
+// Si alguien agrega o mueve columnas, el dashboard sigue funcionando.
+// "fallback" es la posición confirmada (A=0, B=1...) por si no encuentra el nombre.
+
+const CAMPOS = {
+  // Datos generales (columnas fijas)
+  radicado:               { fallback: 0 },   // A
+  fechaRadicacion:        { fallback: 1 },   // B
+  maximaLegal:            { incluye: ['MAXIMA LEGAL'], fallback: 5 },    // F
+  fechaLegal:             { incluye: ['FECHA DE LEGAL'], fallback: 7 },  // H
+  estadoActual:           { incluye: ['ESTADO ACTUAL'], fallback: 14 },  // O
+  estrategicoExcel:       { incluye: ['PROYECTO ESTRATEG'], fallback: 18 }, // S
+
+  // Arquitectura
+  nombreArquitecto:       { incluye: ['NOMBRE PROFESIONAL', 'ARQUITECTURA'], fallback: 23 },            // X
+  fechaAsignacionArq:     { incluye: ['ASIGNACION', 'ARQUITECTONICA'], excluye: ['ACTA'], fallback: 24 }, // Y
+  fechaPrimeraRevArq:     { incluye: ['PRIMERA', 'ARQUITECTONICA'], fallback: 25 },                     // Z
+  fechaAsigArqActa:       { incluye: ['ASIGNACION', 'ARQUITECTONICA', 'ACTA'], fallback: 26 },          // AA
+  fechaSegundaRevArq:     { incluye: ['SEGUNDA', 'ARQUITECTONICA'], fallback: 27 },                     // AB
+  fechaTerceraRevArq:     { incluye: ['TERCERA', 'ARQUITECTONICA'], fallback: 28 },                     // AC
+  fechaRevFinalArq:       { incluye: ['REVISION FINAL', 'ARQUITECTURA'], fallback: 29 },                // AD
+  numRevisionesArq:       { incluye: ['NUMERO DE REVISIONES'], ocurrencia: 0, fallback: 30 },           // AE
+
+  // Ingeniería / estructural
+  nombreIngeniero:        { incluye: ['NOMBRE PROFESIONAL', 'INGENIERIA'], fallback: 32 },              // AG
+  fechaIngresoIng:        { incluye: ['INGENIERIA', 'FECHA INGRESO'], fallback: 33 },                   // AH
+  fechaPrimeraRevIng:     { incluye: ['PRIMERA', 'INGENIERIA'], fallback: 34 },                         // AI
+  fechaAsigEstrActa:      { incluye: ['ASIGNACION', 'ESTRUCTURAL'], fallback: 35 },                     // AJ
+  fechaSegundaRevEstr:    { incluye: ['SEGUNDA', 'ESTRUCTURAL'], fallback: 36 },                        // AK
+  fechaTerceraRevEstr:    { incluye: ['TERCERA', 'ESTRUCTURAL'], fallback: 37 },                        // AL
+  numRevisionesIng:       { incluye: ['NUMERO DE REVISIONES'], ocurrencia: 1, fallback: 40 },           // AO
+
+  // Acta de observaciones
+  actaObservaciones:      { incluye: ['ACTA', 'FECHA NOTIFICACION'], fallback: 43 },                    // AR
+  actaFechaLimite:        { incluye: ['ACTA', 'FECHA LIMITE'], fallback: 44 },                          // AS
+  actaSolicitudAmpliacion:{ incluye: ['ACTA', 'SOLICITUD AMPLIACION'], fallback: 45 },                  // AT
+  actaFechaAmpliacion:    { incluye: ['ACTA', 'FECHA AMPLIACION'], fallback: 46 },                      // AU
+  fechaRespuestaActa:     { incluye: ['ACTA', 'ENTREGA'], excluye: ['PERSISTENTES'], fallback: 47 },    // AV
+  fechaPersistentes3:     { incluye: ['PERSISTENTES', 'TERCERA'], fallback: 48 },                       // AW
+  fechaPersistentes4:     { incluye: ['PERSISTENTES', 'CUARTA'], fallback: 49 },                        // AX
+
+  // Suspensión de términos (terremoto)
+  suspensionSolicitud:    { incluye: ['SUSPENSION', 'FECHA SOLICITUD'], fallback: 50 },                 // AY
+  suspensionLimite:       { incluye: ['SUSPENSION', 'FECHA LIMITE'], excluye: ['PANDEMIA'], fallback: 51 }, // AZ
+
+  // Finalización y pagos
+  fechaFinalizacion:      { incluye: ['FINALIZACION', 'FECHA FINALIZACION'], fallback: 52 },            // BA
+  fechaLimitePago:        { incluye: ['FECHA LIMITE PAGO'], fallback: 54 },                             // BC
+  fechaAportePagos:       { incluye: ['APORTE PAGOS'], fallback: 55 },                                  // BD
+
+  // Licencia
+  fechaLicencia:          { incluye: ['LICENCIA', 'EXPEDICION'], fallback: 63 }                         // BL (por confirmar)
+};
+
+const normalizar = (texto) => String(texto || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toUpperCase()
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const letraColumna = (indice) => {
+  let n = indice + 1;
+  let letra = '';
+  while (n > 0) {
+    const resto = (n - 1) % 26;
+    letra = String.fromCharCode(65 + resto) + letra;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letra;
+};
+
+function detectarColumnas(encabezados) {
+  const normalizados = encabezados.map(normalizar);
+  const mapa = {};
+  const noEncontradas = [];
+
+  for (const [campo, def] of Object.entries(CAMPOS)) {
+    if (!def.incluye) {
+      mapa[campo] = def.fallback;
+      continue;
+    }
+    const coincidencias = [];
+    normalizados.forEach((h, i) => {
+      if (!h) return;
+      const cumpleIncluye = def.incluye.every(k => h.includes(k));
+      const cumpleExcluye = !(def.excluye || []).some(k => h.includes(k));
+      if (cumpleIncluye && cumpleExcluye) coincidencias.push(i);
+    });
+    const indice = coincidencias[def.ocurrencia || 0];
+    if (indice !== undefined) {
+      mapa[campo] = indice;
+    } else {
+      mapa[campo] = def.fallback;
+      noEncontradas.push(campo);
+    }
+  }
+  return { mapa, noEncontradas };
+}
+
+// ============================================
 // ENDPOINT DE DATOS DEL EXCEL (protegido)
 // ============================================
 
 export default async (req, res) => {
-  // Verificar autenticación antes de cualquier otra cosa
   const auth = verificarToken(req);
   if (!auth.ok) {
     return res.status(auth.status).json({
@@ -46,7 +146,7 @@ export default async (req, res) => {
   }
 
   try {
-    // Obtener token de Azure
+    // Token de Azure
     const tokenResponse = await fetch(
       `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
       {
@@ -70,65 +170,53 @@ export default async (req, res) => {
     const siteData = await siteResponse.json();
 
     const fileId = '01WQFWMZ5Z3Y7KPKOJ2ZD2M7NFHUUHWQW3';
+    const baseUrl = `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${fileId}/workbook/worksheets('Seguimiento Proyectos')`;
 
-    // Leer rango amplio para cubrir crecimiento futuro (fila 4239 hasta 6000)
+    // 1. Leer encabezados (fila 1) para ubicar columnas por nombre
+    const headersResponse = await fetch(
+      `${baseUrl}/range(address='A1:CZ1')`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    const headersData = await headersResponse.json();
+    const encabezados = (headersData.values && headersData.values[0]) || [];
+    const { mapa, noEncontradas } = detectarColumnas(encabezados);
+
+    // 2. Leer datos (rango amplio hasta CZ para cubrir columnas futuras)
     const rangeResponse = await fetch(
-      `https://graph.microsoft.com/v1.0/sites/${siteData.id}/drive/items/${fileId}/workbook/worksheets('Seguimiento Proyectos')/range(address='A4239:BA6000')`,
+      `${baseUrl}/range(address='A4239:CZ6000')`,
       { headers: { 'Authorization': `Bearer ${token}` } }
     );
     const rangeData = await rangeResponse.json();
-
     const rows = rangeData.values || [];
 
-    // Índices actualizados con columna S (PROYECTO ESTRATEGICO) y AN (FECHA RESPUESTA ACTA)
-    const COLUMN_MAP = {
-      'RADICADO': 0,                                          // A
-      'FECHA RADICACIÓN': 1,                                  // B
-      'FECHA MÁXIMA LEGAL Y DEBIDA FORMA': 5,                // F
-      'FECHA DE LEGAL Y DEBIDA FORMA': 7,                    // H
-      'ESTADO ACTUAL DEL PROYECTO': 14,                      // O
-      'PROYECTO ESTRATEGICO': 18,                            // S
-      'NOMBRE PROFESIONAL ARQUITECTURA': 23,                 // X
-      'FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA': 24,          // Y
-      'FECHA PRIMERA REVISIÓN ARQUITECTÓNICA': 25,           // Z
-      'NOMBRE PROFESIONAL INGENIERÍA': 28,                   // AC
-      'FECHA PRIMERA REVISIÓN INGENIERÍA': 30,               // AE
-      'ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN': 35,        // AJ
-      'ACTA DE OBSERVACIONES FECHA ENTREGA': 39,             // AN (respuesta del cliente al acta)
-      'FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN': 42,     // AQ
-      'LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN': 53    // BB
+    const valor = (row, campo) => {
+      const v = row[mapa[campo]];
+      return v === undefined || v === null ? '' : v;
     };
 
     const datos = [];
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const proyecto = {
-        radicado: row[COLUMN_MAP['RADICADO']] || '',
-        fechaRadicacion: row[COLUMN_MAP['FECHA RADICACIÓN']] || '',
-        maximaLegal: row[COLUMN_MAP['FECHA MÁXIMA LEGAL Y DEBIDA FORMA']] || '',
-        fechaLegal: row[COLUMN_MAP['FECHA DE LEGAL Y DEBIDA FORMA']] || '',
-        estadoActual: row[COLUMN_MAP['ESTADO ACTUAL DEL PROYECTO']] || '',
-        estrategicoExcel: row[COLUMN_MAP['PROYECTO ESTRATEGICO']] || '',
-        nombreArquitecto: row[COLUMN_MAP['NOMBRE PROFESIONAL ARQUITECTURA']] || '',
-        fechaAsignacionArq: row[COLUMN_MAP['FECHA ASIGNACIÓN REVISIÓN ARQUITECTURA']] || '',
-        fechaPrimeraRevArq: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN ARQUITECTÓNICA']] || '',
-        nombreIngeniero: row[COLUMN_MAP['NOMBRE PROFESIONAL INGENIERÍA']] || '',
-        fechaPrimeraRevIng: row[COLUMN_MAP['FECHA PRIMERA REVISIÓN INGENIERÍA']] || '',
-        actaObservaciones: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA NOTIFICACIÓN']] || '',
-        fechaRespuestaActa: row[COLUMN_MAP['ACTA DE OBSERVACIONES FECHA ENTREGA']] || '',
-        fechaFinalizacion: row[COLUMN_MAP['FINALIZACIÓN DEL TRAMITE FECHA FINALIZACIÓN']] || '',
-        fechaLicencia: row[COLUMN_MAP['LICENCIA / OTRAS ACTUACIONES FECHA EXPEDICIÓN']] || ''
-      };
-
+    for (const row of rows) {
+      const proyecto = {};
+      for (const campo of Object.keys(CAMPOS)) {
+        proyecto[campo] = valor(row, campo);
+      }
       if (proyecto.radicado && proyecto.radicado !== '') {
         datos.push(proyecto);
       }
+    }
+
+    // Diagnóstico: qué columna quedó asignada a cada campo
+    const columnas = {};
+    for (const [campo, indice] of Object.entries(mapa)) {
+      columnas[campo] = letraColumna(indice);
     }
 
     res.status(200).json({
       success: true,
       total: datos.length,
       proyectos: datos,
+      columnas,
+      columnasNoEncontradas: noEncontradas,
       timestamp: new Date().toISOString()
     });
 

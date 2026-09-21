@@ -65,16 +65,13 @@ const FESTIVOS_2026 = [
 // ROLES Y PERMISOS
 // ============================================
 
-// Vistas que están restringidas para roles no admin
 const VISTAS_RESTRINGIDAS = ['estadisticas', 'estadisticasEstrategicas', 'pagos'];
 
-// Devuelve true si el rol puede ver la vista
 const puedeVer = (rol, vista) => {
   if (rol === 'admin') return true;
   return !VISTAS_RESTRINGIDAS.includes(vista);
 };
 
-// Devuelve true si el usuario puede ver la vista de otro técnico
 const puedeVerOtrosTecnicos = (rol) => {
   return rol === 'admin' || rol === 'control';
 };
@@ -398,7 +395,6 @@ const STYLES_TV = `
 const STYLES_LOGIN = `
 .login-page { min-height: 100vh; display: flex; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 
-/* Área visual izquierda - institucional */
 .login-visual { flex: 1.2; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 60px; color: white; }
 .login-visual-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.15; }
 .login-visual-svg path, .login-visual-svg line, .login-visual-svg rect, .login-visual-svg circle { stroke: #c62828; fill: none; stroke-width: 1.5; }
@@ -425,7 +421,6 @@ const STYLES_LOGIN = `
 .login-visual-feature-num { font-size: 28px; font-weight: 700; color: #ff5252; }
 .login-visual-feature-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
 
-/* Área derecha - formulario */
 .login-form-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; background: #ffffff; position: relative; }
 
 .login-form-container { width: 100%; max-width: 440px; }
@@ -471,7 +466,6 @@ const STYLES_LOGIN = `
 .login-footer { position: absolute; bottom: 30px; left: 60px; right: 60px; text-align: center; font-size: 12px; color: #999; }
 .login-footer-line { display: block; margin-bottom: 4px; }
 
-/* Modal de "olvidaste tu contraseña" */
 .login-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeInLogin 0.2s; }
 @keyframes fadeInLogin { from { opacity: 0; } to { opacity: 1; } }
 .login-modal { background: white; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUpLogin 0.3s; }
@@ -486,31 +480,61 @@ const STYLES_LOGIN = `
 
 @media (max-width: 900px) {
   .login-page { flex-direction: column; }
-  .login-visual { flex: none; min-height: 380px; padding: 40px; }
-  .login-visual-title { font-size: 42px; }
-  .login-visual-subtitle { font-size: 14px; margin-bottom: 24px; }
-  .login-visual-desc { font-size: 13px; }
-  .login-visual-bottom { gap: 24px; }
-  .login-visual-feature-num { font-size: 22px; }
-  .login-form-area { padding: 40px 24px; }
-  .login-form-title { font-size: 26px; }
-  .login-footer { position: static; margin-top: 40px; left: auto; right: auto; }
+  .login-visual { flex: none; min-height: auto; padding: 32px 28px 28px; }
+  .login-visual-top { margin-bottom: 20px; }
+  .login-visual-center { margin-bottom: 20px; }
+  .login-visual-title { font-size: 38px; line-height: 1.05; margin-bottom: 12px; }
+  .login-visual-subtitle { font-size: 12px; letter-spacing: 2px; margin-bottom: 14px; }
+  .login-visual-desc { font-size: 13px; line-height: 1.5; max-width: 100%; }
+  .login-visual-bottom { gap: 20px; padding-top: 18px; }
+  .login-visual-feature-num { font-size: 20px; }
+  .login-visual-feature-label { font-size: 10px; letter-spacing: 1.5px; }
+  .login-form-area { padding: 28px 24px 24px; }
+  .login-form-logo { margin-bottom: 24px; }
+  .login-form-title { font-size: 24px; }
+  .login-form-subtitle { font-size: 14px; margin-bottom: 24px; }
+  .login-footer { position: static; margin-top: 24px; left: auto; right: auto; padding-bottom: 8px; }
 }
 
-@media (max-width: 480px) {
-  .login-visual { padding: 30px; min-height: 320px; }
-  .login-visual-title { font-size: 34px; }
-  .login-visual-top-badge { font-size: 10px; padding: 8px 14px; }
-  .login-form-logo-text-main { font-size: 20px; }
-  .login-form-title { font-size: 24px; }
-  .login-form-subtitle { font-size: 14px; margin-bottom: 28px; }
+@media (max-width: 600px) {
+  .login-visual { padding: 24px 20px 20px; }
+  .login-visual-svg { opacity: 0.1; }
+  .login-visual-title { font-size: 32px; letter-spacing: -1px; }
+  .login-visual-top-badge { font-size: 9px; padding: 6px 12px; letter-spacing: 1.5px; }
+  .login-visual-desc { font-size: 12px; }
+  .login-visual-bottom { gap: 16px; }
+  .login-visual-feature-num { font-size: 18px; }
+  .login-visual-accent { width: 300px; height: 300px; top: -50px; right: -50px; }
+  .login-visual-accent-2 { width: 350px; height: 350px; bottom: -100px; left: -100px; }
+  .login-form-area { padding: 24px 20px 20px; }
+  .login-form-logo-text-main { font-size: 18px; }
+  .login-form-logo-text-sub { font-size: 9px; letter-spacing: 3px; }
+  .login-form-title { font-size: 22px; }
+  .login-form-subtitle { font-size: 13px; margin-bottom: 20px; }
+  .login-field { margin-bottom: 16px; }
+  .login-field-label { font-size: 12px; margin-bottom: 6px; }
+  .login-field-input { padding: 12px 14px 12px 42px; font-size: 14px; }
+  .login-field-icon { left: 14px; }
+  .login-options { margin-bottom: 22px; }
+  .login-checkbox-label { font-size: 13px; }
+  .login-forgot { font-size: 13px; }
+  .login-submit { padding: 13px; font-size: 14px; }
+  .login-footer { font-size: 11px; margin-top: 20px; }
+}
+
+@media (max-width: 380px) {
+  .login-visual-title { font-size: 28px; }
+  .login-visual-desc { display: none; }
+  .login-visual-bottom { gap: 12px; padding-top: 14px; }
+  .login-visual-feature-num { font-size: 16px; }
+  .login-visual-feature-label { font-size: 9px; letter-spacing: 1px; }
+  .login-form-area { padding: 20px 16px 16px; }
+  .login-field-input { padding: 11px 12px 11px 40px; font-size: 14px; }
 }
 `;
 // ============================================
 // COMPONENTE: LOGO INSTITUCIONAL SVG
 // ============================================
-// Reconstrucción del logo real de Curaduría 2 Pereira en SVG puro.
-// El símbolo rojo con líneas geométricas + tipografía CURADURÍA 2 PEREIRA.
 
 const LogoInstitucional = ({ size = 'md', variant = 'dark' }) => {
   const sizes = {
@@ -524,14 +548,11 @@ const LogoInstitucional = ({ size = 'md', variant = 'dark' }) => {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      {/* Marca / símbolo rojo */}
       <svg width={s.mark} height={s.mark} viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-        {/* Forma principal: dos triángulos rojos superpuestos formando un origami geométrico */}
         <polygon points="8,10 30,10 30,32 22,50 8,50" fill="#c62828" />
         <polygon points="30,10 52,10 52,50 38,50 30,32" fill="#1a1a1a" />
         <polygon points="30,10 52,10 30,32" fill="#c62828" />
       </svg>
-      {/* Tipografía */}
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
         <div style={{ fontSize: s.text, fontWeight: 800, color: textColor, letterSpacing: '-0.5px' }}>
           CURADURÍA 2
@@ -577,7 +598,6 @@ function LoginPage({ onLoginSuccess }) {
       });
       const data = await response.json();
       if (data.success) {
-        // Guardar token según preferencia
         if (recordarme) {
           localStorage.setItem('authToken', data.token);
           localStorage.setItem('authUser', JSON.stringify(data.usuario));
@@ -606,9 +626,7 @@ function LoginPage({ onLoginSuccess }) {
 
       {/* ==================== ÁREA VISUAL IZQUIERDA ==================== */}
       <div className="login-visual">
-        {/* Composición SVG de plano arquitectónico animado */}
         <svg className="login-visual-svg" viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-          {/* Grid base */}
           <g className="line-thin">
             {Array.from({length: 20}).map((_, i) => (
               <line key={`h${i}`} x1="0" y1={i * 45} x2="800" y2={i * 45} />
@@ -618,9 +636,7 @@ function LoginPage({ onLoginSuccess }) {
             ))}
           </g>
 
-          {/* Edificios estilizados en isométrico */}
           <g className="anim-draw">
-            {/* Edificio 1 - alto */}
             <rect x="120" y="300" width="120" height="380" />
             <line x1="120" y1="340" x2="240" y2="340" />
             <line x1="120" y1="380" x2="240" y2="380" />
@@ -633,7 +649,6 @@ function LoginPage({ onLoginSuccess }) {
             <line x1="160" y1="300" x2="160" y2="680" />
             <line x1="200" y1="300" x2="200" y2="680" />
 
-            {/* Edificio 2 - medio */}
             <rect x="280" y="400" width="140" height="280" />
             <line x1="280" y1="440" x2="420" y2="440" />
             <line x1="280" y1="480" x2="420" y2="480" />
@@ -644,7 +659,6 @@ function LoginPage({ onLoginSuccess }) {
             <line x1="360" y1="400" x2="360" y2="680" />
             <line x1="400" y1="400" x2="400" y2="680" />
 
-            {/* Edificio 3 - alto */}
             <rect x="460" y="250" width="120" height="430" />
             <line x1="460" y1="290" x2="580" y2="290" />
             <line x1="460" y1="330" x2="580" y2="330" />
@@ -658,7 +672,6 @@ function LoginPage({ onLoginSuccess }) {
             <line x1="500" y1="250" x2="500" y2="680" />
             <line x1="540" y1="250" x2="540" y2="680" />
 
-            {/* Edificio 4 - bajo */}
             <rect x="620" y="480" width="100" height="200" />
             <line x1="620" y1="520" x2="720" y2="520" />
             <line x1="620" y1="560" x2="720" y2="560" />
@@ -666,16 +679,12 @@ function LoginPage({ onLoginSuccess }) {
             <line x1="660" y1="480" x2="660" y2="680" />
             <line x1="700" y1="480" x2="700" y2="680" />
 
-            {/* Suelo / linea base */}
             <line x1="60" y1="680" x2="760" y2="680" strokeWidth="2" />
           </g>
 
-          {/* Elementos técnicos de plano */}
           <g className="anim-draw-slow line-dashed">
-            {/* Ejes cruzados */}
             <line x1="60" y1="750" x2="760" y2="750" />
             <line x1="60" y1="780" x2="760" y2="780" />
-            {/* Marcadores de cotas */}
             <line x1="120" y1="740" x2="120" y2="760" />
             <line x1="240" y1="740" x2="240" y2="760" />
             <line x1="360" y1="740" x2="360" y2="760" />
@@ -684,7 +693,6 @@ function LoginPage({ onLoginSuccess }) {
             <line x1="720" y1="740" x2="720" y2="760" />
           </g>
 
-          {/* Círculos técnicos decorativos */}
           <g className="anim-draw">
             <circle cx="150" cy="180" r="40" />
             <circle cx="150" cy="180" r="25" />
@@ -693,18 +701,15 @@ function LoginPage({ onLoginSuccess }) {
             <line x1="150" y1="120" x2="150" y2="240" className="line-thin" />
           </g>
 
-          {/* Líneas guía diagonales */}
           <g className="anim-draw-slow line-thin">
             <line x1="0" y1="850" x2="800" y2="50" strokeDasharray="8 6" />
             <line x1="0" y1="50" x2="800" y2="850" strokeDasharray="8 6" />
           </g>
         </svg>
 
-        {/* Gradientes decorativos */}
         <div className="login-visual-accent"></div>
         <div className="login-visual-accent-2"></div>
 
-        {/* Contenido superior: badge institucional */}
         <div className="login-visual-top">
           <div className="login-visual-top-badge">
             <Shield size={14} />
@@ -712,7 +717,6 @@ function LoginPage({ onLoginSuccess }) {
           </div>
         </div>
 
-        {/* Contenido central: título grande */}
         <div className="login-visual-center">
           <div className="login-visual-title">
             CURADURÍA<br/>URBANA <span className="highlight">N.° 2</span>
@@ -723,7 +727,6 @@ function LoginPage({ onLoginSuccess }) {
           </div>
         </div>
 
-        {/* Contenido inferior: features */}
         <div className="login-visual-bottom">
           <div className="login-visual-feature">
             <div className="login-visual-feature-num">100%</div>
@@ -743,16 +746,13 @@ function LoginPage({ onLoginSuccess }) {
       {/* ==================== ÁREA DEL FORMULARIO DERECHA ==================== */}
       <div className="login-form-area">
         <div className="login-form-container">
-          {/* Logo institucional */}
           <div className="login-form-logo">
             <LogoInstitucional size="md" variant="dark" />
           </div>
 
-          {/* Encabezado */}
           <h1 className="login-form-title">Bienvenido</h1>
           <p className="login-form-subtitle">Ingresa a tu cuenta para continuar</p>
 
-          {/* Error */}
           {error && (
             <div className="login-error">
               <AlertTriangle size={18} />
@@ -760,7 +760,6 @@ function LoginPage({ onLoginSuccess }) {
             </div>
           )}
 
-          {/* Formulario */}
           <div>
             <div className="login-field">
               <label className="login-field-label">Usuario</label>
@@ -851,14 +850,12 @@ function LoginPage({ onLoginSuccess }) {
           </div>
         </div>
 
-        {/* Footer institucional */}
         <div className="login-footer">
           <span className="login-footer-line">© 2026 Curaduría Urbana N.° 2 de Pereira</span>
           <span className="login-footer-line">Todos los derechos reservados · Uso institucional</span>
         </div>
       </div>
 
-      {/* ==================== MODAL "OLVIDASTE CONTRASEÑA" ==================== */}
       {modalOlvido && (
         <div className="login-modal-overlay" onClick={() => setModalOlvido(false)}>
           <div className="login-modal" onClick={(e) => e.stopPropagation()}>
@@ -897,10 +894,8 @@ function App() {
   const [token, setToken] = useState(null);
   const [verificandoSesion, setVerificandoSesion] = useState(true);
 
-  // Al cargar la app: verificar si ya hay una sesión guardada
   useEffect(() => {
     const verificarSesion = async () => {
-      // Buscar token en localStorage primero, luego sessionStorage
       const tokenGuardado = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       const usuarioGuardado = localStorage.getItem('authUser') || sessionStorage.getItem('authUser');
 
@@ -918,14 +913,12 @@ function App() {
           setUsuarioActual(data.usuario);
           setToken(tokenGuardado);
         } else {
-          // Token inválido o expirado: limpiar
           localStorage.removeItem('authToken');
           localStorage.removeItem('authUser');
           sessionStorage.removeItem('authToken');
           sessionStorage.removeItem('authUser');
         }
       } catch (err) {
-        // Error de red: mantener sesión local temporalmente
         try {
           const userParsed = JSON.parse(usuarioGuardado);
           setUsuarioActual(userParsed);
@@ -952,7 +945,6 @@ function App() {
     sessionStorage.removeItem('authUser');
     setUsuarioActual(null);
     setToken(null);
-    // Limpiar estados de UI
     setVista('dashboard');
     setTecnicoActivo(null);
     setModoTV(false);
@@ -1001,7 +993,6 @@ function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.status === 401) {
-        // Sesión expirada
         cerrarSesion();
         return;
       }
@@ -1034,30 +1025,15 @@ function App() {
     }
   };
 
-  // Cargar datos cuando el usuario esté autenticado
   useEffect(() => {
     if (usuarioActual && token) {
       cargarDatos();
     }
   }, [usuarioActual, token]);
 
-  // ==============================
-  // LÓGICA DE VISTA INICIAL SEGÚN ROL
-  // ==============================
-  // Cuando el usuario acaba de loguearse:
-  //  - Si es TÉCNICO: entra directo a su vista personal (no puede ver a otros)
-  //  - Si es ADMIN o CONTROL: entra al dashboard general
-  useEffect(() => {
-    if (usuarioActual && !tecnicoActivo) {
-      if (usuarioActual.rol === 'tecnico' && usuarioActual.tecnicoNombre) {
-        const miPerfil = TECNICOS.find(t => t.nombre === usuarioActual.tecnicoNombre);
-        if (miPerfil) {
-          setTecnicoActivo(miPerfil);
-          setTabTecnico('activos');
-        }
-      }
-    }
-  }, [usuarioActual]);
+  // Nota: TODOS los usuarios (admins, control y técnicos) entran al Dashboard general.
+  // Los técnicos pueden navegar libremente por el menú restringido, y cuando entren
+  // a "Mi Panel" van directo a su vista personal (sin poder elegir otros técnicos).
 
   // Reloj del modo TV
   useEffect(() => {
@@ -1168,7 +1144,6 @@ function App() {
   // ==============================
   // GATE DE AUTENTICACIÓN
   // ==============================
-  // Mientras verificamos si hay sesión activa
   if (verificandoSesion) {
     return (
       <div style={{
@@ -1196,12 +1171,10 @@ function App() {
     );
   }
 
-  // Si NO hay sesión activa → mostrar login
   if (!usuarioActual || !token) {
     return <LoginPage onLoginSuccess={manejarLoginExitoso} />;
   }
 
-  // Función auxiliar: iniciales del usuario para el avatar del header
   const inicialesUsuario = (nombre) => {
     if (!nombre) return 'U';
     const partes = nombre.trim().split(' ');
@@ -1209,7 +1182,6 @@ function App() {
     return (partes[0].charAt(0) + partes[partes.length - 1].charAt(0)).toUpperCase();
   };
 
-  // Label del rol para mostrar en el header
   const labelRol = (rol) => {
     if (rol === 'admin') return 'Administrador';
     if (rol === 'control') return 'Control de términos';
@@ -1233,7 +1205,6 @@ function App() {
   const enPagos = proyectos.filter(p => getEstadoFlujo(p) === 'PAGOS').length;
   const tasaAprobacion = totalProyectos > 0 ? Math.round((aprobados / totalProyectos) * 100) : 0;
 
-  // Vencidos: se calcula por la fecha límite de la ETAPA actual (no por maximaLegal)
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   const vencidos = proyectos.filter(p => {
@@ -1460,8 +1431,22 @@ function App() {
   }
 
   // ==============================
-  // SELECTOR DE TÉCNICO (solo admins y control)
+  // SELECTOR DE TÉCNICO
   // ==============================
+  // Si es TÉCNICO común: cuando hace click en "Mi Panel" (vista=ingreso),
+  // lo mandamos directo a su vista personal sin mostrar el selector.
+  if (vista === 'ingreso' && !tecnicoActivo && usuarioActual.rol === 'tecnico' && usuarioActual.tecnicoNombre) {
+    const miPerfil = TECNICOS.find(t => t.nombre === usuarioActual.tecnicoNombre);
+    if (miPerfil) {
+      setTimeout(() => {
+        setTecnicoActivo(miPerfil);
+        setTabTecnico('activos');
+      }, 0);
+      return null;
+    }
+  }
+
+  // Solo admins y control (Valentina) ven el selector de técnicos
   if (vista === 'ingreso' && !tecnicoActivo && puedeVerOtrosTecnicos(usuarioActual.rol)) {
     return (
       <div className="tecnico-selector">
@@ -1561,10 +1546,15 @@ function App() {
             <h2>🏛 Curaduría Urbana N.° 2</h2>
             <p>Pereira · Vista Técnico</p>
           </div>
-          <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
+          <div style={{display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap'}}>
             {esAdminOControl && (
               <button className="btn-primary" onClick={() => setTecnicoActivo(null)}>
                 ← Cambiar técnico
+              </button>
+            )}
+            {!esAdminOControl && (
+              <button className="btn-primary" style={{background:'#616161'}} onClick={() => { setTecnicoActivo(null); setVista('dashboard'); }}>
+                <Home size={14} style={{display:'inline', marginRight:'4px'}} /> Ir al Dashboard
               </button>
             )}
             <button className="btn-primary" style={{background:'#616161'}} onClick={cerrarSesion}>
@@ -2003,8 +1993,7 @@ function App() {
             </div>
           </>
         )}
-
-        {!loading && !error && vistaEfectiva === 'tecnicos' && (
+                {!loading && !error && vistaEfectiva === 'tecnicos' && (
           <>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', flexWrap:'wrap', gap:'15px'}}>
               <h2>Productividad del Equipo {filtroEstrategicosTecnicos && '⭐ (Solo Estratégicos)'}</h2>
@@ -2344,8 +2333,7 @@ function App() {
             </>
           );
         })()}
-
-        {!loading && !error && vistaEfectiva === 'pendientes' && (() => {
+                {!loading && !error && vistaEfectiva === 'pendientes' && (() => {
           const proyectosPendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE');
           const pendientesEstrat = proyectosPendientes.filter(p => p.estrategico).length;
           return (

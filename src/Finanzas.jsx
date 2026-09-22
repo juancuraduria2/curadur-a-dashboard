@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Trash2, Copy, Printer, ArrowUpRight, ArrowDownRight, Minus, Lock, AlertTriangle, Users, Truck, Gift, ClipboardList, X, RefreshCw } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Trash2, Copy, Printer, ArrowUpRight, ArrowDownRight, Minus, Lock, AlertTriangle, Users, Truck, Gift, ClipboardList, X, RefreshCw, Landmark } from 'lucide-react';
 
 // ============================================
 // MÓDULO INGRESOS Y FINANZAS
@@ -21,8 +21,14 @@ import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Tr
 // Estructura de un mes (igual a api/finanzas.js):
 // { ingresos: { variable, fijo, unico }, ivaIncluido,
 //   nomina: [{ nombre, valor }], prestaciones: [{ concepto, valor }],
-//   proveedores: [{ nombre, concepto, valor }],
+//   proveedores: [{ nombre, concepto, valor }], impuestos: [{ concepto, valor }],
 //   radicados, expedidos, notas, actualizado, actualizadoPor }
+//
+// Cálculos:
+//   Gastos operativos = nómina + prestaciones + proveedores
+//   Utilidad antes de impuestos = ingresos − gastos operativos
+//   Gastos totales = gastos operativos + impuestos
+//   Utilidad neta = ingresos − gastos totales
 
 // ============================================
 // ACCESO
@@ -48,6 +54,14 @@ const CONCEPTOS_PRESTACIONES = [
   'Otro'
 ];
 
+const CONCEPTOS_IMPUESTOS = [
+  'IVA',
+  'Industria y Comercio (ICA)',
+  'Retención en la fuente',
+  'Avisos y tableros',
+  'Otro'
+];
+
 const ANIO_ACTUAL = new Date().getFullYear();
 const ANIOS = [];
 for (let a = 2024; a <= ANIO_ACTUAL + 1; a++) ANIOS.push(a);
@@ -57,6 +71,7 @@ const COLORES = {
   verde: '#388e3c',
   azul: '#1976d2',
   naranja: '#f57c00',
+  morado: '#6a1b9a',
   gris: '#546e7a',
   oscuro: '#1a1a1a'
 };
@@ -142,6 +157,7 @@ const registroVacio = () => ({
   nomina: [],
   prestaciones: [],
   proveedores: [],
+  impuestos: [],
   radicados: 0,
   expedidos: 0,
   notas: ''
@@ -159,7 +175,8 @@ const normalizarRegistro = (r) => {
     ingresos: { ...base.ingresos, ...(copia.ingresos || {}) },
     nomina: Array.isArray(copia.nomina) ? copia.nomina : [],
     prestaciones: Array.isArray(copia.prestaciones) ? copia.prestaciones : [],
-    proveedores: Array.isArray(copia.proveedores) ? copia.proveedores : []
+    proveedores: Array.isArray(copia.proveedores) ? copia.proveedores : [],
+    impuestos: Array.isArray(copia.impuestos) ? copia.impuestos : []
   };
 };
 
@@ -168,6 +185,10 @@ const registroAnteriorMasCercano = (meses, clave) => {
   const previas = Object.keys(meses || {}).filter(k => k < clave).sort();
   return previas.length > 0 ? previas[previas.length - 1] : null;
 };
+
+// ¿Hay pago de IVA registrado en impuestos?
+const tieneIvaEnImpuestos = (r) =>
+  ((r && r.impuestos) || []).some(i => /\bIVA\b/i.test(String(i.concepto || '')) && (Number(i.valor) || 0) > 0);
 
 // ============================================
 // CÁLCULOS
@@ -186,13 +207,17 @@ const calcularMes = (r) => {
   const nomina = sumaValores(r.nomina);
   const prestaciones = sumaValores(r.prestaciones);
   const proveedores = sumaValores(r.proveedores);
-  const gastos = nomina + prestaciones + proveedores;
+  const impuestos = sumaValores(r.impuestos);
+  const gastosOperativos = nomina + prestaciones + proveedores;
+  const utilidadAntesImpuestos = ingresos - gastosOperativos;
+  const gastos = gastosOperativos + impuestos;
   const utilidad = ingresos - gastos;
   const margen = ingresos > 0 ? (utilidad / ingresos) * 100 : null;
   return {
     variable, fijo, unico, ingresos,
-    nomina, prestaciones, proveedores, gastos,
-    utilidad, margen,
+    nomina, prestaciones, proveedores, impuestos,
+    gastosOperativos, utilidadAntesImpuestos,
+    gastos, utilidad, margen,
     radicados: Number(r.radicados) || 0,
     expedidos: Number(r.expedidos) || 0
   };
@@ -205,7 +230,12 @@ const variacion = (actual, anterior) => {
   return { valor, pct };
 };
 
-const CAMPOS_SUMA = ['variable', 'fijo', 'unico', 'ingresos', 'nomina', 'prestaciones', 'proveedores', 'gastos', 'utilidad', 'radicados', 'expedidos'];
+const CAMPOS_SUMA = [
+  'variable', 'fijo', 'unico', 'ingresos',
+  'nomina', 'prestaciones', 'proveedores', 'impuestos',
+  'gastosOperativos', 'utilidadAntesImpuestos',
+  'gastos', 'utilidad', 'radicados', 'expedidos'
+];
 
 const acumuladoAnio = (meses, clave) => {
   const { anio, mes } = partesMes(clave);
@@ -262,16 +292,21 @@ const contarOperacionSistema = (proyectos, clave) => {
 const generarResumen = (clave, c, cAnt, acum) => {
   const frases = [];
   frases.push(
-    `En ${nombreMes(clave)} la Curaduría registró ingresos por ${formatoPesos(c.ingresos)} y gastos por ${formatoPesos(c.gastos)}, ` +
-    `con una ${c.utilidad >= 0 ? 'utilidad' : 'pérdida'} de ${formatoPesos(Math.abs(c.utilidad))}` +
+    `En ${nombreMes(clave)} la Curaduría registró ingresos por ${formatoPesos(c.ingresos)} y gastos totales por ${formatoPesos(c.gastos)}, ` +
+    `con una ${c.utilidad >= 0 ? 'utilidad neta' : 'pérdida neta'} de ${formatoPesos(Math.abs(c.utilidad))}` +
     `${c.margen !== null ? ` y un margen de ${formatoPct(c.margen)}` : ''}.`
   );
+  if (c.impuestos > 0) {
+    frases.push(
+      `La utilidad antes de impuestos fue de ${formatoPesos(c.utilidadAntesImpuestos)} y en el mes se pagaron impuestos por ${formatoPesos(c.impuestos)}.`
+    );
+  }
   if (cAnt) {
     const vi = variacion(c.ingresos, cAnt.ingresos);
     if (vi && vi.pct !== null) {
       frases.push(
         `Frente a ${nombreMes(mesAnterior(clave))}, los ingresos ${vi.valor >= 0 ? 'aumentaron' : 'disminuyeron'} ${formatoPct(Math.abs(vi.pct))} ` +
-        `y la utilidad pasó de ${formatoPesos(cAnt.utilidad)} a ${formatoPesos(c.utilidad)}.`
+        `y la utilidad neta pasó de ${formatoPesos(cAnt.utilidad)} a ${formatoPesos(c.utilidad)}.`
       );
     }
   } else {
@@ -281,7 +316,7 @@ const generarResumen = (clave, c, cAnt, acum) => {
   if (acum && acum.total.mesesConDatos > 1) {
     frases.push(
       `En lo corrido del año (${acum.total.mesesConDatos} meses registrados) el acumulado es de ${formatoPesos(acum.total.ingresos)} en ingresos ` +
-      `y ${formatoPesos(acum.total.utilidad)} en utilidad.`
+      `y ${formatoPesos(acum.total.utilidad)} en utilidad neta.`
     );
   }
   return frases;
@@ -643,6 +678,13 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
   const proveedoresOrdenados = [...registro.proveedores].sort((a, b) => (b.valor || 0) - (a.valor || 0));
   const pctDe = (valor, total) => (total > 0 ? formatoPct((valor / total) * 100) : '—');
 
+  // Numeración de las subsecciones de gastos
+  const subsecciones = ['nomina'];
+  if (registro.prestaciones.length > 0) subsecciones.push('prestaciones');
+  subsecciones.push('proveedores');
+  if (registro.impuestos.length > 0) subsecciones.push('impuestos');
+  const numSub = (k) => `4.${subsecciones.indexOf(k) + 1}`;
+
   const kpi = (etiqueta, valor, color, actual, anterior, opciones) => {
     const t = textoVariacion(actual, anterior, opciones);
     return (
@@ -705,9 +747,9 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
         <div className="inf-h2">2. Indicadores principales</div>
         <div className="inf-kpis">
           {kpi('Ingresos', formatoPesos(c.ingresos), 'oscuro', c.ingresos, cAnt ? cAnt.ingresos : null)}
-          {kpi('Gastos', formatoPesos(c.gastos), '', c.gastos, cAnt ? cAnt.gastos : null, { inverso: true })}
-          {kpi(c.utilidad >= 0 ? 'Utilidad' : 'Pérdida', formatoPesos(c.utilidad), c.utilidad >= 0 ? 'verde' : '', c.utilidad, cAnt ? cAnt.utilidad : null)}
-          {kpi('Margen de utilidad', formatoPct(c.margen), 'verde', c.margen, cAnt ? cAnt.margen : null, { tipo: 'pct' })}
+          {kpi('Gastos totales', formatoPesos(c.gastos), '', c.gastos, cAnt ? cAnt.gastos : null, { inverso: true })}
+          {kpi(c.utilidad >= 0 ? 'Utilidad neta' : 'Pérdida neta', formatoPesos(c.utilidad), c.utilidad >= 0 ? 'verde' : '', c.utilidad, cAnt ? cAnt.utilidad : null)}
+          {kpi('Margen neto', formatoPct(c.margen), 'verde', c.margen, cAnt ? cAnt.margen : null, { tipo: 'pct' })}
           {kpi('Radicados', formatoNumero(c.radicados), 'azul', c.radicados, cAnt ? cAnt.radicados : null, { tipo: 'numero' })}
           {kpi('Expedidos', formatoNumero(c.expedidos), 'gris', c.expedidos, cAnt ? cAnt.expedidos : null, { tipo: 'numero' })}
         </div>
@@ -739,11 +781,13 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
               <tr><td>Primas, cesantías y prestaciones</td><td className="num">{formatoPesos(c.prestaciones)}</td><td className="num">{pctDe(c.prestaciones, c.gastos)}</td></tr>
             )}
             <tr><td>Proveedores</td><td className="num">{formatoPesos(c.proveedores)}</td><td className="num">{pctDe(c.proveedores, c.gastos)}</td></tr>
+            <tr className="actual"><td>Subtotal gastos operativos</td><td className="num">{formatoPesos(c.gastosOperativos)}</td><td className="num">{pctDe(c.gastosOperativos, c.gastos)}</td></tr>
+            <tr><td>Impuestos</td><td className="num">{formatoPesos(c.impuestos)}</td><td className="num">{pctDe(c.impuestos, c.gastos)}</td></tr>
             <tr className="total"><td>Total gastos</td><td className="num">{formatoPesos(c.gastos)}</td><td className="num">100,0 %</td></tr>
           </tbody>
         </table>
 
-        <div className="inf-h3">4.1 Nómina</div>
+        <div className="inf-h3">{numSub('nomina')} Nómina</div>
         {incluirNomina ? (
           <table className="inf-tabla">
             <thead><tr><th>Empleado</th><th className="num">Valor neto</th></tr></thead>
@@ -763,7 +807,7 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
 
         {registro.prestaciones.length > 0 && (
           <>
-            <div className="inf-h3">4.2 Primas, cesantías y prestaciones</div>
+            <div className="inf-h3">{numSub('prestaciones')} Primas, cesantías y prestaciones</div>
             <table className="inf-tabla inf-sin-corte">
               <thead><tr><th>Concepto</th><th className="num">Valor</th></tr></thead>
               <tbody>
@@ -776,7 +820,7 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
           </>
         )}
 
-        <div className="inf-h3">{registro.prestaciones.length > 0 ? '4.3' : '4.2'} Proveedores</div>
+        <div className="inf-h3">{numSub('proveedores')} Proveedores</div>
         {proveedoresOrdenados.length > 0 ? (
           <table className="inf-tabla">
             <thead><tr><th>Proveedor</th><th>Concepto</th><th className="num">Valor pagado</th></tr></thead>
@@ -790,6 +834,21 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
         ) : (
           <p className="inf-parrafo">No se registraron pagos a proveedores en el mes.</p>
         )}
+
+        {registro.impuestos.length > 0 && (
+          <>
+            <div className="inf-h3">{numSub('impuestos')} Impuestos</div>
+            <table className="inf-tabla inf-sin-corte">
+              <thead><tr><th>Impuesto</th><th className="num">Valor pagado</th></tr></thead>
+              <tbody>
+                {registro.impuestos.map((p, i) => (
+                  <tr key={i}><td>{p.concepto || '—'}</td><td className="num">{formatoPesos(p.valor)}</td></tr>
+                ))}
+                <tr className="total"><td>Total impuestos</td><td className="num">{formatoPesos(c.impuestos)}</td></tr>
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
 
       {/* ---------- 5. RESULTADO ---------- */}
@@ -798,12 +857,17 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
         <table className="inf-tabla">
           <tbody>
             <tr><td>Total ingresos</td><td className="num">{formatoPesos(c.ingresos)}</td></tr>
-            <tr><td>(−) Total gastos</td><td className="num">{formatoPesos(c.gastos)}</td></tr>
+            <tr><td>(−) Gastos operativos</td><td className="num">{formatoPesos(c.gastosOperativos)}</td></tr>
+            <tr className="actual">
+              <td>(=) Utilidad antes de impuestos</td>
+              <td className={`num ${c.utilidadAntesImpuestos >= 0 ? 'inf-bien' : 'inf-mal'}`}>{formatoPesos(c.utilidadAntesImpuestos)}</td>
+            </tr>
+            <tr><td>(−) Impuestos</td><td className="num">{formatoPesos(c.impuestos)}</td></tr>
             <tr className="total">
-              <td>{c.utilidad >= 0 ? '(=) Utilidad del mes' : '(=) Pérdida del mes'}</td>
+              <td>{c.utilidad >= 0 ? '(=) Utilidad neta del mes' : '(=) Pérdida neta del mes'}</td>
               <td className={`num ${c.utilidad >= 0 ? 'inf-bien' : 'inf-mal'}`}>{formatoPesos(c.utilidad)}</td>
             </tr>
-            <tr><td>Margen de utilidad</td><td className="num">{formatoPct(c.margen)}</td></tr>
+            <tr><td>Margen neto</td><td className="num">{formatoPct(c.margen)}</td></tr>
           </tbody>
         </table>
       </div>
@@ -837,9 +901,11 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
             </thead>
             <tbody>
               {filaComparacion('Ingresos', c.ingresos, cAnt.ingresos, formatoPesos)}
-              {filaComparacion('Gastos', c.gastos, cAnt.gastos, formatoPesos, { inverso: true })}
-              {filaComparacion('Utilidad', c.utilidad, cAnt.utilidad, formatoPesos)}
-              {filaComparacion('Margen de utilidad', c.margen, cAnt.margen, formatoPct, { tipo: 'pct' })}
+              {filaComparacion('Gastos operativos', c.gastosOperativos, cAnt.gastosOperativos, formatoPesos, { inverso: true })}
+              {filaComparacion('Impuestos', c.impuestos, cAnt.impuestos, formatoPesos, { inverso: true })}
+              {filaComparacion('Utilidad antes de impuestos', c.utilidadAntesImpuestos, cAnt.utilidadAntesImpuestos, formatoPesos)}
+              {filaComparacion('Utilidad neta', c.utilidad, cAnt.utilidad, formatoPesos)}
+              {filaComparacion('Margen neto', c.margen, cAnt.margen, formatoPct, { tipo: 'pct' })}
               {filaComparacion('Radicados', c.radicados, cAnt.radicados, formatoNumero, { tipo: 'numero' })}
               {filaComparacion('Expedidos', c.expedidos, cAnt.expedidos, formatoNumero, { tipo: 'numero' })}
             </tbody>
@@ -854,24 +920,24 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
         <div className="inf-seccion inf-sin-corte">
           <div className="inf-h2">Evolución de los últimos meses</div>
           <div className="inf-grafico">
-            <div className="inf-grafico-titulo">Ingresos vs. gastos</div>
+            <div className="inf-grafico-titulo">Ingresos vs. gastos totales</div>
             <BarChart width={680} height={210} data={serie} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis dataKey="etiqueta" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={formatoPesosCorto} tick={{ fontSize: 10 }} width={70} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
               <Bar dataKey="ingresos" name="Ingresos" fill={COLORES.oscuro} isAnimationActive={false} />
-              <Bar dataKey="gastos" name="Gastos" fill={COLORES.rojo} isAnimationActive={false} />
+              <Bar dataKey="gastos" name="Gastos totales" fill={COLORES.rojo} isAnimationActive={false} />
             </BarChart>
           </div>
           <div className="inf-grafico">
-            <div className="inf-grafico-titulo">Utilidad mensual</div>
+            <div className="inf-grafico-titulo">Utilidad neta mensual</div>
             <LineChart width={680} height={180} data={serie} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis dataKey="etiqueta" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={formatoPesosCorto} tick={{ fontSize: 10 }} width={70} />
               <ReferenceLine y={0} stroke="#999" />
-              <Line type="monotone" dataKey="utilidad" name="Utilidad" stroke={COLORES.verde} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
+              <Line type="monotone" dataKey="utilidad" name="Utilidad neta" stroke={COLORES.verde} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
             </LineChart>
           </div>
         </div>
@@ -885,8 +951,9 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
             <tr>
               <th>Mes</th>
               <th className="num">Ingresos</th>
-              <th className="num">Gastos</th>
-              <th className="num">Utilidad</th>
+              <th className="num">Gastos oper.</th>
+              <th className="num">Impuestos</th>
+              <th className="num">Utilidad neta</th>
               <th className="num">Margen</th>
               <th className="num">Radic.</th>
               <th className="num">Exped.</th>
@@ -897,7 +964,8 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
               <tr key={m.clave} className={m.clave === clave ? 'actual' : ''}>
                 <td>{nombreMes(m.clave)}</td>
                 <td className="num">{formatoPesos(m.ingresos)}</td>
-                <td className="num">{formatoPesos(m.gastos)}</td>
+                <td className="num">{formatoPesos(m.gastosOperativos)}</td>
+                <td className="num">{formatoPesos(m.impuestos)}</td>
                 <td className={`num ${m.utilidad >= 0 ? '' : 'inf-mal'}`}>{formatoPesos(m.utilidad)}</td>
                 <td className="num">{formatoPct(m.margen)}</td>
                 <td className="num">{formatoNumero(m.radicados)}</td>
@@ -907,7 +975,8 @@ const InformeJunta = ({ clave, meses, incluirNomina }) => {
             <tr className="total">
               <td>Total año</td>
               <td className="num">{formatoPesos(acum.total.ingresos)}</td>
-              <td className="num">{formatoPesos(acum.total.gastos)}</td>
+              <td className="num">{formatoPesos(acum.total.gastosOperativos)}</td>
+              <td className="num">{formatoPesos(acum.total.impuestos)}</td>
               <td className="num">{formatoPesos(acum.total.utilidad)}</td>
               <td className="num">{formatoPct(acum.total.margen)}</td>
               <td className="num">{formatoNumero(acum.total.radicados)}</td>
@@ -942,6 +1011,7 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
   const sistema = useMemo(() => contarOperacionSistema(proyectos, clave), [proyectos, clave]);
   const claveRef = registroAnteriorMasCercano(meses, clave);
   const registroRef = claveRef ? normalizarRegistro(meses[claveRef]) : null;
+  const alertaIva = tieneIvaEnImpuestos(borrador) && !borrador.ivaIncluido;
 
   // Nombres de proveedores usados antes (para autocompletar)
   const proveedoresConocidos = useMemo(() => {
@@ -1009,7 +1079,7 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
           Estos valores incluyen IVA
         </label>
         <div className="fin-seccion-sub" style={{ marginTop: 6, marginBottom: 0 }}>
-          Recomendación: registra siempre de la misma forma (idealmente sin IVA) para que las comparaciones entre meses sean correctas.
+          Si en la sección de impuestos registras el pago de IVA, marca esta casilla y registra los ingresos con IVA. Así la utilidad queda correcta.
         </div>
         <div className="fin-total-linea"><span>Total ingresos</span><span className="num">{formatoPesos(c.ingresos)}</span></div>
       </div>
@@ -1107,9 +1177,43 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
         <div className="fin-total-linea"><span>Total proveedores</span><span className="num">{formatoPesos(c.proveedores)}</span></div>
       </div>
 
+      {/* ---------- IMPUESTOS ---------- */}
+      <div className="fin-seccion">
+        <div className="fin-seccion-titulo"><Landmark size={18} color={COLORES.rojo} /> 5. Impuestos <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>(opcional)</span></div>
+        <div className="fin-seccion-sub">IVA, Industria y Comercio (ICA), retención en la fuente u otros impuestos pagados en el mes.</div>
+        <datalist id="fin-conceptos-impuestos">
+          {CONCEPTOS_IMPUESTOS.map(ci => <option key={ci} value={ci} />)}
+        </datalist>
+        {alertaIva && (
+          <div className="fin-aviso alerta" style={{ marginBottom: 12 }}>
+            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span style={{ flex: 1 }}>
+              Registraste pago de IVA, pero los ingresos están marcados <strong>sin IVA</strong>. Así la utilidad quedaría más baja de lo real.
+              Registra los ingresos con IVA y marca la casilla.
+            </span>
+            <button className="fin-btn fin-btn-secundario" onClick={() => actualizar({ ivaIncluido: true })}>
+              Marcar ingresos con IVA
+            </button>
+          </div>
+        )}
+        {borrador.impuestos.map((p, i) => (
+          <div key={i} className="fin-fila-item prestacion">
+            <input className="fin-input" list="fin-conceptos-impuestos" placeholder="Ej.: Industria y Comercio (ICA)" value={p.concepto || ''} onChange={(ev) => actualizarItem('impuestos', i, 'concepto', ev.target.value)} />
+            <InputPesos valor={p.valor} onChange={(v) => actualizarItem('impuestos', i, 'valor', v)} />
+            <button className="fin-btn-icono" title="Quitar" onClick={() => quitarItem('impuestos', i)}><Trash2 size={16} /></button>
+          </div>
+        ))}
+        <button className="fin-btn fin-btn-secundario" onClick={() => agregarItem('impuestos', { concepto: '', valor: 0 })}>
+          <Plus size={14} /> Agregar impuesto
+        </button>
+        {borrador.impuestos.length > 0 && (
+          <div className="fin-total-linea"><span>Total impuestos</span><span className="num">{formatoPesos(c.impuestos)}</span></div>
+        )}
+      </div>
+
       {/* ---------- OPERACIÓN ---------- */}
       <div className="fin-seccion">
-        <div className="fin-seccion-titulo"><ClipboardList size={18} color={COLORES.rojo} /> 5. Información operativa</div>
+        <div className="fin-seccion-titulo"><ClipboardList size={18} color={COLORES.rojo} /> 6. Información operativa</div>
         <div className="fin-seccion-sub">Radicados y expedidos del mes.</div>
         <div className="fin-campos">
           <div className="fin-campo">
@@ -1137,7 +1241,7 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
 
       {/* ---------- NOTAS ---------- */}
       <div className="fin-seccion">
-        <div className="fin-seccion-titulo"><FileText size={18} color={COLORES.rojo} /> 6. Observaciones para la Junta <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>(opcional)</span></div>
+        <div className="fin-seccion-titulo"><FileText size={18} color={COLORES.rojo} /> 7. Observaciones para la Junta <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>(opcional)</span></div>
         <div className="fin-seccion-sub">Aparecen en el resumen ejecutivo del informe. Ej.: hechos relevantes del mes, pagos extraordinarios.</div>
         <textarea className="fin-input fin-textarea" placeholder="Escribe aquí las observaciones del mes..." value={borrador.notas || ''} onChange={(e) => actualizar({ notas: e.target.value })} />
       </div>
@@ -1154,9 +1258,9 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
       <div className="fin-barra-guardar">
         <div className="fin-barra-guardar-datos">
           <div className="fin-barra-guardar-dato"><span>Ingresos</span><strong>{formatoPesos(c.ingresos)}</strong></div>
-          <div className="fin-barra-guardar-dato"><span>Gastos</span><strong>{formatoPesos(c.gastos)}</strong></div>
+          <div className="fin-barra-guardar-dato"><span>Gastos totales</span><strong>{formatoPesos(c.gastos)}</strong></div>
           <div className="fin-barra-guardar-dato">
-            <span>{c.utilidad >= 0 ? 'Utilidad' : 'Pérdida'}</span>
+            <span>{c.utilidad >= 0 ? 'Utilidad neta' : 'Pérdida neta'}</span>
             <strong style={{ color: c.utilidad >= 0 ? '#81c784' : '#ef9a9a' }}>{formatoPesos(c.utilidad)}</strong>
           </div>
           <div className="fin-barra-guardar-dato"><span>Margen</span><strong>{formatoPct(c.margen)}</strong></div>
@@ -1181,7 +1285,7 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
       <div className="fin-vacio">
         <Wallet size={40} color="#ccc" />
         <h3>{nombreMes(clave)} no tiene información registrada</h3>
-        <p>Registra los ingresos, la nómina y los proveedores del mes para ver el resumen.</p>
+        <p>Registra los ingresos, la nómina, los proveedores y los impuestos del mes para ver el resumen.</p>
         <button className="fin-btn fin-btn-primario" onClick={onIrARegistrar}>
           <Plus size={16} /> Registrar {nombreMes(clave)}
         </button>
@@ -1213,11 +1317,11 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
       <div className="fin-kpis">
         <TarjetaKPI etiqueta="Ingresos" icono={<Wallet size={14} />} valor={formatoPesos(c.ingresos)} color="oscuro"
           sub={<><BadgeVariacion actual={c.ingresos} anterior={cAnt ? cAnt.ingresos : null} /> vs. mes anterior</>} />
-        <TarjetaKPI etiqueta="Gastos" icono={<TrendingDown size={14} />} valor={formatoPesos(c.gastos)} color="rojo"
+        <TarjetaKPI etiqueta="Gastos totales" icono={<TrendingDown size={14} />} valor={formatoPesos(c.gastos)} color="rojo"
           sub={<><BadgeVariacion actual={c.gastos} anterior={cAnt ? cAnt.gastos : null} inverso /> vs. mes anterior</>} />
-        <TarjetaKPI etiqueta={c.utilidad >= 0 ? 'Utilidad' : 'Pérdida'} icono={<TrendingUp size={14} />} valor={formatoPesos(c.utilidad)} color={c.utilidad >= 0 ? 'verde' : 'rojo'}
+        <TarjetaKPI etiqueta={c.utilidad >= 0 ? 'Utilidad neta' : 'Pérdida neta'} icono={<TrendingUp size={14} />} valor={formatoPesos(c.utilidad)} color={c.utilidad >= 0 ? 'verde' : 'rojo'}
           sub={<><BadgeVariacion actual={c.utilidad} anterior={cAnt ? cAnt.utilidad : null} /> vs. mes anterior</>} />
-        <TarjetaKPI etiqueta="Margen de utilidad" icono={<TrendingUp size={14} />} valor={formatoPct(c.margen)} color="naranja"
+        <TarjetaKPI etiqueta="Margen neto" icono={<TrendingUp size={14} />} valor={formatoPct(c.margen)} color="naranja"
           sub={<><BadgeVariacion actual={c.margen} anterior={cAnt ? cAnt.margen : null} tipo="pct" /> vs. mes anterior</>} />
         <TarjetaKPI etiqueta="Radicados" icono={<FileText size={14} />} valor={formatoNumero(c.radicados)} color="azul"
           sub={<><BadgeVariacion actual={c.radicados} anterior={cAnt ? cAnt.radicados : null} tipo="numero" /> vs. mes anterior</>} />
@@ -1243,14 +1347,41 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
             <FilaDesglose etiqueta="Primas y prestaciones" valor={c.prestaciones} total={c.gastos} color={COLORES.naranja} />
           )}
           <FilaDesglose etiqueta={`Proveedores (${registro.proveedores.length})`} valor={c.proveedores} total={c.gastos} color={COLORES.gris} />
+          {c.impuestos > 0 && (
+            <FilaDesglose etiqueta="Impuestos" valor={c.impuestos} total={c.gastos} color={COLORES.morado} />
+          )}
           <div className="fin-desglose-total"><span>Total gastos</span><span className="num">{formatoPesos(c.gastos)}</span></div>
+        </div>
+      </div>
+
+      {/* ---------- RESULTADO DEL MES ---------- */}
+      <div className="fin-card">
+        <div className="fin-card-titulo"><Landmark size={16} color={COLORES.rojo} /> Resultado del mes</div>
+        <div className="fin-card-sub">De los ingresos a la utilidad neta</div>
+        <div className="fin-tabla">
+          <table style={{ minWidth: 0 }}>
+            <tbody>
+              <tr><td>Total ingresos</td><td className="num">{formatoPesos(c.ingresos)}</td></tr>
+              <tr><td>(−) Gastos operativos <span style={{ color: '#999', fontSize: 12 }}>(nómina, primas y proveedores)</span></td><td className="num">{formatoPesos(c.gastosOperativos)}</td></tr>
+              <tr className="actual">
+                <td>(=) Utilidad antes de impuestos</td>
+                <td className="num" style={{ color: c.utilidadAntesImpuestos >= 0 ? COLORES.verde : COLORES.rojo }}>{formatoPesos(c.utilidadAntesImpuestos)}</td>
+              </tr>
+              <tr><td>(−) Impuestos</td><td className="num">{formatoPesos(c.impuestos)}</td></tr>
+              <tr className="total">
+                <td>{c.utilidad >= 0 ? '(=) Utilidad neta' : '(=) Pérdida neta'}</td>
+                <td className="num" style={{ color: c.utilidad >= 0 ? COLORES.verde : COLORES.rojo }}>{formatoPesos(c.utilidad)}</td>
+              </tr>
+              <tr><td>Margen neto</td><td className="num">{formatoPct(c.margen)}</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* ---------- GRÁFICOS ---------- */}
       <div className="fin-grid-2">
         <div className="fin-card">
-          <div className="fin-card-titulo">Ingresos vs. gastos</div>
+          <div className="fin-card-titulo">Ingresos vs. gastos totales</div>
           <div className="fin-card-sub">Últimos 12 meses registrados</div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={serie} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
@@ -1260,12 +1391,12 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
               <Tooltip formatter={tooltipPesos} />
               <Legend />
               <Bar dataKey="ingresos" name="Ingresos" fill={COLORES.oscuro} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="gastos" name="Gastos" fill={COLORES.rojo} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="gastos" name="Gastos totales" fill={COLORES.rojo} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="fin-card">
-          <div className="fin-card-titulo">Evolución de la utilidad</div>
+          <div className="fin-card-titulo">Evolución de la utilidad neta</div>
           <div className="fin-card-sub">Últimos 12 meses registrados</div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={serie} margin={{ top: 10, right: 5, left: 5, bottom: 0 }}>
@@ -1275,7 +1406,7 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
               <Tooltip formatter={tooltipPesos} />
               <Legend />
               <ReferenceLine y={0} stroke="#999" />
-              <Line type="monotone" dataKey="utilidad" name="Utilidad" stroke={COLORES.verde} strokeWidth={3} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="utilidad" name="Utilidad neta" stroke={COLORES.verde} strokeWidth={3} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -1299,9 +1430,11 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
               </thead>
               <tbody>
                 {filaComparacion('Ingresos', c.ingresos, cAnt.ingresos, formatoPesos)}
-                {filaComparacion('Gastos', c.gastos, cAnt.gastos, formatoPesos, { inverso: true })}
-                {filaComparacion('Utilidad', c.utilidad, cAnt.utilidad, formatoPesos)}
-                {filaComparacion('Margen de utilidad', c.margen, cAnt.margen, formatoPct, { tipo: 'pct' })}
+                {filaComparacion('Gastos operativos', c.gastosOperativos, cAnt.gastosOperativos, formatoPesos, { inverso: true })}
+                {filaComparacion('Impuestos', c.impuestos, cAnt.impuestos, formatoPesos, { inverso: true })}
+                {filaComparacion('Utilidad antes de impuestos', c.utilidadAntesImpuestos, cAnt.utilidadAntesImpuestos, formatoPesos)}
+                {filaComparacion('Utilidad neta', c.utilidad, cAnt.utilidad, formatoPesos)}
+                {filaComparacion('Margen neto', c.margen, cAnt.margen, formatoPct, { tipo: 'pct' })}
                 {filaComparacion('Radicados', c.radicados, cAnt.radicados, formatoNumero, { tipo: 'numero' })}
                 {filaComparacion('Expedidos', c.expedidos, cAnt.expedidos, formatoNumero, { tipo: 'numero' })}
               </tbody>
@@ -1324,8 +1457,9 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
               <tr>
                 <th>Mes</th>
                 <th className="num">Ingresos</th>
-                <th className="num">Gastos</th>
-                <th className="num">Utilidad</th>
+                <th className="num">Gastos oper.</th>
+                <th className="num">Impuestos</th>
+                <th className="num">Utilidad neta</th>
                 <th className="num">Margen</th>
                 <th className="num">Radicados</th>
                 <th className="num">Expedidos</th>
@@ -1336,7 +1470,8 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
                 <tr key={m.clave} className={m.clave === clave ? 'actual' : ''}>
                   <td>{nombreMes(m.clave)}</td>
                   <td className="num">{formatoPesos(m.ingresos)}</td>
-                  <td className="num">{formatoPesos(m.gastos)}</td>
+                  <td className="num">{formatoPesos(m.gastosOperativos)}</td>
+                  <td className="num">{formatoPesos(m.impuestos)}</td>
                   <td className="num" style={{ color: m.utilidad >= 0 ? COLORES.verde : COLORES.rojo }}>{formatoPesos(m.utilidad)}</td>
                   <td className="num">{formatoPct(m.margen)}</td>
                   <td className="num">{formatoNumero(m.radicados)}</td>
@@ -1346,7 +1481,8 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
               <tr className="total">
                 <td>Total</td>
                 <td className="num">{formatoPesos(acum.total.ingresos)}</td>
-                <td className="num">{formatoPesos(acum.total.gastos)}</td>
+                <td className="num">{formatoPesos(acum.total.gastosOperativos)}</td>
+                <td className="num">{formatoPesos(acum.total.impuestos)}</td>
                 <td className="num">{formatoPesos(acum.total.utilidad)}</td>
                 <td className="num">{formatoPct(acum.total.margen)}</td>
                 <td className="num">{formatoNumero(acum.total.radicados)}</td>
@@ -1378,8 +1514,8 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
           </div>
         </div>
         <div className="fin-card">
-          <div className="fin-card-titulo"><Truck size={16} color={COLORES.rojo} /> Detalle de proveedores</div>
-          <div className="fin-card-sub">{registro.proveedores.length} pagos registrados</div>
+          <div className="fin-card-titulo"><Truck size={16} color={COLORES.rojo} /> Proveedores e impuestos</div>
+          <div className="fin-card-sub">{registro.proveedores.length} pagos a proveedores · {registro.impuestos.length} impuestos</div>
           <div className="fin-tabla">
             <table style={{ minWidth: 0 }}>
               <thead><tr><th>Proveedor</th><th>Concepto</th><th className="num">Valor</th></tr></thead>
@@ -1394,6 +1530,19 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
               </tbody>
             </table>
           </div>
+          {registro.impuestos.length > 0 && (
+            <div className="fin-tabla" style={{ marginTop: 16 }}>
+              <table style={{ minWidth: 0 }}>
+                <thead><tr><th>Impuesto</th><th className="num">Valor</th></tr></thead>
+                <tbody>
+                  {registro.impuestos.map((p, i) => (
+                    <tr key={i}><td style={{ color: COLORES.morado }}>{p.concepto || 'Impuesto'}</td><td className="num">{formatoPesos(p.valor)}</td></tr>
+                  ))}
+                  <tr className="total"><td>Total impuestos</td><td className="num">{formatoPesos(c.impuestos)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1530,8 +1679,11 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
     const c = calcularMes(borrador);
     if (c.ingresos === 0 && !window.confirm('Los ingresos del mes están en $ 0. ¿Deseas guardar de todas formas?')) return;
     const sinNombre = borrador.nomina.some(e => !String(e.nombre || '').trim() && e.valor > 0) ||
-                      borrador.proveedores.some(p => !String(p.nombre || '').trim() && p.valor > 0);
-    if (sinNombre && !window.confirm('Hay filas con valor pero sin nombre. ¿Deseas guardar de todas formas?')) return;
+                      borrador.proveedores.some(p => !String(p.nombre || '').trim() && p.valor > 0) ||
+                      borrador.impuestos.some(p => !String(p.concepto || '').trim() && p.valor > 0);
+    if (sinNombre && !window.confirm('Hay filas con valor pero sin nombre o concepto. ¿Deseas guardar de todas formas?')) return;
+    if (tieneIvaEnImpuestos(borrador) && !borrador.ivaIncluido &&
+        !window.confirm('Registraste pago de IVA pero los ingresos están marcados sin IVA. La utilidad quedaría más baja de lo real. ¿Guardar de todas formas?')) return;
 
     setGuardando(true);
     try {
@@ -1548,7 +1700,7 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
 
   const eliminar = async () => {
     if (!window.confirm(`¿Eliminar todo el registro de ${nombreMes(clave)}? Esta acción no se puede deshacer.`)) return;
-    if (!window.confirm('Confirma de nuevo: se borrarán ingresos, nómina y proveedores de este mes.')) return;
+    if (!window.confirm('Confirma de nuevo: se borrarán ingresos, nómina, proveedores e impuestos de este mes.')) return;
     setGuardando(true);
     try {
       await llamarApi('DELETE', { mes: clave });
@@ -1598,7 +1750,7 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
       <div className="fin-encabezado">
         <div>
           <div className="fin-titulo"><Wallet size={24} color={COLORES.rojo} /> Ingresos y Finanzas</div>
-          <div className="fin-subtitulo">Informe mensual de ingresos, gastos y utilidad · {nombreMes(clave)}</div>
+          <div className="fin-subtitulo">Informe mensual de ingresos, gastos, impuestos y utilidad · {nombreMes(clave)}</div>
         </div>
         <span className="fin-badge-privado"><Lock size={12} /> Solo administración</span>
       </div>

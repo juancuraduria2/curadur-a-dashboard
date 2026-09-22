@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Home, Star, Clock, FileText, Users, User, History, TrendingUp, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, LogOut, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send, Eye, EyeOff, Lock, X, Building2, Shield } from 'lucide-react';
+import Finanzas, { puedeVerFinanzas } from './Finanzas.jsx';
 
 // ============================================
 // CONFIGURACIÓN
@@ -391,7 +392,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   .charts-grid { grid-template-columns: 1fr; }
 }
 `;
-
 const STYLES_TV = `
 .tv-mode { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0a0a0f; color: white; z-index: 1000; overflow-y: auto; padding: 30px; }
 .tv-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 30px; border-bottom: 2px solid #ff5252; }
@@ -1275,7 +1275,8 @@ function App() {
     if (!ESTADOS_REVISION.includes(getEstadoFlujo(p))) return false;
     return !getFechaLimiteEtapa(p);
   });
-    const ORDINAL_VUELTA = { 1: '1ra', 2: '2da', 3: '3ra', 4: '4ta' };
+
+  const ORDINAL_VUELTA = { 1: '1ra', 2: '2da', 3: '3ra', 4: '4ta' };
 
   const ultimosMovimientos = () => {
     const movs = [];
@@ -1374,8 +1375,7 @@ function App() {
       totalActas: tiemposActa.length
     };
   };
-
-  // ==============================
+    // ==============================
   // MODO TV
   // ==============================
   if (modoTV) {
@@ -1931,11 +1931,16 @@ function App() {
             <FileText size={16} /> Pagos
           </button>
         )}
+        {puedeVerFinanzas(usuarioActual) && (
+          <button className={`nav-btn ${vistaEfectiva === 'finanzas' ? 'active' : ''}`} onClick={() => setVista('finanzas')}>
+            <Lock size={16} /> Ingresos y Finanzas
+          </button>
+        )}
       </div>
 
       <div className="content">
-        {loading && <div className="loading">Cargando datos del Excel...</div>}
-        {error && <div className="error-msg">Error: {error}</div>}
+        {loading && vistaEfectiva !== 'finanzas' && <div className="loading">Cargando datos del Excel...</div>}
+        {error && vistaEfectiva !== 'finanzas' && <div className="error-msg">Error: {error}</div>}
 
         {!loading && !error && vistaEfectiva === 'dashboard' && (
           <>
@@ -2030,8 +2035,7 @@ function App() {
             </div>
           </>
         )}
-
-        {!loading && !error && vistaEfectiva === 'terminos' && (() => {
+                {!loading && !error && vistaEfectiva === 'terminos' && (() => {
           // Proyectos en revisión, ordenados: vencidos primero, luego por fecha límite, y sin fecha al final
           const enRevision = proyectos
             .filter(p => ESTADOS_REVISION.includes(getEstadoFlujo(p)))
@@ -2144,7 +2148,8 @@ function App() {
             </div>
           </>
         )}
-                {!loading && !error && vistaEfectiva === 'tecnicos' && (
+
+        {!loading && !error && vistaEfectiva === 'tecnicos' && (
           <>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px', flexWrap:'wrap', gap:'15px'}}>
               <h2>Productividad del Equipo {filtroEstrategicosTecnicos && '⭐ (Solo Estratégicos)'}</h2>
@@ -2347,8 +2352,7 @@ function App() {
             </div>
           </>
         )}
-
-        {!loading && !error && vistaEfectiva === 'estadisticasEstrategicas' && puedeVer(usuarioActual.rol, 'estadisticasEstrategicas') && (() => {
+                {!loading && !error && vistaEfectiva === 'estadisticasEstrategicas' && puedeVer(usuarioActual.rol, 'estadisticasEstrategicas') && (() => {
           const proyEstrat = proyectos.filter(p => p.estrategico);
           const totalEstrat = proyEstrat.length;
           const expedEstrat = proyEstrat.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
@@ -2489,7 +2493,8 @@ function App() {
             </>
           );
         })()}
-                {!loading && !error && vistaEfectiva === 'pendientes' && (() => {
+
+        {!loading && !error && vistaEfectiva === 'pendientes' && (() => {
           const proyectosPendientes = proyectos.filter(p => getEstadoFlujo(p) === 'PENDIENTE');
           const pendientesEstrat = proyectosPendientes.filter(p => p.estrategico).length;
           return (
@@ -2590,6 +2595,15 @@ function App() {
             </>
           );
         })()}
+
+        {vistaEfectiva === 'finanzas' && puedeVerFinanzas(usuarioActual) && (
+          <Finanzas
+            token={token}
+            usuario={usuarioActual}
+            proyectos={proyectos}
+            onSesionExpirada={cerrarSesion}
+          />
+        )}
       </div>
     </div>
   );

@@ -76,6 +76,10 @@ function sanitizar(d = {}) {
       concepto: txt(e?.concepto, 200),
       valor: num(e?.valor)
     })),
+    impuestos: lista(d.impuestos, e => ({
+      concepto: txt(e?.concepto),
+      valor: num(e?.valor)
+    })),
     radicados: num(d.radicados),
     expedidos: num(d.expedidos),
     notas: txt(d.notas, 2000)

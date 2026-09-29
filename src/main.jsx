@@ -66,25 +66,41 @@ const ESTADOS_VUELTA_POSTERIOR = ['REV_ARQ_2', 'REV_ESTR_2', 'REV_ARQ_3', 'REV_E
 // ============================================
 // VUELTAS DE REVISIÓN
 // ============================================
-// Cada estado de revisión define:
-//  - campoInicio: columna del Excel desde donde se cuentan los días hábiles
-//  - dias: días hábiles que tiene el profesional para esa revisión
-//  - campoEntrega: fecha en que el cliente entregó la información para esa vuelta
+// Regla general: el tiempo de cada etapa NO se cuenta desde la asignación,
+// sino desde la fecha en que la etapa efectivamente comienza.
 //
-// 1ra vuelta: arquitectura 9 días desde LDF; estructural 18 días desde LDF (9 arq + 9 estr)
-// 2da vuelta: cliente responde el acta (AV) → arq inicia AA / estr inicia AJ
-// 3ra vuelta: cliente entrega persistentes (AW) → arq inicia AB / estr inicia AK
-// 4ta vuelta: cliente entrega persistentes (AX) → arq inicia AC / estr inicia AL
+//  - Arquitectura arranca cuando el cliente aporta los pendientes (AW / AX).
+//    Excepción: la 2da revisión de arquitectura arranca en la asignación (AA).
+//  - Estructural arranca cuando arquitectura termina su revisión (AB / AC).
+//
+// Cada estado define:
+//  - campoInicio: columna desde donde se cuentan los días hábiles (null = sin columna)
+//  - dias: días hábiles que tiene el profesional para esa revisión
+//  - campoEntrega: fecha de referencia que se muestra en pantalla (no se usa para calcular)
+//
+// Columnas del Excel:
+//  AA = asignación 2da rev. arquitectura   AJ = asignación 2da rev. estructural
+//  AB = 2da revisión de arquitectura       AK = 2da revisión estructural
+//  AC = 3ra revisión de arquitectura       AL = 3ra revisión estructural
+//  AV = respuesta del cliente al acta
+//  AW = aporte de pendientes para 3ra revisión
+//  AX = aporte de pendientes para 4ta revisión
+//
+// Nota: no existe columna para el inicio de la 4ta revisión estructural,
+// por eso esa etapa siempre aparece como "Sin fecha de inicio".
 
 const VUELTAS = {
-  'REV_ARQ_1':  { vuelta: 1, area: 'arq',  campoInicio: 'fechaLegal',          dias: 9,  etiquetaInicio: 'Fecha LDF',                campoEntrega: null },
-  'REV_ESTR_1': { vuelta: 1, area: 'estr', campoInicio: 'fechaLegal',          dias: 18, etiquetaInicio: 'Fecha LDF',                campoEntrega: null },
-  'REV_ARQ_2':  { vuelta: 2, area: 'arq',  campoInicio: 'fechaAsigArqActa',    dias: 9,  etiquetaInicio: 'Inicio 2da revisión',      campoEntrega: 'fechaRespuestaActa', etiquetaEntrega: 'Respuesta al acta' },
-  'REV_ESTR_2': { vuelta: 2, area: 'estr', campoInicio: 'fechaAsigEstrActa',   dias: 9,  etiquetaInicio: 'Inicio 2da revisión',      campoEntrega: 'fechaRespuestaActa', etiquetaEntrega: 'Respuesta al acta' },
-  'REV_ARQ_3':  { vuelta: 3, area: 'arq',  campoInicio: 'fechaSegundaRevArq',  dias: 9,  etiquetaInicio: 'Inicio 3ra revisión',      campoEntrega: 'fechaPersistentes3', etiquetaEntrega: 'Entrega persistentes' },
-  'REV_ESTR_3': { vuelta: 3, area: 'estr', campoInicio: 'fechaSegundaRevEstr', dias: 9,  etiquetaInicio: 'Inicio 3ra revisión',      campoEntrega: 'fechaPersistentes3', etiquetaEntrega: 'Entrega persistentes' },
-  'REV_ARQ_4':  { vuelta: 4, area: 'arq',  campoInicio: 'fechaTerceraRevArq',  dias: 9,  etiquetaInicio: 'Inicio 4ta revisión',      campoEntrega: 'fechaPersistentes4', etiquetaEntrega: 'Entrega persistentes' },
-  'REV_ESTR_4': { vuelta: 4, area: 'estr', campoInicio: 'fechaTerceraRevEstr', dias: 9,  etiquetaInicio: 'Inicio 4ta revisión',      campoEntrega: 'fechaPersistentes4', etiquetaEntrega: 'Entrega persistentes' }
+  'REV_ARQ_1':  { vuelta: 1, area: 'arq',  campoInicio: 'fechaLegal',          dias: 9,  etiquetaInicio: 'Fecha LDF',                          campoEntrega: null },
+  'REV_ESTR_1': { vuelta: 1, area: 'estr', campoInicio: 'fechaLegal',          dias: 18, etiquetaInicio: 'Fecha LDF',                          campoEntrega: null },
+
+  'REV_ARQ_2':  { vuelta: 2, area: 'arq',  campoInicio: 'fechaAsigArqActa',    dias: 9,  etiquetaInicio: 'Asignación 2da rev. arq. (AA)',      campoEntrega: 'fechaRespuestaActa', etiquetaEntrega: 'Respuesta al acta (AV)' },
+  'REV_ESTR_2': { vuelta: 2, area: 'estr', campoInicio: 'fechaSegundaRevArq',  dias: 9,  etiquetaInicio: '2da revisión de arquitectura (AB)',  campoEntrega: 'fechaAsigEstrActa',  etiquetaEntrega: 'Asignación estructural (AJ)' },
+
+  'REV_ARQ_3':  { vuelta: 3, area: 'arq',  campoInicio: 'fechaPersistentes3',  dias: 9,  etiquetaInicio: 'Aporte de pendientes (AW)',          campoEntrega: null },
+  'REV_ESTR_3': { vuelta: 3, area: 'estr', campoInicio: 'fechaTerceraRevArq',  dias: 9,  etiquetaInicio: '3ra revisión de arquitectura (AC)',  campoEntrega: 'fechaSegundaRevEstr', etiquetaEntrega: '2da revisión estructural (AK)' },
+
+  'REV_ARQ_4':  { vuelta: 4, area: 'arq',  campoInicio: 'fechaPersistentes4',  dias: 9,  etiquetaInicio: 'Aporte de pendientes (AX)',          campoEntrega: null },
+  'REV_ESTR_4': { vuelta: 4, area: 'estr', campoInicio: null,                  dias: 9,  etiquetaInicio: 'Sin columna en el Excel',            campoEntrega: 'fechaTerceraRevEstr', etiquetaEntrega: '3ra revisión estructural (AL)', sinColumna: true }
 };
 
 // Campos de fecha que llegan del Excel y hay que convertir de número serial a dd/mm/aaaa
@@ -1169,12 +1185,13 @@ function App() {
   // LÓGICA DE VENCIMIENTO POR VUELTA
   // ============================================
   // Usa la tabla VUELTAS (parte 1): cada revisión cuenta sus días hábiles
-  // desde su propia fecha de inicio. Si esa fecha está vacía, devuelve null
-  // y el proyecto NO se marca como vencido (se muestra "Sin fecha de inicio").
+  // desde la fecha en que la etapa efectivamente comienza, no desde la asignación.
+  // Si esa fecha está vacía (o la etapa no tiene columna en el Excel), devuelve
+  // null y el proyecto NO se marca como vencido: aparece "Sin fecha de inicio".
 
   const getFechaLimiteEtapa = (p) => {
     const info = VUELTAS[getEstadoFlujo(p)];
-    if (!info) return null;
+    if (!info || !info.campoInicio) return null;
     const fechaInicio = excelDateToDate(p[info.campoInicio]);
     if (!fechaInicio) return null;
     return sumarDiasHabiles(fechaInicio, info.dias);
@@ -1188,11 +1205,11 @@ function App() {
     const fechaLimite = getFechaLimiteEtapa(p);
     return {
       ...info,
-      fechaInicio: p[info.campoInicio] || '',
+      fechaInicio: info.campoInicio ? (p[info.campoInicio] || '') : '',
       fechaEntrega: info.campoEntrega ? (p[info.campoEntrega] || '') : '',
       fechaLimite,
       diasRestantes: fechaLimite ? diasHabilesRestantes(fechaLimite) : null,
-      sinFechaInicio: !p[info.campoInicio]
+      sinFechaInicio: !info.campoInicio || !p[info.campoInicio]
     };
   };
 
@@ -1474,7 +1491,7 @@ function App() {
                     <div className="tv-semaforo-detalles">
                       Arquitecto: {p.nombreArquitecto || '-'}<br/>
                       Ingeniero: {p.nombreIngeniero || '-'}
-                      {infoV && <><br/>Inició: {formatoFechaLarga(infoV.fechaInicio)}</>}
+                      {infoV && infoV.fechaInicio && <><br/>Inició: {formatoFechaLarga(infoV.fechaInicio)}</>}
                     </div>
                   </div>
                   <div className="tv-semaforo-vencido">
@@ -1776,7 +1793,9 @@ function App() {
                     <span className="vuelta-chip">{ORDINAL_VUELTA[infoV.vuelta]} vuelta</span>
                     <span>
                       <strong>{infoV.etiquetaInicio}:</strong>{' '}
-                      {infoV.fechaInicio ? formatoFechaLarga(infoV.fechaInicio) : <span style={{color:'#c62828'}}>Sin registrar en el Excel</span>}
+                      {infoV.sinColumna
+                        ? <span style={{color:'#c62828'}}>No existe esta columna en el Excel</span>
+                        : (infoV.fechaInicio ? formatoFechaLarga(infoV.fechaInicio) : <span style={{color:'#c62828'}}>Sin registrar en el Excel</span>)}
                     </span>
                     {infoV.fechaLimite && (
                       <span><strong>Vence:</strong> {formatoFechaLarga(formatoFechaCorta(infoV.fechaLimite))}</span>
@@ -2055,10 +2074,18 @@ function App() {
               <div className="info-panel" style={{marginBottom:'20px'}}>
                 ⏰ <strong>Cálculo de vencimiento</strong><br/>
                 <span style={{fontSize:'13px'}}>
-                  <strong>1ra vuelta:</strong> arquitectura 9 días hábiles desde LDF · estructural 18 días hábiles desde LDF.<br/>
-                  <strong>2da, 3ra y 4ta vuelta:</strong> 9 días hábiles desde la fecha en que el profesional inicia esa revisión
-                  (arquitectura: columnas AA / AB / AC · estructural: columnas AJ / AK / AL).<br/>
-                  Si la fecha de inicio no está registrada en el Excel, el proyecto aparece como <strong>"Sin fecha de inicio"</strong> y no se cuenta como vencido.
+                  Cada etapa cuenta <strong>9 días hábiles</strong> desde la fecha en que efectivamente comienza, no desde la asignación.<br/><br/>
+                  <strong>Arquitectura</strong><br/>
+                  · 1ra vuelta: desde la fecha LDF<br/>
+                  · 2da vuelta: desde la asignación de la segunda revisión (AA)<br/>
+                  · 3ra vuelta: desde el aporte de pendientes del cliente (AW)<br/>
+                  · 4ta vuelta: desde el aporte de pendientes del cliente (AX)<br/><br/>
+                  <strong>Estructural</strong><br/>
+                  · 1ra vuelta: 18 días hábiles desde la fecha LDF<br/>
+                  · 2da vuelta: desde la segunda revisión de arquitectura (AB)<br/>
+                  · 3ra vuelta: desde la tercera revisión de arquitectura (AC)<br/>
+                  · 4ta vuelta: no existe columna en el Excel, por lo que no se calcula vencimiento<br/><br/>
+                  Si la fecha de inicio no está registrada, el proyecto aparece como <strong>"Sin fecha de inicio"</strong> y no se cuenta como vencido.
                 </span>
               </div>
               <div className="stats-grid" style={{marginBottom:'20px'}}>
@@ -2073,6 +2100,7 @@ function App() {
                       <th>Radicado</th>
                       <th>Estado</th>
                       <th>Vuelta</th>
+                      <th>Cuenta desde</th>
                       <th>Inicio revisión</th>
                       <th>Fecha límite</th>
                       <th>Días hábiles</th>
@@ -2081,7 +2109,7 @@ function App() {
                   </thead>
                   <tbody>
                     {enRevision.length === 0 && (
-                      <tr><td colSpan="7" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos en revisión</td></tr>
+                      <tr><td colSpan="8" style={{textAlign:'center', padding:'40px', color:'#999'}}>No hay proyectos en revisión</td></tr>
                     )}
                     {enRevision.map(({ p, infoV }) => {
                       const estado = getEstadoFlujo(p);
@@ -2105,6 +2133,7 @@ function App() {
                           </td>
                           <td><span className="estado-badge" style={{background: info?.bg, color: info?.color}}>{info?.icon} {info?.label}</span></td>
                           <td>{infoV ? `${ORDINAL_VUELTA[infoV.vuelta]}` : '-'}</td>
+                          <td style={{fontSize:'12px', color:'#666'}}>{infoV ? infoV.etiquetaInicio : '-'}</td>
                           <td>{infoV && infoV.fechaInicio ? infoV.fechaInicio : <span style={{color:'#c62828'}}>—</span>}</td>
                           <td>{infoV && infoV.fechaLimite ? formatoFechaCorta(infoV.fechaLimite) : '—'}</td>
                           <td><span className={`badge ${badge}`}>{texto}</span></td>

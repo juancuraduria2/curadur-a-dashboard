@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Home, Star, Clock, FileText, Users, User, History, TrendingUp, Search, Calendar, AlertTriangle, CheckCircle, Tv, LogIn, LogOut, RefreshCw, ArrowLeft, StickyNote, Trophy, ClipboardList, Inbox, Flame, Send, Eye, EyeOff, Lock, X, Building2, Shield } from 'lucide-react';
 import Finanzas, { puedeVerFinanzas } from './Finanzas.jsx';
+import InformeEquipo, { puedeVerInformeEquipo } from './InformeEquipo.jsx';
 
 // ============================================
 // CONFIGURACIÓN
@@ -235,6 +236,17 @@ const diasHabilesEntreFechas = (fechaInicio, fechaFin) => {
   if (!fechaInicio || !fechaFin) return null;
   if (fechaFin < fechaInicio) return null;
   return contarDiasHabiles(fechaInicio, fechaFin);
+};
+
+// Devuelve el año y mes (1-12) de una fecha dd/mm/aaaa, o null
+const anioMesDe = (fechaStr) => {
+  if (!fechaStr || typeof fechaStr !== 'string') return null;
+  const p = fechaStr.split('/');
+  if (p.length !== 3) return null;
+  const mes = parseInt(p[1], 10);
+  const anio = parseInt(p[2], 10);
+  if (isNaN(mes) || isNaN(anio) || mes < 1 || mes > 12) return null;
+  return { anio, mes };
 };
 // ============================================
 // ESTILOS
@@ -1950,6 +1962,11 @@ function App() {
             <FileText size={16} /> Pagos
           </button>
         )}
+        {puedeVerInformeEquipo(usuarioActual) && (
+          <button className={`nav-btn ${vistaEfectiva === 'informeEquipo' ? 'active' : ''}`} onClick={() => setVista('informeEquipo')}>
+            <Users size={16} /> Informe de Equipo
+          </button>
+        )}
         {puedeVerFinanzas(usuarioActual) && (
           <button className={`nav-btn ${vistaEfectiva === 'finanzas' ? 'active' : ''}`} onClick={() => setVista('finanzas')}>
             <Lock size={16} /> Ingresos y Finanzas
@@ -2244,143 +2261,121 @@ function App() {
           </>
         )}
 
-        {!loading && !error && vistaEfectiva === 'estadisticas' && puedeVer(usuarioActual.rol, 'estadisticas') && (
-          <>
-            <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales 2026</h2>
+        {!loading && !error && vistaEfectiva === 'estadisticas' && puedeVer(usuarioActual.rol, 'estadisticas') && (() => {
+          // Radicados por fecha de radicación; expedidos por FECHA DE EXPEDICIÓN
+          const anioEstad = new Date().getFullYear();
+          const porMes = Array.from({ length: 12 }, () => ({ radicados: 0, expedidos: 0, desistidos: 0, actas: 0 }));
+          proyectos.forEach(p => {
+            const rad = anioMesDe(p.fechaRadicacion);
+            if (rad && rad.anio === anioEstad) porMes[rad.mes - 1].radicados++;
+            const exp = anioMesDe(p.fechaLicencia);
+            if (exp && exp.anio === anioEstad) porMes[exp.mes - 1].expedidos++;
+            const acta = anioMesDe(p.actaObservaciones);
+            if (acta && acta.anio === anioEstad) porMes[acta.mes - 1].actas++;
+            if (getEstadoFlujo(p) === 'DESISTIDO') {
+              const des = anioMesDe(p.fechaFinalizacion) || rad;
+              if (des && des.anio === anioEstad) porMes[des.mes - 1].desistidos++;
+            }
+          });
 
-            <div className="chart-card" style={{marginBottom:'20px'}}>
-              <h3>Radicados vs Expedidos por Mes</h3>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={(() => {
-                  const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-                  const data = mesesCortos.map(m => ({ mes: m, radicados: 0, expedidos: 0 }));
-                  proyectos.forEach(p => {
-                    if (p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') {
-                        const mesIdx = parseInt(partes[1]) - 1;
-                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
-                      }
-                    }
-                    if (getEstadoFlujo(p) === 'EXPEDIDO' && p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') {
-                        const mesIdx = parseInt(partes[1]) - 1;
-                        if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
-                      }
-                    }
-                  });
-                  return data;
-                })()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="radicados" fill="#c62828" name="Radicados" />
-                  <Bar dataKey="expedidos" fill="#388e3c" name="Expedidos" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+          const mesesLargos = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+          const dataGrafico = mesesCortos.map((m, i) => ({ mes: m, radicados: porMes[i].radicados, expedidos: porMes[i].expedidos }));
 
-            <div className="chart-card" style={{marginBottom:'20px'}}>
-              <h3>Resumen Detallado por Mes</h3>
-              <div className="table" style={{boxShadow:'none'}}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Mes</th>
-                      <th>Radicados</th>
-                      <th>Expedidos</th>
-                      <th>Desistidos</th>
-                      <th>En Observaciones</th>
-                      <th>% Aprobación Mes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const mesesLargos = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-                      return mesesLargos.map((nombreMes, idx) => {
-                        const radicadosMes = proyectos.filter(p => {
-                          if (!p.fechaRadicacion) return false;
-                          const partes = p.fechaRadicacion.split('/');
-                          return partes.length === 3 && partes[2] === '2026' && parseInt(partes[1]) - 1 === idx;
-                        });
-                        const expedidosMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'EXPEDIDO').length;
-                        const desistidosMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'DESISTIDO').length;
-                        const obsMes = radicadosMes.filter(p => getEstadoFlujo(p) === 'ACTA_OBS').length;
-                        const tasaMes = radicadosMes.length > 0 ? Math.round((expedidosMes / radicadosMes.length) * 100) : 0;
-                        if (radicadosMes.length === 0 && expedidosMes === 0) return null;
+          const totalRad = porMes.reduce((t, m) => t + m.radicados, 0);
+          const totalExp = porMes.reduce((t, m) => t + m.expedidos, 0);
+          const mesesConRad = porMes.filter(m => m.radicados > 0).length;
+          const mesesConExp = porMes.filter(m => m.expedidos > 0).length;
+          const maxRad = Math.max(...porMes.map(m => m.radicados));
+          const idxMaxRad = porMes.findIndex(m => m.radicados === maxRad);
+
+          return (
+            <>
+              <h2 style={{marginBottom:'20px'}}>📊 Estadísticas Mensuales {anioEstad}</h2>
+
+              <div className="info-panel" style={{marginBottom:'20px', background:'#e3f2fd', border:'1px solid #90caf9', color:'#1565c0'}}>
+                ℹ️ <strong>Cómo se cuentan los datos</strong><br/>
+                <span style={{fontSize:'13px'}}>
+                  Los <strong>radicados</strong> se agrupan por su fecha de radicación y los <strong>expedidos</strong> por su fecha de expedición.
+                  Por eso un proyecto radicado en un mes y expedido en otro aparece en meses distintos, que es lo correcto para medir la producción mensual.
+                </span>
+              </div>
+
+              <div className="chart-card" style={{marginBottom:'20px'}}>
+                <h3>Radicados vs Expedidos por Mes</h3>
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={dataGrafico}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="radicados" fill="#1976d2" name="Radicados" />
+                    <Bar dataKey="expedidos" fill="#388e3c" name="Expedidos" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="chart-card" style={{marginBottom:'20px'}}>
+                <h3>Resumen Detallado por Mes</h3>
+                <div className="table" style={{boxShadow:'none'}}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Mes</th>
+                        <th>Radicados</th>
+                        <th>Expedidos</th>
+                        <th>Actas notificadas</th>
+                        <th>Desistidos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mesesLargos.map((nombre, idx) => {
+                        const m = porMes[idx];
+                        if (m.radicados === 0 && m.expedidos === 0 && m.actas === 0 && m.desistidos === 0) return null;
                         return (
-                          <tr key={nombreMes}>
-                            <td><strong>{nombreMes}</strong></td>
-                            <td><span className="badge blue">{radicadosMes.length}</span></td>
-                            <td><span className="badge green">{expedidosMes}</span></td>
-                            <td><span className="badge gray">{desistidosMes}</span></td>
-                            <td><span className="badge orange">{obsMes}</span></td>
-                            <td><strong style={{color: tasaMes >= 50 ? '#388e3c' : tasaMes >= 30 ? '#f57c00' : '#c62828'}}>{tasaMes}%</strong></td>
+                          <tr key={nombre}>
+                            <td><strong>{nombre}</strong></td>
+                            <td><span className="badge blue">{m.radicados}</span></td>
+                            <td><span className="badge green">{m.expedidos}</span></td>
+                            <td><span className="badge orange">{m.actas}</span></td>
+                            <td><span className="badge gray">{m.desistidos}</span></td>
                           </tr>
                         );
-                      });
-                    })()}
-                  </tbody>
-                </table>
+                      })}
+                      <tr>
+                        <td><strong>Total año</strong></td>
+                        <td><strong>{totalRad}</strong></td>
+                        <td><strong>{totalExp}</strong></td>
+                        <td><strong>{porMes.reduce((t, m) => t + m.actas, 0)}</strong></td>
+                        <td><strong>{porMes.reduce((t, m) => t + m.desistidos, 0)}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
-            <div className="stats-grid">
-              <div className="stat-card">
-                <h3>Promedio Radicados/Mes</h3>
-                <div className="value">{(() => {
-                  const mesesActivos = new Set();
-                  proyectos.forEach(p => {
-                    if (p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
-                    }
-                  });
-                  return mesesActivos.size > 0 ? Math.round(totalProyectos / mesesActivos.size) : 0;
-                })()}</div>
+              <div className="stats-grid">
+                <div className="stat-card info">
+                  <h3>Promedio Radicados/Mes</h3>
+                  <div className="value">{mesesConRad > 0 ? Math.round(totalRad / mesesConRad) : 0}</div>
+                </div>
+                <div className="stat-card success">
+                  <h3>Promedio Expedidos/Mes</h3>
+                  <div className="value">{mesesConExp > 0 ? Math.round(totalExp / mesesConExp) : 0}</div>
+                </div>
+                <div className="stat-card">
+                  <h3>Mes con Más Radicados</h3>
+                  <div className="value" style={{fontSize:'22px'}}>{maxRad > 0 ? `${mesesCortos[idxMaxRad]} (${maxRad})` : '-'}</div>
+                </div>
+                <div className="stat-card success">
+                  <h3>Expedidos en el año</h3>
+                  <div className="value">{totalExp}</div>
+                </div>
               </div>
-              <div className="stat-card success">
-                <h3>Promedio Expedidos/Mes</h3>
-                <div className="value">{(() => {
-                  const mesesActivos = new Set();
-                  proyectos.forEach(p => {
-                    if (getEstadoFlujo(p) === 'EXPEDIDO' && p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') mesesActivos.add(partes[1]);
-                    }
-                  });
-                  return mesesActivos.size > 0 ? Math.round(aprobados / mesesActivos.size) : 0;
-                })()}</div>
-              </div>
-              <div className="stat-card info">
-                <h3>Mes con Más Radicados</h3>
-                <div className="value" style={{fontSize:'22px'}}>{(() => {
-                  const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-                  const conteos = new Array(12).fill(0);
-                  proyectos.forEach(p => {
-                    if (p.fechaRadicacion) {
-                      const partes = p.fechaRadicacion.split('/');
-                      if (partes.length === 3 && partes[2] === '2026') {
-                        const idx = parseInt(partes[1]) - 1;
-                        if (idx >= 0 && idx < 12) conteos[idx]++;
-                      }
-                    }
-                  });
-                  const max = Math.max(...conteos);
-                  const idx = conteos.indexOf(max);
-                  return max > 0 ? `${mesesCortos[idx]} (${max})` : '-';
-                })()}</div>
-              </div>
-              <div className="stat-card success">
-                <h3>Tasa Aprobación Anual</h3>
-                <div className="value">{tasaAprobacion}%</div>
-              </div>
-            </div>
-          </>
-        )}
+            </>
+          );
+        })()}
                 {!loading && !error && vistaEfectiva === 'estadisticasEstrategicas' && puedeVer(usuarioActual.rol, 'estadisticasEstrategicas') && (() => {
           const proyEstrat = proyectos.filter(p => p.estrategico);
           const totalEstrat = proyEstrat.length;
@@ -2392,6 +2387,7 @@ function App() {
           const sinFechaEstrat = sinFechaInicio.filter(p => p.estrategico).length;
           const tasaEstrat = totalEstrat > 0 ? Math.round((expedEstrat / totalEstrat) * 100) : 0;
           const prodEstrategica = productividadEquipo(true);
+          const anioEst = new Date().getFullYear();
           return (
             <>
               <h2 style={{marginBottom:'20px'}}>⭐ Estadísticas de Proyectos Estratégicos</h2>
@@ -2492,26 +2488,16 @@ function App() {
                     const mesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
                     const data = mesesCortos.map(m => ({ mes: m, radicados: 0, expedidos: 0 }));
                     proyEstrat.forEach(p => {
-                      if (p.fechaRadicacion) {
-                        const partes = p.fechaRadicacion.split('/');
-                        if (partes.length === 3 && partes[2] === '2026') {
-                          const mesIdx = parseInt(partes[1]) - 1;
-                          if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].radicados++;
-                        }
-                      }
-                      if (getEstadoFlujo(p) === 'EXPEDIDO' && p.fechaRadicacion) {
-                        const partes = p.fechaRadicacion.split('/');
-                        if (partes.length === 3 && partes[2] === '2026') {
-                          const mesIdx = parseInt(partes[1]) - 1;
-                          if (mesIdx >= 0 && mesIdx < 12) data[mesIdx].expedidos++;
-                        }
-                      }
+                      const rad = anioMesDe(p.fechaRadicacion);
+                      if (rad && rad.anio === anioEst) data[rad.mes - 1].radicados++;
+                      const exp = anioMesDe(p.fechaLicencia);
+                      if (exp && exp.anio === anioEst) data[exp.mes - 1].expedidos++;
                     });
                     return data;
                   })()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="mes" />
-                    <YAxis />
+                    <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="radicados" fill="#f9a825" name="Radicados Estratégicos" />
@@ -2624,6 +2610,19 @@ function App() {
             </>
           );
         })()}
+
+        {!loading && !error && vistaEfectiva === 'informeEquipo' && puedeVerInformeEquipo(usuarioActual) && (
+          <InformeEquipo
+            usuario={usuarioActual}
+            proyectos={proyectos}
+            tecnicos={TECNICOS}
+            getEstadoFlujo={getEstadoFlujo}
+            getFechaLimiteEtapa={getFechaLimiteEtapa}
+            estadosRevision={ESTADOS_REVISION}
+            diasHabilesEntreFechas={diasHabilesEntreFechas}
+            excelDateToDate={excelDateToDate}
+          />
+        )}
 
         {vistaEfectiva === 'finanzas' && puedeVerFinanzas(usuarioActual) && (
           <Finanzas

@@ -6,12 +6,14 @@ import jwt from 'jsonwebtoken';
 // Acceso exclusivo: juanmontes y luisfernando.
 // Almacenamiento: Upstash Redis vía REST (sin dependencias nuevas).
 //
-// GET    /api/finanzas            → todos los meses registrados
+// GET    /api/finanzas            → todos los meses + configuración
 // POST   /api/finanzas            → guarda un mes  { mes: 'AAAA-MM', datos: {...} }
+//                                   o la configuración { config: {...} }
 // DELETE /api/finanzas?mes=AAAA-MM → elimina un mes
 
 const USUARIOS_FINANZAS = ['juanmontes', 'luisfernando'];
 const CLAVE_INDICE = 'finanzas:meses';
+const CLAVE_CONFIG = 'finanzas:config';
 const claveMes = (mes) => `finanzas:mes:${mes}`;
 const REGEX_MES = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -47,6 +49,12 @@ const num = (v) => {
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
 };
 
+const dec = (v, min, max, pordefecto) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return pordefecto;
+  return Math.min(max, Math.max(min, n));
+};
+
 const txt = (v, max = 120) => String(v ?? '').trim().slice(0, max);
 
 const lista = (arr, mapper) =>
@@ -74,7 +82,9 @@ function sanitizar(d = {}) {
     proveedores: lista(d.proveedores, e => ({
       nombre: txt(e?.nombre),
       concepto: txt(e?.concepto, 200),
-      valor: num(e?.valor)
+      valor: num(e?.valor),
+      generaIva: Boolean(e?.generaIva),
+      recurrente: e?.recurrente === undefined ? true : Boolean(e.recurrente)
     })),
     impuestos: lista(d.impuestos, e => ({
       concepto: txt(e?.concepto),
@@ -82,9 +92,45 @@ function sanitizar(d = {}) {
     })),
     radicados: num(d.radicados),
     expedidos: num(d.expedidos),
+    saldoBanco: num(d.saldoBanco),
     notas: txt(d.notas, 2000)
   };
 }
+
+// Configuración del flujo de caja
+function sanitizarConfig(c = {}) {
+  return {
+    saldoInicial: num(c.saldoInicial),
+    mesSaldoInicial: REGEX_MES.test(String(c.mesSaldoInicial || '')) ? String(c.mesSaldoInicial) : '2026-01',
+    tarifaIva: dec(c.tarifaIva, 0, 0.5, 0.19),
+    tarifaRenta: dec(c.tarifaRenta, 0, 0.6, 0.35),
+    ajusteIngresos: dec(c.ajusteIngresos, -0.9, 3, 0),
+    mesesPromedio: Math.round(dec(c.mesesPromedio, 1, 12, 3)),
+    mesPagoRenta: Math.round(dec(c.mesPagoRenta, 1, 12, 9)),
+    anioInicioProvisiones: Math.round(dec(c.anioInicioProvisiones, 2020, 2100, 2026)),
+    ingresosManuales: (c.ingresosManuales && typeof c.ingresosManuales === 'object')
+      ? Object.fromEntries(
+          Object.entries(c.ingresosManuales)
+            .filter(([k]) => REGEX_MES.test(k))
+            .slice(0, 60)
+            .map(([k, v]) => [k, num(v)])
+        )
+      : {},
+    actualizado: new Date().toISOString()
+  };
+}
+
+const CONFIG_POR_DEFECTO = {
+  saldoInicial: 0,
+  mesSaldoInicial: '2026-01',
+  tarifaIva: 0.19,
+  tarifaRenta: 0.35,
+  ajusteIngresos: 0,
+  mesesPromedio: 3,
+  mesPagoRenta: 9,
+  anioInicioProvisiones: 2026,
+  ingresosManuales: {}
+};
 
 // ============================================
 // CONTROL DE ACCESO
@@ -139,15 +185,31 @@ export default async (req, res) => {
           }
         });
       }
-      return res.status(200).json({ success: true, meses: registros });
+
+      let config = { ...CONFIG_POR_DEFECTO };
+      const crudo = await redis(['GET', CLAVE_CONFIG]);
+      if (crudo) {
+        try { config = { ...config, ...JSON.parse(crudo) }; } catch (e) { /* usar valores por defecto */ }
+      }
+
+      return res.status(200).json({ success: true, meses: registros, config });
     }
 
-    // ---------- GUARDAR UN MES ----------
+    // ---------- GUARDAR MES O CONFIGURACIÓN ----------
     if (req.method === 'POST') {
       let body = req.body || {};
       if (typeof body === 'string') {
         try { body = JSON.parse(body || '{}'); } catch (e) { body = {}; }
       }
+
+      // Guardar configuración del flujo de caja
+      if (body.config) {
+        const config = sanitizarConfig(body.config);
+        await redis(['SET', CLAVE_CONFIG, JSON.stringify(config)]);
+        return res.status(200).json({ success: true, config });
+      }
+
+      // Guardar un mes
       const mes = String(body.mes || '');
       if (!REGEX_MES.test(mes)) {
         return res.status(400).json({ success: false, error: 'Mes inválido (formato AAAA-MM)' });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Trash2, Copy, Printer, ArrowUpRight, ArrowDownRight, Minus, Lock, AlertTriangle, Users, Truck, Gift, ClipboardList, X, RefreshCw, Landmark } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Trash2, Copy, Printer, ArrowUpRight, ArrowDownRight, Minus, Lock, AlertTriangle, Users, Truck, Gift, ClipboardList, X, RefreshCw, Landmark, Activity } from 'lucide-react';
+import FlujoCaja, { CONFIG_FLUJO_POR_DEFECTO } from './FlujoCaja.jsx';
 
 // ============================================
 // MÓDULO INGRESOS Y FINANZAS
@@ -12,7 +13,7 @@ import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Tr
 // MAPA DEL ARCHIVO
 // Parte 1: imports, constantes, formatos y cálculos
 // Parte 2: STYLES_FINANZAS (estilos de la pantalla)
-// Parte 3: STYLES_INFORME + componentes pequeños (InputPesos, TarjetaKPI, BadgeVariacion)
+// Parte 3: STYLES_INFORME + componentes pequeños
 // Parte 4: InformeJunta (informe imprimible para la Junta)
 // Parte 5: FormularioMes (pestaña "Registrar mes")
 // Parte 6: ResumenMes (pestaña "Resumen")
@@ -21,7 +22,8 @@ import { Wallet, TrendingUp, TrendingDown, FileText, CheckCircle, Save, Plus, Tr
 // Estructura de un mes (igual a api/finanzas.js):
 // { ingresos: { variable, fijo, unico }, ivaIncluido,
 //   nomina: [{ nombre, valor }], prestaciones: [{ concepto, valor }],
-//   proveedores: [{ nombre, concepto, valor }], impuestos: [{ concepto, valor }],
+//   proveedores: [{ nombre, concepto, valor, generaIva, recurrente }],
+//   impuestos: [{ concepto, valor }],
 //   radicados, expedidos, notas, actualizado, actualizadoPor }
 //
 // Cálculos:
@@ -59,6 +61,7 @@ const CONCEPTOS_IMPUESTOS = [
   'Industria y Comercio (ICA)',
   'Retención en la fuente',
   'Avisos y tableros',
+  'Declaración de renta',
   'Otro'
 ];
 
@@ -153,7 +156,7 @@ const formatoFechaHora = (iso) => {
 
 const registroVacio = () => ({
   ingresos: { variable: 0, fijo: 0, unico: 0 },
-  ivaIncluido: false,
+  ivaIncluido: true,
   nomina: [],
   prestaciones: [],
   proveedores: [],
@@ -175,7 +178,13 @@ const normalizarRegistro = (r) => {
     ingresos: { ...base.ingresos, ...(copia.ingresos || {}) },
     nomina: Array.isArray(copia.nomina) ? copia.nomina : [],
     prestaciones: Array.isArray(copia.prestaciones) ? copia.prestaciones : [],
-    proveedores: Array.isArray(copia.proveedores) ? copia.proveedores : [],
+    proveedores: Array.isArray(copia.proveedores)
+      ? copia.proveedores.map(p => ({
+          ...p,
+          generaIva: Boolean(p && p.generaIva),
+          recurrente: p && p.recurrente === false ? false : true
+        }))
+      : [],
     impuestos: Array.isArray(copia.impuestos) ? copia.impuestos : []
   };
 };
@@ -336,8 +345,8 @@ const STYLES_FINANZAS = `
 .fin-selectores { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .fin-select { padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; background: white; cursor: pointer; font-family: inherit; }
 .fin-select:focus { outline: none; border-color: #c62828; }
-.fin-tabs { display: flex; gap: 6px; background: #f5f5f5; padding: 4px; border-radius: 10px; }
-.fin-tab { background: none; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; color: #666; font-weight: 500; display: flex; align-items: center; gap: 6px; font-family: inherit; }
+.fin-tabs { display: flex; gap: 6px; background: #f5f5f5; padding: 4px; border-radius: 10px; flex-wrap: wrap; }
+.fin-tab { background: none; border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; color: #666; font-weight: 500; display: flex; align-items: center; gap: 6px; font-family: inherit; }
 .fin-tab.active { background: white; color: #c62828; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .fin-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -413,11 +422,14 @@ const STYLES_FINANZAS = `
 .fin-fila-item { display: grid; gap: 10px; align-items: center; margin-bottom: 10px; }
 .fin-fila-item.nomina { grid-template-columns: 1fr 220px 40px; }
 .fin-fila-item.prestacion { grid-template-columns: 1fr 220px 40px; }
-.fin-fila-item.proveedor { grid-template-columns: 1fr 1fr 200px 40px; }
+.fin-fila-item.proveedor { grid-template-columns: 1fr 1fr 180px 110px 40px; }
 .fin-fila-encabezado { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
 .fin-total-linea { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 2px solid #f0f0f0; font-size: 15px; font-weight: 700; color: #1a1a1a; }
 .fin-check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #444; cursor: pointer; margin-top: 14px; user-select: none; }
 .fin-check input { width: 18px; height: 18px; accent-color: #c62828; cursor: pointer; }
+.fin-check-mini { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: #555; cursor: pointer; user-select: none; padding: 8px 6px; border: 1.5px solid #e0e0e0; border-radius: 8px; background: #fafafa; white-space: nowrap; }
+.fin-check-mini input { width: 15px; height: 15px; accent-color: #6a1b9a; cursor: pointer; margin: 0; }
+.fin-check-mini.on { border-color: #ce93d8; background: #f8f0fb; color: #6a1b9a; font-weight: 600; }
 .fin-sugerencia { font-size: 12px; color: #1565c0; background: #e3f2fd; border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .fin-sugerencia button { background: none; border: none; color: #1565c0; font-weight: 600; cursor: pointer; text-decoration: underline; font-size: 12px; font-family: inherit; }
 .fin-vacio-lista { color: #999; font-size: 13px; padding: 12px 0; font-style: italic; }
@@ -442,13 +454,14 @@ const STYLES_FINANZAS = `
   .fin-kpis { grid-template-columns: repeat(2, 1fr); }
   .fin-grid-2 { grid-template-columns: 1fr; }
   .fin-campos { grid-template-columns: 1fr 1fr; }
+  .fin-fila-item.proveedor { grid-template-columns: 1fr 1fr 160px 100px 40px; }
 }
 
 @media (max-width: 768px) {
   .fin-titulo { font-size: 20px; }
   .fin-barra { padding: 12px; }
   .fin-tabs { width: 100%; }
-  .fin-tab { flex: 1; justify-content: center; padding: 9px 10px; }
+  .fin-tab { flex: 1; justify-content: center; padding: 9px 8px; font-size: 13px; }
   .fin-kpis { gap: 10px; }
   .fin-kpi { padding: 14px; }
   .fin-kpi-valor { font-size: 19px; }
@@ -457,8 +470,10 @@ const STYLES_FINANZAS = `
   .fin-fila-item.nomina, .fin-fila-item.prestacion { grid-template-columns: 1fr 40px; }
   .fin-fila-item.nomina > :nth-child(2), .fin-fila-item.prestacion > :nth-child(2) { grid-column: 1 / 2; }
   .fin-fila-item.proveedor { grid-template-columns: 1fr 40px; }
-  .fin-fila-item.proveedor > :nth-child(2), .fin-fila-item.proveedor > :nth-child(3) { grid-column: 1 / 2; }
-  .fin-fila-item.proveedor > :nth-child(4) { grid-row: 1; grid-column: 2; }
+  .fin-fila-item.proveedor > :nth-child(2),
+  .fin-fila-item.proveedor > :nth-child(3),
+  .fin-fila-item.proveedor > :nth-child(4) { grid-column: 1 / 2; }
+  .fin-fila-item.proveedor > :nth-child(5) { grid-row: 1; grid-column: 2; }
   .fin-fila-encabezado { display: none !important; }
   .fin-barra-guardar { padding: 12px 14px; }
   .fin-barra-guardar-datos { gap: 14px; }
@@ -1012,6 +1027,7 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
   const claveRef = registroAnteriorMasCercano(meses, clave);
   const registroRef = claveRef ? normalizarRegistro(meses[claveRef]) : null;
   const alertaIva = tieneIvaEnImpuestos(borrador) && !borrador.ivaIncluido;
+  const proveedoresConIva = borrador.proveedores.filter(p => p.generaIva).length;
 
   // Nombres de proveedores usados antes (para autocompletar)
   const proveedoresConocidos = useMemo(() => {
@@ -1079,7 +1095,8 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
           Estos valores incluyen IVA
         </label>
         <div className="fin-seccion-sub" style={{ marginTop: 6, marginBottom: 0 }}>
-          Si en la sección de impuestos registras el pago de IVA, marca esta casilla y registra los ingresos con IVA. Así la utilidad queda correcta.
+          Mantén esta casilla marcada y registra lo efectivamente recaudado. El flujo de caja separa solo la base y el IVA,
+          y provisiona el IVA para su pago cuatrimestral.
         </div>
         <div className="fin-total-linea"><span>Total ingresos</span><span className="num">{formatoPesos(c.ingresos)}</span></div>
       </div>
@@ -1146,7 +1163,10 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
         <div className="fin-seccion-cabecera">
           <div>
             <div className="fin-seccion-titulo"><Truck size={18} color={COLORES.rojo} /> 4. Proveedores</div>
-            <div className="fin-seccion-sub" style={{ marginBottom: 0 }}>Pagos realizados en el mes.</div>
+            <div className="fin-seccion-sub" style={{ marginBottom: 0 }}>
+              Pagos realizados en el mes. Marca <strong>IVA</strong> en los que facturan con IVA: ese valor se descuenta
+              del IVA a pagar y mejora el estimado del flujo de caja.
+            </div>
           </div>
           {registroRef && registroRef.proveedores.length > 0 && (
             <button className="fin-btn fin-btn-secundario" onClick={() => copiarDeAnterior('proveedores', 'proveedores')}>
@@ -1159,7 +1179,7 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
         </datalist>
         {borrador.proveedores.length > 0 && (
           <div className="fin-fila-item proveedor fin-fila-encabezado" style={{ display: 'grid' }}>
-            <span>Proveedor</span><span>Concepto</span><span>Valor pagado</span><span></span>
+            <span>Proveedor</span><span>Concepto</span><span>Valor pagado</span><span>¿Factura con IVA?</span><span></span>
           </div>
         )}
         {borrador.proveedores.length === 0 && <div className="fin-vacio-lista">Aún no hay proveedores en este mes.</div>}
@@ -1168,19 +1188,36 @@ const FormularioMes = ({ clave, borrador, onCambiar, meses, proyectos, onGuardar
             <input className="fin-input" list="fin-proveedores-conocidos" placeholder="Nombre del proveedor" value={p.nombre || ''} onChange={(ev) => actualizarItem('proveedores', i, 'nombre', ev.target.value)} />
             <input className="fin-input" placeholder="Concepto (ej.: arriendo)" value={p.concepto || ''} onChange={(ev) => actualizarItem('proveedores', i, 'concepto', ev.target.value)} />
             <InputPesos valor={p.valor} onChange={(v) => actualizarItem('proveedores', i, 'valor', v)} />
+            <label className={`fin-check-mini ${p.generaIva ? 'on' : ''}`} title="Marca si este proveedor factura con IVA">
+              <input type="checkbox" checked={!!p.generaIva} onChange={(ev) => actualizarItem('proveedores', i, 'generaIva', ev.target.checked)} />
+              IVA
+            </label>
             <button className="fin-btn-icono" title="Quitar" onClick={() => quitarItem('proveedores', i)}><Trash2 size={16} /></button>
           </div>
         ))}
-        <button className="fin-btn fin-btn-secundario" onClick={() => agregarItem('proveedores', { nombre: '', concepto: '', valor: 0 })}>
+        <button className="fin-btn fin-btn-secundario" onClick={() => agregarItem('proveedores', { nombre: '', concepto: '', valor: 0, generaIva: false, recurrente: true })}>
           <Plus size={14} /> Agregar proveedor
         </button>
+        {borrador.proveedores.length > 0 && proveedoresConIva === 0 && (
+          <div className="fin-aviso info" style={{ marginTop: 12 }}>
+            <Landmark size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>
+              Ningún proveedor está marcado con IVA. El IVA a pagar se estimará sin descuentos, así que saldrá más alto
+              que el real. Marca los que facturan con IVA (normalmente no lo hacen el arriendo ni los honorarios de
+              personas naturales no declarantes).
+            </span>
+          </div>
+        )}
         <div className="fin-total-linea"><span>Total proveedores</span><span className="num">{formatoPesos(c.proveedores)}</span></div>
       </div>
 
       {/* ---------- IMPUESTOS ---------- */}
       <div className="fin-seccion">
-        <div className="fin-seccion-titulo"><Landmark size={18} color={COLORES.rojo} /> 5. Impuestos <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>(opcional)</span></div>
-        <div className="fin-seccion-sub">IVA, Industria y Comercio (ICA), retención en la fuente u otros impuestos pagados en el mes.</div>
+        <div className="fin-seccion-titulo"><Landmark size={18} color={COLORES.rojo} /> 5. Impuestos pagados <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>(opcional)</span></div>
+        <div className="fin-seccion-sub">
+          Solo lo efectivamente pagado en el mes. El flujo de caja los descuenta de las provisiones acumuladas,
+          así que es importante usar los nombres IVA, Industria y Comercio o Renta para que los reconozca.
+        </div>
         <datalist id="fin-conceptos-impuestos">
           {CONCEPTOS_IMPUESTOS.map(ci => <option key={ci} value={ci} />)}
         </datalist>
@@ -1524,7 +1561,14 @@ const ResumenMes = ({ clave, meses, onIrARegistrar }) => {
                   <tr><td colSpan="3" style={{ color: '#999', textAlign: 'center' }}>Sin pagos a proveedores</td></tr>
                 )}
                 {registro.proveedores.map((p, i) => (
-                  <tr key={i}><td>{p.nombre || '—'}</td><td>{p.concepto || '—'}</td><td className="num">{formatoPesos(p.valor)}</td></tr>
+                  <tr key={i}>
+                    <td>
+                      {p.nombre || '—'}
+                      {p.generaIva && <span style={{ color: COLORES.morado, fontSize: 11, marginLeft: 6, fontWeight: 600 }}>IVA</span>}
+                    </td>
+                    <td>{p.concepto || '—'}</td>
+                    <td className="num">{formatoPesos(p.valor)}</td>
+                  </tr>
                 ))}
                 <tr className="total"><td colSpan="2">Total proveedores</td><td className="num">{formatoPesos(c.proveedores)}</td></tr>
               </tbody>
@@ -1559,6 +1603,7 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
   const permitido = puedeVerFinanzas(usuario);
 
   const [meses, setMeses] = useState({});
+  const [configFlujo, setConfigFlujo] = useState({ ...CONFIG_FLUJO_POR_DEFECTO });
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [inicializado, setInicializado] = useState(false);
@@ -1603,6 +1648,7 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
       const data = await llamarApi('GET');
       const datos = data.meses || {};
       setMeses(datos);
+      if (data.config) setConfigFlujo({ ...CONFIG_FLUJO_POR_DEFECTO, ...data.config });
       if (!inicializado) {
         // Si el mes actual no tiene datos, abrir el último mes registrado
         const hoyK = mesPorDefecto();
@@ -1690,7 +1736,7 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
       const data = await llamarApi('POST', { cuerpo: { mes: clave, datos: borrador } });
       setMeses(prev => ({ ...prev, [clave]: data.registro }));
       setModificado(false);
-      setToast({ texto: `${nombreMes(clave)} guardado correctamente`, tipo: 'ok' });
+      setToast({ texto: `${nombreMes(clave)} guardado · el flujo de caja ya está actualizado`, tipo: 'ok' });
     } catch (e) {
       setToast({ texto: `No se pudo guardar: ${e.message}`, tipo: 'error' });
     } finally {
@@ -1717,6 +1763,13 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
     }
   };
 
+  // Guardar la configuración del flujo de caja
+  const guardarConfigFlujo = async (nueva) => {
+    const data = await llamarApi('POST', { cuerpo: { config: nueva } });
+    setConfigFlujo({ ...CONFIG_FLUJO_POR_DEFECTO, ...(data.config || nueva) });
+    return data;
+  };
+
   const abrirInforme = () => {
     if (!meses[clave]) return;
     if (modificado && !window.confirm('Tienes cambios sin guardar. El informe usará la última versión guardada. ¿Continuar?')) return;
@@ -1741,6 +1794,7 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
   }
 
   const { anio: anioSel, mes: mesSel } = partesMes(clave);
+  const enFlujo = pestana === 'flujo';
 
   // ---------- PANTALLA ----------
   return (
@@ -1750,19 +1804,23 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
       <div className="fin-encabezado">
         <div>
           <div className="fin-titulo"><Wallet size={24} color={COLORES.rojo} /> Ingresos y Finanzas</div>
-          <div className="fin-subtitulo">Informe mensual de ingresos, gastos, impuestos y utilidad · {nombreMes(clave)}</div>
+          <div className="fin-subtitulo">
+            {enFlujo
+              ? 'Flujo de caja, provisiones de impuestos y proyección a doce meses'
+              : `Informe mensual de ingresos, gastos, impuestos y utilidad · ${nombreMes(clave)}`}
+          </div>
         </div>
         <span className="fin-badge-privado"><Lock size={12} /> Solo administración</span>
       </div>
 
       <div className="fin-barra">
         <div className="fin-selectores">
-          <select className="fin-select" value={mesSel} onChange={(e) => cambiarMes(claveMes(anioSel, Number(e.target.value)))}>
+          <select className="fin-select" value={mesSel} onChange={(e) => cambiarMes(claveMes(anioSel, Number(e.target.value)))} disabled={enFlujo}>
             {MESES.map((m, i) => (
               <option key={m} value={i + 1}>{m}{meses[claveMes(anioSel, i + 1)] ? '  ●' : ''}</option>
             ))}
           </select>
-          <select className="fin-select" value={anioSel} onChange={(e) => cambiarMes(claveMes(Number(e.target.value), mesSel))}>
+          <select className="fin-select" value={anioSel} onChange={(e) => cambiarMes(claveMes(Number(e.target.value), mesSel))} disabled={enFlujo}>
             {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
           <button className="fin-btn-icono" title="Actualizar datos" onClick={actualizarDatos}><RefreshCw size={16} /></button>
@@ -1775,13 +1833,18 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
           <button className={`fin-tab ${pestana === 'registrar' ? 'active' : ''}`} onClick={() => setPestana('registrar')}>
             <FileText size={15} /> Registrar mes{modificado ? ' •' : ''}
           </button>
+          <button className={`fin-tab ${pestana === 'flujo' ? 'active' : ''}`} onClick={() => setPestana('flujo')}>
+            <Activity size={15} /> Flujo de caja
+          </button>
         </div>
 
         <div className="fin-acciones">
-          <button className="fin-btn fin-btn-oscuro" onClick={abrirInforme} disabled={!meses[clave]}
-            title={meses[clave] ? '' : 'Primero registra y guarda este mes'}>
-            <Printer size={16} /> Generar Informe para Junta
-          </button>
+          {!enFlujo && (
+            <button className="fin-btn fin-btn-oscuro" onClick={abrirInforme} disabled={!meses[clave]}
+              title={meses[clave] ? '' : 'Primero registra y guarda este mes'}>
+              <Printer size={16} /> Generar Informe para Junta
+            </button>
+          )}
         </div>
       </div>
 
@@ -1812,6 +1875,14 @@ export default function Finanzas({ token, usuario, proyectos = [], onSesionExpir
           existe={!!meses[clave]}
           precargadoDe={precargadoDe}
           modificado={modificado}
+        />
+      )}
+
+      {!cargando && !error && pestana === 'flujo' && (
+        <FlujoCaja
+          meses={meses}
+          config={configFlujo}
+          onGuardarConfig={guardarConfigFlujo}
         />
       )}
 
